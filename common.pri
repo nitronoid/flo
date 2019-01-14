@@ -12,6 +12,7 @@ INCLUDEPATH += \
   /usr/local/include \
   /usr/local/include/libigl/include \
   /usr/include/suitesparse \
+  /home/s4902673/SuiteSparse/include \
   /public/devel/2018/include \
   /public/devel/2018/include/eigen3 
 
