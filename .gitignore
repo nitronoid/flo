@@ -1,0 +1,8 @@
+flow_demo
+*/obj
+obj
+*.obj
+Makefile
+*/Makefile
+*.qmake*
+*.swp
