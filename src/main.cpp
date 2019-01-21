@@ -26,19 +26,30 @@ std::vector<double> mean_curvature(
   Map<const VectorXd> M(i_vertex_mass.data(), i_vertex_mass.size());
 
   Matrix<double, Dynamic, 3> HN(i_vertices.size(), 3); 
-  HN = (i_cotangent_laplacian * V);
+  HN = (2.0 * i_cotangent_laplacian * V);
 
-  const auto coeff = 1. / 12.;
-  HN.col(0).array() /= (12. *M.array() * N.col(0).array());
-  HN.col(1).array() /= (12. *M.array() * N.col(1).array());
-  HN.col(2).array() /= (12. *M.array() * N.col(2).array());
-  VectorXd H = HN.rowwise().mean();
+  HN.col(0).array() /= (12. * M.array());
+  HN.col(1).array() /= (12. * M.array());
+  HN.col(2).array() /= (12. * M.array());
+  HN = (-HN).eval();
+  VectorXd H = -HN.rowwise().norm();
+
+  //for (int r = 0; r < i_vertices.size(); ++r)
+  //{
+  //  auto ham = hammilton_product(i_normals[r], HN.row(r));
+  //  if (ham.w() < 0.0)
+  //    H(r) *= -1.0;
+  //}
   
-  H *= 0.5;
-  //std::cout<<"count: "<<count<<'\n';
-  //std::cout<<HN<<'\n';
+  //H *= 0.5;
+  std::cout<<"curv:\n "<<HN<<'\n';
+  std::cout<<"norm:\n "<<H<<'\n';
 
   auto curvature = matrix_to_array(H);
+  int count = 0;
+  for (const auto& c : curvature)
+    if (c < 0.0) count++;
+  std::cout<<"num neg: "<<count<<'\n';
   return curvature;
 }
 
@@ -144,35 +155,36 @@ int main()
 {
   auto surf = flo::load_mesh("foo.obj");
 
-  for (int iter = 0; iter < 3; ++iter)
+  for (int iter = 0; iter < 5; ++iter)
   {
   auto normals = flo::vertex_normals(surf.vertices, surf.faces);
-  for (const auto& n : normals)
-    std::cout<<n<<'\n';
-  std::cout<<normals.size()<<'\n';
+  //for (const auto& n : normals)
+  //  std::cout<<n<<'\n';
+  //std::cout<<normals.size()<<'\n';
 
   // Calculate the cotangent laplacian for our mesh
   auto L = flo::cotangent_laplacian(surf.vertices, surf.faces);
   auto mass = vertex_mass(surf.vertices, surf.faces);
   auto M = array_to_matrix(gsl::make_span(mass));
 
-  //std::cout<<"yo1\n";
-  std::vector<Vector4d> constraints; constraints.reserve(normals.size());
-  for (int i = 0; i < normals.size(); ++i)
-    constraints.emplace_back(1., normals[i].x(), normals[i].y(), normals[i].z()); 
-  std::cout<<"yo2\n";
-  const auto ip = [&](const auto& x, const auto& y) {
-    return x.transpose() * M.asDiagonal() * y;
-  };
-  auto basis = build_constraint_basis(constraints, ip);
-  //std::cout<<"yo3\n";
+  //std::vector<double> constraints(normals.size(), 1.);
+  ////std::vector<Vector4d> constraints; constraints.reserve(normals.size());
+  ////for (int i = 0; i < normals.size(); ++i)
+  ////  constraints.emplace_back(1., normals[i].x(), normals[i].y(), normals[i].z()); 
+
+  //const auto ip = [&](const auto& x, const auto& y) {
+  //  return x.transpose() * M.asDiagonal() * y;
+  //};
+  //auto basis = build_constraint_basis(constraints, ip);
 
   auto mc = mean_curvature(surf.vertices, L, mass, normals);
-  const auto di = [](const auto& matrix) noexcept 
-  {                               
-    return -1.f * matrix;        
-  };
-  project_constraints(mc, 0.95f, basis, di, ip);
+  auto CURV = array_to_matrix(gsl::make_span(mc));
+  CURV -= (CURV.sum() / M.sum() * M);
+  //const auto di = [](const auto& matrix) noexcept 
+  //{                               
+  //  return 1.f * matrix;        
+  //};
+  //project_constraints(mc, 0.95f, basis, di, ip);
   //for (const auto& c : mc)
   //  std::cout<<c<<'\n';
 
