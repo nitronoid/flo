@@ -38,6 +38,28 @@ Eigen::Matrix<double, Eigen::Dynamic, 4> to_quaternion_matrix(
 
 std::vector<Eigen::Vector4d> to_quaternion_vector(const Eigen::VectorXd& i_vec);
 
+template <typename T>
+Eigen::Map<
+Eigen::Matrix<T, Eigen::Dynamic, 1>, Eigen::Unaligned> 
+array_to_matrix(gsl::span<T> i_array)
+{
+  using namespace Eigen;
+  Map<Matrix<T, Dynamic, 1>, Unaligned> array_mask(
+      i_array.data(), i_array.size(), 1);
+  return array_mask;
+}
+
+template <typename T>
+Eigen::Map<
+const Eigen::Matrix<T, Eigen::Dynamic, 1>, Eigen::Unaligned> 
+array_to_matrix(const gsl::span<const T> i_array)
+{
+  using namespace Eigen;
+  Map<const Matrix<T, Dynamic, 1>, Unaligned> array_mask(
+      i_array.data(), i_array.size(), 1);
+  return array_mask;
+}
+
 template <typename T, int R>
 Eigen::Map<
 Eigen::Matrix<T, Eigen::Dynamic, R, Eigen::RowMajor>, Eigen::Unaligned> 
