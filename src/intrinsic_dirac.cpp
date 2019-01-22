@@ -31,8 +31,6 @@ SparseMatrix<double> intrinsic_dirac(
     auto a = -1.f / (4.f*i_face_area[k]);
     auto b = 1.f / 6.f;
     auto c = i_face_area[k] / 9.f;
-    double avg_rho = (i_rho[f[0]] + i_rho[f[1]] + i_rho[f[2]])/3; 
-
 
     // Compute edge vectors as imagnary quaternions
     std::array<Vector4d, 3> edges;
@@ -46,8 +44,8 @@ SparseMatrix<double> intrinsic_dirac(
     edges[2].w() = 0.f;
 
     // increment matrix entry for each ordered pair of vertices
-    for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
+    for (uint i = 0; i < 3; i++)
+    for (uint j = 0; j < 3; j++)
     {
       // W comes first in a quaternion but last in a vector
       Vector4d cur_quat(
