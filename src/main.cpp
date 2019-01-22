@@ -112,8 +112,6 @@ void project_constraints(gsl::span<double> io_curvature,
   const auto vlen = io_curvature.size();
   const auto n_vecs = i_basis.cols();
   auto kappa_dot = array_to_matrix(io_curvature);
-  kappa_dot.array() -= kappa_dot.mean();
-  //kappa_dot.normalize();
 
   VectorXd accum(vlen);
   accum.setZero();

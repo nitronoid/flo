@@ -1,6 +1,7 @@
 #include "intrinsic_dirac.hpp"
 #include "flo_matrix_operation.hpp"
 #include "flo_quaternion_operation.hpp"
+#include <iostream>
 
 using namespace Eigen;
 
@@ -56,14 +57,10 @@ SparseMatrix<double> intrinsic_dirac(
           D.coeff(f[i] * 4 + 0, f[j] * 4));
 
       // Calculate the matrix component
-      //Vector4d q =
-      //  a * hammilton_product(edges[i], edges[j]) +
-      //  b * (i_rho[i] * edges[j] - i_rho[j] * edges[i]);
-      //q.w() += i_rho[i] * i_rho[j] * c;
       Vector4d q =
         a * hammilton_product(edges[i], edges[j]) +
-        b * avg_rho * (edges[j] - edges[i]);
-      q.w() += avg_rho * avg_rho * c;
+        b * (i_rho[f[i]] * edges[j] - i_rho[f[j]] * edges[i]);
+      q.w() += i_rho[f[i]] * i_rho[f[j]] * c;
       // Sum it with any exisiting value
       cur_quat += q;
 
