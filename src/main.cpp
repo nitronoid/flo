@@ -1,12 +1,9 @@
 #include <iostream>
-#include <igl/invert_diag.h>
 #include <igl/writeOBJ.h>
-#include <igl/principal_curvature.h>
 #include <igl/read_triangle_mesh.h>
 
-#include <igl/massmatrix.h>
-
 #include "cotangent_laplacian.hpp"
+#include "mean_curvature.hpp"
 #include "load_mesh.hpp"
 #include "flo_matrix_operation.hpp"
 #include "flo_quaternion_operation.hpp"
@@ -17,32 +14,6 @@
 using namespace Eigen;
 using namespace flo;
 
-std::vector<double> signed_mean_curvature(
-    const gsl::span<const Vector3d> i_vertices,
-    const SparseMatrix<double>& i_cotangent_laplacian,
-    const gsl::span<const double> i_vertex_mass,
-    const gsl::span<const Vector3d> i_normals)
-{
-  auto V = array_to_matrix(i_vertices);
-  auto N = array_to_matrix(i_normals);
-  Map<const VectorXd> M(i_vertex_mass.data(), i_vertex_mass.size());
-
-  VectorXd Minv = 1. / (12. * M.array());
-  Matrix<double, Dynamic, 3> HN 
-    = (-Minv).asDiagonal() * (2.0 * i_cotangent_laplacian * V);
-  VectorXd H = HN.rowwise().norm();
-
-  auto curvature = matrix_to_array(H);
-  for (int i = 0; i < curvature.size(); ++i)
-  {
-    //curvature[i] = std::abs(curvature[i]);
-    // if the angle between the unit and curvature normals is obtuse,
-    // we need to flow in the opposite direction, and hence invert our sign
-    auto NdotH = i_normals[i].dot(HN.row(i));
-    curvature[i] = std::copysign(curvature[i], std::move(NdotH));
-  }
-  return curvature;
-}
 
 std::vector<double> vertex_mass(
     const gsl::span<const Vector3d> i_vertices,
@@ -126,7 +97,7 @@ int main()
 {
   auto surf = flo::load_mesh("foo.obj");
 
-  for (int iter = 0; iter < 1; ++iter)
+  for (int iter = 0; iter < 6; ++iter)
   {
   auto normals = flo::vertex_normals(surf.vertices, surf.faces);
 
