@@ -30,9 +30,12 @@ SparseMatrix<double> intrinsic_dirac(
     auto a = -1.f / (4.f*i_face_area[k]);
     auto b = 1.f / 6.f;
     auto c = i_face_area[k] / 9.f;
+    double avg_rho = (i_rho[f[0]] + i_rho[f[1]] + i_rho[f[2]])/3; 
+
 
     // Compute edge vectors as imagnary quaternions
     std::array<Vector4d, 3> edges;
+    // opposing edge per vertex i.e. vertex one oposes edge 1->2
     edges[0].head<3>() = i_vertices[f[2]] - i_vertices[f[1]];
     edges[1].head<3>() = i_vertices[f[0]] - i_vertices[f[2]];
     edges[2].head<3>() = i_vertices[f[1]] - i_vertices[f[0]];
@@ -53,10 +56,14 @@ SparseMatrix<double> intrinsic_dirac(
           D.coeff(f[i] * 4 + 0, f[j] * 4));
 
       // Calculate the matrix component
+      //Vector4d q =
+      //  a * hammilton_product(edges[i], edges[j]) +
+      //  b * (i_rho[i] * edges[j] - i_rho[j] * edges[i]);
+      //q.w() += i_rho[i] * i_rho[j] * c;
       Vector4d q =
         a * hammilton_product(edges[i], edges[j]) +
-        b * (i_rho[i] * edges[j] - i_rho[j] * edges[i]);
-      q.w() += i_rho[i] * i_rho[j] * c;
+        b * avg_rho * (edges[j] - edges[i]);
+      q.w() += avg_rho * avg_rho * c;
       // Sum it with any exisiting value
       cur_quat += q;
 
