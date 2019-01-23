@@ -55,7 +55,7 @@ std::vector<double> signed_mean_curvature(
   {
     // if the angle between the unit and curvature normals is obtuse,
     // we need to flow in the opposite direction, and hence invert our sign
-    auto NdotH = i_normals[i].dot(curvature_normals[i]);
+    auto NdotH = -i_normals[i].dot(curvature_normals[i]);
     curvature[i] = std::copysign(curvature_normals[i].norm(), std::move(NdotH));
   }
   return curvature;
