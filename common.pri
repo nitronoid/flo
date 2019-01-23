@@ -16,6 +16,8 @@ INCLUDEPATH += \
   /public/devel/2018/include \
   /public/devel/2018/include/eigen3 
 
+INCLUDEPATH += $${PWD}/flo/include
+
 #Linker search paths
 LIBS += -L/home/s4902673/SuiteSparse/lib
 # Linker libraries

@@ -1,8 +1,7 @@
-flo_demo
-*/obj
-obj
+*lib
+*flo_demo
+*obj
 *.obj
-Makefile
-*/Makefile
+*Makefile
 *.qmake*
 *.swp
