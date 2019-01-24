@@ -14,14 +14,15 @@ INCLUDEPATH += \
   /usr/include/suitesparse \
   /home/s4902673/SuiteSparse/include \
   /public/devel/2018/include \
-  /public/devel/2018/include/eigen3 
+  # 3.3.7
+  /home/s4902673/eigen-eigen-323c052e1731 
 
 INCLUDEPATH += $${PWD}/flo/include
 
 #Linker search paths
 LIBS += -L/home/s4902673/SuiteSparse/lib
 # Linker libraries
-LIBS += -pthread -lcholmod
+LIBS += -lcholmod
 
 QT -= opengl core gui
 CONFIG += console c++14
