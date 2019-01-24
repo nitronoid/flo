@@ -12,10 +12,10 @@ template<typename Fn> class function_ref;
 template<typename Ret, typename ...Args>
 class function_ref<Ret(Args...)> final
 {
-  using void_ptr_t = void const *;
+  using void_ptr_t = void*;
   using callback_t = Ret (*)(void_ptr_t, Args...);
-  callback_t m_callable = nullptr;
-  void_ptr_t m_callable_ptr = nullptr;
+  callback_t m_callback = nullptr;
+  void_ptr_t m_callable = nullptr;
   
   template <typename F>
   static constexpr auto make_erased_func() noexcept
@@ -40,16 +40,16 @@ public:
            typename = std::enable_if_t<
              !std::is_same<std::remove_reference_t<Callable>, function_ref>::value>>
   constexpr function_ref(Callable&& i_callable) noexcept
-      : m_callable(make_erased_func<std::remove_reference_t<Callable>>()),
-        m_callable_ptr(reinterpret_cast<void_ptr_t>(&i_callable)) 
+      : m_callback(make_erased_func<std::remove_reference_t<Callable>>()),
+        m_callable((void_ptr_t)std::addressof(i_callable)) 
  {}
 
   constexpr Ret operator()(Args&& ...i_args) noexcept
   {
-    return m_callable(m_callable_ptr, std::forward<Args>(i_args)...);
+    return m_callback(m_callable, std::forward<Args>(i_args)...);
   }
 
-  constexpr operator bool() noexcept { return m_callable; }
+  constexpr operator bool() noexcept { return m_callback; }
 };
 
 }
