@@ -84,7 +84,7 @@ array_to_matrix(
   return array_mask;
 }
 
-#include "flo/host/detail/flo_matrix_operation.inl"
+#include "flo/host/detail/flo_matrix_operation.inl"//template definitions
 
 FLO_HOST_NAMESPACE_END
 
