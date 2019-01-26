@@ -1,5 +1,6 @@
 #include "flo/device/vertex_mass.cuh"
 #include "flo/host/area.hpp"
+#include <thrust/device_ptr.h>
 
 using namespace Eigen;
 
@@ -8,11 +9,11 @@ FLO_DEVICE_NAMESPACE_BEGIN
 namespace
 {
 __global__ void vertex_mass_impl(
-    const int* di_vertex_face_adjacency,
-    const int* di_vertex_face_valence,
-    const int* di_vertex_offset,
-    const double* di_face_area,
-    double* dio_mass,
+    const thrust::device_ptr<const int> di_vertex_face_adjacency,
+    const thrust::device_ptr<const int> di_vertex_face_valence,
+    const thrust::device_ptr<const int> di_vertex_offset,
+    const thrust::device_ptr<const double> di_face_area,
+    thrust::device_ptr<double> dio_mass,
     const uint i_n_verts)
 {
   size_t tid = threadIdx.x + blockIdx.x * blockDim.x;
@@ -38,8 +39,6 @@ std::vector<double> vertex_mass(
 {
   std::vector<double> mass(i_vertices.size());
   auto face_area = host::area(i_vertices, i_faces);
-  std::vector<int> vertex_adjacency;
-  std::vector<int> vertex_offset;
 
   // For every face
   for (uint i = 0; i < i_faces.size(); ++i)

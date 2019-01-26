@@ -43,8 +43,10 @@ void vertex_triangle_adjacency(
   // The sort is based on the vertex indices
   thrust::sort_by_key(d_vertex_indices.begin(), d_vertex_indices.end(), zip_begin);
   
-  auto offset = cumulative_dense_histogram_sorted(d_vertex_indices);
-  auto vertex_face_valence = dense_histogram_from_cumulative(offset, i_n_verts);
+  auto offset = cumulative_dense_histogram_sorted(
+      d_vertex_indices.data(), d_vertex_indices.size());
+  auto vertex_face_valence = dense_histogram_from_cumulative(
+      offset.data(), offset.size(), i_n_verts);
 
   // Copy the vertex face adjacency
   thrust::copy_n(d_face_indices.begin(), n_vert_idxs, dio_adjacency.begin());
