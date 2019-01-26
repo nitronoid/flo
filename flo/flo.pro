@@ -23,10 +23,13 @@ NVCCFLAGS += -ccbin ${HOST_COMPILER} -pg -g -lineinfo --std=c++14 -O3
 NVCCFLAGS += -gencode arch=compute_${CUDA_ARCH},code=sm_${CUDA_ARCH}
 NVCCFLAGS += -Xcompiler -fno-strict-aliasing -Xcompiler -fPIC 
 NVCCFLAGS += --compiler-options -DNUM_ELEMENTS=10
-NVCCFLAGS += -Xptxas -O3 --use_fast_math --restrict --expt-relaxed-constexpr
+NVCCFLAGS += -Xptxas -O3 --use_fast_math --restrict --expt-relaxed-constexpr --expt-extended-lambda
 NVCCFLAGS += $$join(DEFINES, ' -D', '-D', ' ')
 #NVCCFLAGS += -v
 #NVCCFLAGS += -G
+
+# Suppress warnings about __host__ and __device__ macros being used on defaulted ctors/dtors
+NVCCFLAGS += -Xcudafe --display_error_number -Xcudafe --diag_suppress=2906 
 
 NVCCBIN = ${CUDA_PATH}/bin/nvcc
 
@@ -51,5 +54,6 @@ cudalink.CONFIG = combine
 cudalink.dependency_type = TYPE_C
 cudalink.depend_command = $${CUDA_COMPILE_BASE} -M
 QMAKE_EXTRA_COMPILERS += cudalink
+
 
 
