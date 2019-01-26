@@ -41,7 +41,8 @@ void vertex_triangle_adjacency(
   auto zip_begin = make_zip_iterator(
       d_vertex_indices.begin(), d_face_indices.begin());
   // The sort is based on the vertex indices
-  thrust::sort_by_key(d_vertex_indices.begin(), d_vertex_indices.end(), zip_begin);
+  thrust::sort_by_key(
+      d_vertex_indices.begin(), d_vertex_indices.end(), zip_begin);
   
   auto offset = cumulative_dense_histogram_sorted(
       d_vertex_indices.data(), d_vertex_indices.size());

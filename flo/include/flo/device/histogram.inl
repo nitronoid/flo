@@ -1,3 +1,4 @@
+
 template <typename T>
 thrust::device_vector<T> cumulative_dense_histogram_sorted(
     const thrust::device_ptr<T> di_data,
