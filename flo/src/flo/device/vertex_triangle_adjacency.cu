@@ -45,6 +45,8 @@ void vertex_triangle_adjacency(
       thrust::device, d_vertex_indices.begin(), d_vertex_indices.end(), zip_begin);
   
   do_cumulative_valence[0] = 0;
+  //atomic_histogram(d_vertex_indices.data(), do_valence, nvert_idxs);
+  //cumulative_histogram_from_dense(do_valence, do_cumulative_valence + 1, i_nverts);
   cumulative_dense_histogram_sorted(
       d_vertex_indices.data(), do_cumulative_valence+1, d_vertex_indices.size(), i_nverts);
   dense_histogram_from_cumulative(

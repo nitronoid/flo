@@ -77,3 +77,32 @@ void dense_histogram_from_cumulative(
   thrust::adjacent_difference(
       thrust::device, di_cumulative, di_cumulative + i_ncumulative, do_histogram);
 }
+
+template <typename T>
+void cumulative_histogram_from_dense(
+    const thrust::device_ptr<T> di_dense,
+    thrust::device_ptr<T> do_histogram,
+    const uint i_ndense)
+{
+  // Adjacent difference the upper bound to result in the sizes of each bin
+  // i.e. the occupancy and final histogram
+  thrust::inclusive_scan(
+      thrust::device, di_dense, di_dense + i_ndense, do_histogram);
+}
+
+template <typename T>
+void atomic_histogram(
+    const thrust::device_ptr<T> di_data,
+    thrust::device_ptr<T> do_histogram,
+    const uint i_ndata)
+{
+  thrust::for_each_n(
+      thrust::device,
+      di_data,
+      i_ndata,
+      [do_histogram] __device__(auto x)
+      {
+        atomicAdd((do_histogram + x).get(), 1);
+      });
+}
+
