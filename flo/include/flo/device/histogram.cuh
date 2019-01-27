@@ -11,30 +11,38 @@
 FLO_DEVICE_NAMESPACE_BEGIN
 
 template <typename T>
-thrust::device_vector<T> cumulative_dense_histogram_sorted(
+void cumulative_dense_histogram_sorted(
     const thrust::device_ptr<T> di_data,
-    const uint i_n_data);
+    thrust::device_ptr<T> do_histogram,
+    const uint i_ndata,
+    const uint i_nbins);
 
 template <typename T>
-thrust::device_vector<T> cumulative_dense_histogram_unsorted(
+void cumulative_dense_histogram_unsorted(
     const thrust::device_ptr<T> di_data,
-    const uint i_n_data);
+    thrust::device_ptr<T> do_histogram,
+    const uint i_ndata,
+    const uint i_nbins);
 
 template <typename T>
-thrust::device_vector<T> dense_histogram_sorted(
+void dense_histogram_sorted(
     const thrust::device_ptr<T> di_data,
-    const uint i_n_data);
+    thrust::device_ptr<T> do_histogram,
+    const uint i_ndata,
+    const uint i_nbins);
 
 template <typename T>
-thrust::device_vector<T> dense_histogram_unsorted(
+void dense_histogram_unsorted(
     const thrust::device_ptr<T> di_data,
-    const uint i_n_data);
+    thrust::device_ptr<T> do_histogram,
+    const uint i_ndata,
+    const uint i_nbins);
 
 template <typename T>
-thrust::device_vector<T> dense_histogram_from_cumulative(
+void dense_histogram_from_cumulative(
     const thrust::device_ptr<T> di_cumulative,
-    const uint i_n_cumulative,
-    const uint i_n_bins);
+    thrust::device_ptr<T> do_histogram,
+    const uint i_n_cumulative);
 
 #include "flo/device/histogram.inl"//template definitions
 

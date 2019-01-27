@@ -7,11 +7,12 @@
 FLO_DEVICE_NAMESPACE_BEGIN
 
 void vertex_triangle_adjacency(
-    const thrust::device_vector<int>& di_faces,
-    const uint i_n_verts,
-    thrust::device_vector<int>& dio_adjacency,
-    thrust::device_vector<int>& dio_valence,
-    thrust::device_vector<int>& dio_cumulative_valence);
+    const thrust::device_ptr<int> di_faces,
+    const uint i_nfaces,
+    const uint i_nverts,
+    thrust::device_ptr<int> do_adjacency,
+    thrust::device_ptr<int> do_valence,
+    thrust::device_ptr<int> do_cumulative_valence);
 
 FLO_DEVICE_NAMESPACE_END
 
