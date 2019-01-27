@@ -19,7 +19,7 @@ auto make_zip_iterator(Args&&... i_args)
 }
 
 void vertex_triangle_adjacency(
-    const thrust::device_ptr<int> di_faces,
+    thrust::device_ptr<int> dio_faces,
     const uint i_nfaces,
     const uint i_nverts,
     thrust::device_ptr<int> do_adjacency,
@@ -33,22 +33,17 @@ void vertex_triangle_adjacency(
   thrust::tabulate(thrust::device, do_adjacency, do_adjacency + nvert_idxs, 
       [] __device__ (auto idx) { return idx / 3; });
 
-  // Allocate a vector for our vertex indices from the face indices
-  thrust::device_vector<int> d_vertex_indices(nvert_idxs);
-  thrust::copy_n(thrust::device, di_faces, nvert_idxs, d_vertex_indices.data());
-
   // Simultaneously sort the two arrays using a zip iterator,
-  auto zip_begin = make_zip_iterator(
-      d_vertex_indices.begin(), do_adjacency);
+  auto zip_begin = make_zip_iterator(dio_faces, do_adjacency);
   // The sort is based on the vertex indices
   thrust::sort_by_key(
-      thrust::device, d_vertex_indices.begin(), d_vertex_indices.end(), zip_begin);
+      thrust::device, dio_faces, dio_faces + nvert_idxs, zip_begin);
   
   do_cumulative_valence[0] = 0;
-  //atomic_histogram(d_vertex_indices.data(), do_valence, nvert_idxs);
+  //atomic_histogram(dio_faces, do_valence, nvert_idxs);
   //cumulative_histogram_from_dense(do_valence, do_cumulative_valence + 1, i_nverts);
   cumulative_dense_histogram_sorted(
-      d_vertex_indices.data(), do_cumulative_valence+1, d_vertex_indices.size(), i_nverts);
+      dio_faces, do_cumulative_valence+1, nvert_idxs, i_nverts);
   dense_histogram_from_cumulative(
       do_cumulative_valence+1, do_valence, i_nverts);
 }
