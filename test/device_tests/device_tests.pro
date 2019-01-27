@@ -2,7 +2,7 @@ include($${PWD}/../../common.pri)
 include($${PWD}/../test_common.pri)
 
 TEMPLATE = app
-TARGET = flo_device_tests
+TARGET = flo_device_tests.out
 
 OBJECTS_DIR = obj
 CUDA_OBJECTS_DIR = cudaobj

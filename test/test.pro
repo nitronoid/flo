@@ -1,3 +1,3 @@
 TEMPLATE = subdirs
-SUBDIRS = host_tests device_tests
+SUBDIRS = host_tests device_tests benchmark
 
