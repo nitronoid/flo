@@ -2,7 +2,6 @@
 #define FLO_INCLUDED_TEST_COMMON_UTIL
 
 #include "flo/surface.hpp"
-#include <thrust/device_vector.h>
 
 inline flo::Surface make_cube()
 {
@@ -31,14 +30,6 @@ inline flo::Surface make_cube()
     {4, 0, 2}
   };
   return {vertices, faces};
-}
-
-template <typename T>
-std::vector<T> device_vector_to_host(const thrust::device_vector<T>& di_vec)
-{
-	std::vector<T> h_vec(di_vec.size());
-	thrust::copy(di_vec.begin(), di_vec.end(), h_vec.begin());
-	return h_vec;
 }
 
 #endif//FLO_INCLUDED_TEST_COMMON_UTIL

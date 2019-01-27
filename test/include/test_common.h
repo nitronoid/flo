@@ -6,6 +6,5 @@
 #include "test_common_macros.h"
 #include "test_common_matchers.h"
 #include "test_common_util.h"
-#include "test_common_fixtures.h"
 
 #endif  // FLO_INCLUDED_TEST_COMMON

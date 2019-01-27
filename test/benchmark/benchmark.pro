@@ -7,6 +7,7 @@ TARGET = flo_benchmarks.out
 OBJECTS_DIR = obj
 CUDA_OBJECTS_DIR = cudaobj
 
+HEADERS += $$files(include/*.h, true)
 SOURCES += $$files(src/*.cpp, true)
 CUDA_SOURCES += $$files(src/*.cu, true) 
 

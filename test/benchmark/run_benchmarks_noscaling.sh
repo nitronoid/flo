@@ -1,3 +1,3 @@
 sudo cpupower frequency-set --governor performance
-./flo_benchmarks
+./flo_benchmarks.out
 sudo cpupower frequency-set --governor powersave

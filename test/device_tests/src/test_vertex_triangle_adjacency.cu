@@ -1,4 +1,5 @@
 #include "test_common.h"
+#include "device_test_util.h"
 
 #include "flo/device/vertex_triangle_adjacency.cuh"
 
@@ -6,8 +7,8 @@ TEST(VertexTriangleAdjacency, cube)
 {
   auto cube = make_cube();
 
-  thrust::device_vector<int> d_face_verts(surf.n_faces() * 3);
-  thrust::copy_n((&surf.faces[0][0]), surf.n_faces() * 3, d_face_verts.data());
+  thrust::device_vector<int> d_face_verts(cube.n_faces() * 3);
+  thrust::copy_n((&cube.faces[0][0]), cube.n_faces() * 3, d_face_verts.data());
 
   // Declare device side arrays to dump our results
   thrust::device_vector<int> d_adjacency(cube.n_faces() * 3);
