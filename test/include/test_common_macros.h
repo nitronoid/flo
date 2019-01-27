@@ -1,10 +1,10 @@
-#ifndef INCLUDED_TESTUTILMACROS_H
-#define INCLUDED_TESTUTILMACROS_H
+#ifndef FLO_INCLUDED_TEST_COMMON_MACROS
+#define FLO_INCLUDED_TEST_COMMON_MACROS
 
-#include <gmock/gmock-matchers.h>
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
-#include <string>
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define STRINGIFY_NX(A) #A
+#define STRINGIFY(A) STRINGIFY_NX(A)
 
 #define FLOAT_SOFT_EPSILON 0.005f
 #define EXPECT_FLOAT_NEAR(A, B) EXPECT_NEAR(A, B, FLOAT_SOFT_EPSILON);
@@ -36,30 +36,4 @@
   EXPECT_FLOAT_NEAR((A)[0], (B)[0]); \
   EXPECT_FLOAT_NEAR((A)[1], (B)[1]);
 
-MATCHER_P(EigenNear,
-          expect,
-          std::string(negation ? "isn't" : "is") + " near to" +
-            ::testing::PrintToString(expect))
-{
-  return arg.isApprox(expect, FLOAT_SOFT_EPSILON);
-}
-
-template <class Base>
-class EigenPrintWrap : public Base
-{
-  friend void PrintTo(const EigenPrintWrap& m, ::std::ostream* o)
-  {
-    *o << "\n" << m;
-  }
-};
-
-template <class Base>
-const EigenPrintWrap<Base>& print_wrap(const Base& base)
-{
-  return static_cast<const EigenPrintWrap<Base>&>(base);
-}
-
-#define EXPECT_MAT_NEAR(A, B) \
-  EXPECT_THAT(print_wrap(A), EigenNear(print_wrap(B)));
-
-#endif  // INCLUDED_TESTUTILMACROS_H
+#endif//FLO_INCLUDED_TEST_COMMON_MACROS
