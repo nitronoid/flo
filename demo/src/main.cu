@@ -12,12 +12,13 @@
 
 using namespace Eigen;
 
-void forward_euler(gsl::span<double> i_x,
-                   const gsl::span<const double> i_dx,
+template <typename T>
+void forward_euler(gsl::span<T> i_x,
+                   const gsl::span<const T> i_dx,
                    const double i_t)
 {
   std::transform(i_x.begin(), i_x.end(), i_dx.begin(), i_x.begin(),
-                 [i_t](auto x, auto dx)
+                 [i_t](T x, T dx)
                  {
                    return x + dx * i_t;
                  });
@@ -43,18 +44,6 @@ int main()
   //}
 
 
-  std::vector<int> adjacency(surf.n_faces() * 3);
-  std::vector<int> valence(surf.n_vertices());
-  std::vector<int> cumulative_valence(surf.n_vertices() + 1);
-  auto time_begin = std::chrono::high_resolution_clock::now();
-  flo::host::vertex_triangle_adjacency(
-      surf.faces, surf.n_vertices(), adjacency, valence, cumulative_valence);
-  auto time_end = std::chrono::high_resolution_clock::now();
-  auto VF = flo::host::array_to_matrix(gsl::make_span(adjacency));
-  auto NI = flo::host::array_to_matrix(gsl::make_span(cumulative_valence));
-  using namespace std::chrono;
-  std::cout<<"Time taken: "<<duration_cast<nanoseconds>(time_end-time_begin).count()<<'\n';
-  
   
   thrust::device_vector<int> d_face_verts(surf.n_faces() * 3);
   thrust::copy_n((&surf.faces[0][0]), surf.n_faces() * 3, d_face_verts.data());
@@ -62,7 +51,14 @@ int main()
   thrust::device_vector<int> d_valence(surf.n_vertices());
   thrust::device_vector<int> d_cumulative_valence(surf.n_vertices() + 1);
 
-  time_begin = std::chrono::high_resolution_clock::now();
+  thrust::tabulate(d_adjacency.begin(), d_adjacency.end(), 
+      [] __device__ (int idx) { return idx / 3; });
+  auto ptr_tuple = thrust::make_tuple(d_face_verts.data(), d_adjacency.data());
+  auto zip_begin = thrust::make_zip_iterator(ptr_tuple);
+
+  auto time_begin = std::chrono::high_resolution_clock::now();
+  // The sort is based on the vertex indices
+  //thrust::sort_by_key(d_face_verts.begin(), d_face_verts.end(), d_adjacency.begin());
   flo::device::vertex_triangle_adjacency(
       d_face_verts.data(), 
       surf.n_faces(), 
@@ -71,7 +67,7 @@ int main()
       d_valence.data(), 
       d_cumulative_valence.data());
   cudaDeviceSynchronize();
-  time_end = std::chrono::high_resolution_clock::now();
+  auto time_end = std::chrono::high_resolution_clock::now();
 
   using namespace std::chrono;
   std::cout<<"Time taken: "<<duration_cast<nanoseconds>(time_end-time_begin).count()<<'\n';
