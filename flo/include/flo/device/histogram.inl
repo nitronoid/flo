@@ -14,7 +14,6 @@ void cumulative_dense_histogram_sorted(
   // Upper bound to find and write the final index for each unique data value,
   // i.e. the end of each bin
   thrust::upper_bound(
-      thrust::device, 
       di_data, 
       di_data + i_ndata, 
       search_begin, 
@@ -31,9 +30,9 @@ void cumulative_dense_histogram_unsorted(
 {
   // Copy our data
   thrust::device_vector<T> d_data_copy(di_data.size());
-  thrust::copy(thrust::device, di_data, di_data + i_ndata, d_data_copy.begin());
+  thrust::copy(di_data, di_data + i_ndata, d_data_copy.begin());
   // Sort the copy
-  thrust::sort(thrust::device, d_data_copy.begin(), d_data_copy.end());
+  thrust::sort(d_data_copy.begin(), d_data_copy.end());
   // Call our sorted histo function
   cumulative_dense_histogram_sorted(d_data_copy.data(), do_histogram, i_ndata, i_nbins);
 }
@@ -49,7 +48,7 @@ void dense_histogram_sorted(
   // Adjacent difference the upper bound to result in the sizes of each bin
   // i.e. the occupancy and final histogram
   thrust::adjacent_difference(
-      thrust::device, do_histogram, do_histogram + i_nbins, do_histogram);
+      do_histogram, do_histogram + i_nbins, do_histogram);
 }
 
 template <typename T>
@@ -63,7 +62,7 @@ void dense_histogram_unsorted(
   // Adjacent difference the upper bound to result in the sizes of each bin
   // i.e. the occupancy and final histogram
   thrust::adjacent_difference(
-      thrust::device, do_histogram, do_histogram + i_nbins, do_histogram);
+      do_histogram, do_histogram + i_nbins, do_histogram);
 }
 
 template <typename T>
@@ -75,7 +74,7 @@ void dense_histogram_from_cumulative(
   // Adjacent difference the upper bound to result in the sizes of each bin
   // i.e. the occupancy and final histogram
   thrust::adjacent_difference(
-      thrust::device, di_cumulative, di_cumulative + i_ncumulative, do_histogram);
+      di_cumulative, di_cumulative + i_ncumulative, do_histogram);
 }
 
 template <typename T>
@@ -86,8 +85,7 @@ void cumulative_histogram_from_dense(
 {
   // Adjacent difference the upper bound to result in the sizes of each bin
   // i.e. the occupancy and final histogram
-  thrust::inclusive_scan(
-      thrust::device, di_dense, di_dense + i_ndense, do_histogram);
+  thrust::inclusive_scan(di_dense, di_dense + i_ndense, do_histogram);
 }
 
 template <typename T>
