@@ -18,7 +18,7 @@ std::vector<double> area(
   std::vector<double> face_area(i_faces.size());
   std::transform(
       double_area.data(), double_area.data() + i_faces.size(), face_area.data(),
-      [](auto a) -> double { return 0.5 * a; });
+      [](double a) -> double { return 0.5 * a; });
   return face_area;
 }
 

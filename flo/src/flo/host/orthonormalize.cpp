@@ -11,7 +11,7 @@ std::vector<double> orthonormalize(
     double(const VectorXd&, const VectorXd&)> i_inner_product)
 {
   // Normalize is defined using a self inner product
-  auto normalize = [&](const auto& x) {
+  auto normalize = [&](const VectorXd& x) {
     return x.array() / std::sqrt(i_inner_product(x, x));
   };
   const auto vlen = i_vectors.size() / i_num_vectors;

@@ -34,7 +34,7 @@ std::vector<double> mean_curvature(
       curvature_normals.begin(),
       curvature_normals.end(),
       curvature.begin(),
-      [](const auto& cn) 
+      [](const Vector3d& cn) 
       {
         return cn.norm(); 
       });

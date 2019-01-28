@@ -1,6 +1,8 @@
 #include "flo/host/vertex_triangle_adjacency.hpp"
 #include "flo/host/flo_matrix_operation.hpp"
 #include <igl/vertex_triangle_adjacency.h>
+#include <numeric>
+#include <iostream>
 
 using namespace Eigen;
 
@@ -13,7 +15,7 @@ void vertex_triangle_adjacency(
     gsl::span<int> o_valence,
     gsl::span<int> o_cumulative_valence)
 {
-  const auto F = array_to_matrix(i_faces);
+  const auto F = ::flo::host::array_to_matrix(i_faces);
   auto o_VF = array_to_matrix(o_adjacency);
   auto o_NI = array_to_matrix(o_cumulative_valence);
 

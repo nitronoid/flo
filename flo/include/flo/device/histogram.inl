@@ -100,7 +100,7 @@ void atomic_histogram(
       thrust::device,
       di_data,
       i_ndata,
-      [do_histogram] __device__(auto x)
+      [do_histogram] __device__(const T& x)
       {
         atomicAdd((do_histogram + x).get(), 1);
       });

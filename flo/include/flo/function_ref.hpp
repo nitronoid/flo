@@ -6,6 +6,13 @@
 
 namespace nonstd
 {
+template <typename T>
+using remove_reference_t = typename std::remove_reference<T>::type;
+
+template <bool B, typename T = void>
+using enable_if_t = typename std::enable_if<B,T>::type;
+
+
 
 template<typename Fn> class function_ref;
  
@@ -17,30 +24,27 @@ class function_ref<Ret(Args...)> final
   callback_t m_callback = nullptr;
   void_ptr_t m_callable = nullptr;
   
-  template <typename F>
-  static constexpr auto make_erased_func() noexcept
+  template<typename F>
+  static constexpr Ret callback_fn(void_ptr_t i_ptr, Args... i_args) noexcept
   {
-    return [](void_ptr_t i_ptr, Args... i_args) noexcept -> Ret
-    {
-        return (*reinterpret_cast<F*>(i_ptr))(std::forward<Args>(i_args)...);
-    };
+    return (*reinterpret_cast<F*>(i_ptr))(std::forward<Args>(i_args)...);
   }
  
 public:
   constexpr function_ref() noexcept = default;
   constexpr function_ref(const function_ref&) noexcept = default;
-  constexpr function_ref& operator=(const function_ref&) noexcept = default;
+  function_ref& operator=(const function_ref&) noexcept = default;
   constexpr function_ref(function_ref&&) noexcept = default;
-  constexpr function_ref& operator=(function_ref&&) noexcept = default;
+  function_ref& operator=(function_ref&&) noexcept = default;
   ~function_ref() = default;
 
   constexpr function_ref(std::nullptr_t) noexcept {}
 
   template <typename Callable, 
-           typename = std::enable_if_t<
-             !std::is_same<std::remove_reference_t<Callable>, function_ref>::value>>
+           typename = enable_if_t<
+             !std::is_same<remove_reference_t<Callable>, function_ref>::value>>
   constexpr function_ref(Callable&& i_callable) noexcept
-      : m_callback(make_erased_func<std::remove_reference_t<Callable>>()),
+      : m_callback(callback_fn<remove_reference_t<Callable>>),
         m_callable((void_ptr_t)std::addressof(i_callable)) 
  {}
 

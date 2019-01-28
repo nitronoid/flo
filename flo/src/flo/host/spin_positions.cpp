@@ -32,9 +32,8 @@ std::vector<Vector3d> spin_positions(
       std::make_move_iterator(quaternion_positions.begin()),
       std::make_move_iterator(quaternion_positions.end()),
       std::back_inserter(new_positions),
-      [](auto&& qpos) { 
-        using namespace std;
-        return Vector3d(move(qpos.x()), move(qpos.y()), move(qpos.z())); 
+      [](Vector4d&& qpos) { 
+        return Vector3d(std::move(qpos.head<3>())); 
         });
 
   return new_positions;

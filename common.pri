@@ -12,10 +12,12 @@ INCLUDEPATH += \
   /usr/local/include \
   /usr/local/include/libigl/include \
   /usr/include/suitesparse \
-  /home/s4902673/SuiteSparse/include \
-  /public/devel/2018/include \
+  ${HOME}/SuiteSparse/include \
   # 3.3.7
-  /home/s4902673/eigen-eigen-323c052e1731 
+  ${HOME}/eigen3 \
+  ${HOME}/libigl/include \
+  # This comes last so the home directory takes higher precidence
+  /public/devel/2018/include 
 
 INCLUDEPATH += $${PWD}/flo/include
 
@@ -25,11 +27,11 @@ LIBS += -L/home/s4902673/SuiteSparse/lib
 LIBS += -lcholmod
 
 QT -= opengl core gui
-CONFIG += console c++14
+CONFIG += console c++11
 CONFIG -= app_bundle
 
 # Standard flags
-QMAKE_CXXFLAGS += -std=c++14 -g -fdiagnostics-color
+QMAKE_CXXFLAGS += -std=c++11 -g -fdiagnostics-color
 # Optimisation flags
 QMAKE_CXXFLAGS += -Ofast -march=native -frename-registers -funroll-loops -ffast-math -fassociative-math
 # Enable openmp

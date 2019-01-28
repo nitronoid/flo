@@ -41,7 +41,7 @@ std::vector<Vector3d> willmore_flow(
   }
 
   // Declare an immersed inner-product using the mass matrix
-  const auto ip = [&M](const auto& x, const auto& y) -> double {
+  const auto ip = [&M](const VectorXd& x, const VectorXd& y) -> double {
     auto single_mat = (x.transpose() * M.asDiagonal() * y).eval();
     return single_mat(0,0);
   };
@@ -51,7 +51,7 @@ std::vector<Vector3d> willmore_flow(
   // Calculate the signed mean curvature based on our vertex normals
   auto mc = signed_mean_curvature(i_vertices, L, mass, normals);
   // Apply our flow direction to the the mean curvature half density
-  std::transform(mc.begin(), mc.end(), mc.begin(), [](auto x) { return -x; });
+  std::transform(mc.begin(), mc.end(), mc.begin(), [](double x) { return -x; });
   // project the constraints on to our mean curvature
   auto projected = project_basis(mc, basis, n_constraints, ip);
   // take a time step

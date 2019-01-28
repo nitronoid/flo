@@ -7,7 +7,7 @@ INCLUDEPATH += \
 
 CUDA_INC += $$join(INCLUDEPATH, ' -I', '-I', ' ')
 
-NVCCFLAGS += -ccbin ${HOST_COMPILER} -pg -g -lineinfo --std=c++14 -O3
+NVCCFLAGS += -ccbin ${HOST_COMPILER} -pg -g -lineinfo --std=c++11 -O3
 NVCCFLAGS += -gencode arch=compute_${CUDA_ARCH},code=sm_${CUDA_ARCH}
 NVCCFLAGS += -Xcompiler -fno-strict-aliasing -Xcompiler -fPIC 
 NVCCFLAGS += --compiler-options -DNUM_ELEMENTS=10

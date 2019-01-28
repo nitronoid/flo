@@ -8,16 +8,6 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
-namespace{
-template <typename... Args>
-auto make_zip_iterator(Args&&... i_args)
-{
-  using tuple_t = thrust::tuple<std::decay_t<decltype(i_args)>...>;
-  using zip_iter_t = thrust::zip_iterator<tuple_t>;
-  return zip_iter_t(thrust::make_tuple(std::forward<Args>(i_args)...));
-}
-}
-
 void vertex_triangle_adjacency(
     thrust::device_ptr<int> dio_faces,
     const uint i_nfaces,
@@ -31,10 +21,11 @@ void vertex_triangle_adjacency(
   // The corresponding face index will be the same for all vertices in a face,
   // so we store 0,0,0, 1,1,1, ..., n,n,n
   thrust::tabulate(thrust::device, do_adjacency, do_adjacency + nvert_idxs, 
-      [] __device__ (auto idx) { return idx / 3; });
+      [] __device__ (int idx) { return idx / 3; });
 
   // Simultaneously sort the two arrays using a zip iterator,
-  auto zip_begin = make_zip_iterator(dio_faces, do_adjacency);
+  auto ptr_tuple = thrust::make_tuple(dio_faces, do_adjacency);
+  auto zip_begin = thrust::make_zip_iterator(ptr_tuple);
   // The sort is based on the vertex indices
   thrust::sort_by_key(
       thrust::device, dio_faces, dio_faces + nvert_idxs, zip_begin);
