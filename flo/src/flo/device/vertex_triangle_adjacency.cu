@@ -20,23 +20,30 @@ void vertex_triangle_adjacency(
   const auto nvert_idxs = i_nfaces * 3;
   // The corresponding face index will be the same for all vertices in a face,
   // so we store 0,0,0, 1,1,1, ..., n,n,n
-  thrust::tabulate(thrust::device, do_adjacency, do_adjacency + nvert_idxs, 
+  thrust::tabulate(do_adjacency, do_adjacency + nvert_idxs, 
       [] __device__ (int idx) { return idx / 3; });
 
-  // Simultaneously sort the two arrays using a zip iterator,
-  auto ptr_tuple = thrust::make_tuple(dio_faces, do_adjacency);
-  auto zip_begin = thrust::make_zip_iterator(ptr_tuple);
-  // The sort is based on the vertex indices
-  thrust::sort_by_key(
-      thrust::device, dio_faces, dio_faces + nvert_idxs, zip_begin);
-  
+  // First offset into our adjacency list should be zero
   do_cumulative_valence[0] = 0;
-  //atomic_histogram(dio_faces, do_valence, nvert_idxs);
-  //cumulative_histogram_from_dense(do_valence, do_cumulative_valence + 1, i_nverts);
-  cumulative_dense_histogram_sorted(
-      dio_faces, do_cumulative_valence+1, nvert_idxs, i_nverts);
-  dense_histogram_from_cumulative(
-      do_cumulative_valence+1, do_valence, i_nverts);
+  // We use atomics to calculate the histogram as the input need not be sorted
+  atomic_histogram(dio_faces, do_valence, nvert_idxs);
+  // Use a prefix scan to calculate offsets into our adjacency list per vertex
+  cumulative_histogram_from_dense(
+      do_valence, do_cumulative_valence + 1, i_nverts);
+  // The sort is based on the vertex indices, we only sort the adjacency list,
+  // as we don't require the sorted face vertices, sorting one array is faster
+  thrust::sort_by_key(dio_faces, dio_faces + nvert_idxs, do_adjacency);
+  
+
+  // Dead alternative that requires two sorts
+  // Simultaneously sort the two arrays using a zip iterator,
+  //auto ptr_tuple = thrust::make_tuple(dio_faces, do_adjacency);
+  //auto zip_begin = thrust::make_zip_iterator(ptr_tuple);
+
+  //cumulative_dense_histogram_sorted(
+  //    dio_faces, do_cumulative_valence+1, nvert_idxs, i_nverts);
+  //dense_histogram_from_cumulative(
+  //    do_cumulative_valence+1, do_valence, i_nverts);
 }
 
 FLO_DEVICE_NAMESPACE_END
