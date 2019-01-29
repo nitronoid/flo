@@ -2,7 +2,6 @@
 #define FLO_HOST_INCLUDED_AREA
 
 #include "flo/flo_internal.hpp"
-#include <Eigen/Sparse>
 #include <Eigen/Dense>
 
 FLO_HOST_NAMESPACE_BEGIN

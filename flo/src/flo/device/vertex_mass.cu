@@ -1,5 +1,4 @@
 #include "flo/device/vertex_mass.cuh"
-#include "flo/host/area.hpp"
 
 using namespace Eigen;
 
