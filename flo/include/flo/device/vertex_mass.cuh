@@ -3,17 +3,18 @@
 
 #include "flo/flo_internal.hpp"
 #include <Eigen/Dense>
+#include <thrust/device_ptr.h>
+#include <thrust/device_vector.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
-//namespace impl
-//{
-//__global__ void d_parallelIntAdd(int* a, int* b, int* c);
-//}
-
-FLO_API std::vector<double> vertex_mass(
-    const gsl::span<const Eigen::Vector3d> i_vertices,
-    const gsl::span<const Eigen::Vector3i> i_faces);
+FLO_API thrust::device_vector<double> vertex_mass(
+    const thrust::device_ptr<double> di_face_area,
+    const thrust::device_ptr<int> di_vertex_face_adjacency,
+    const thrust::device_ptr<int> di_vertex_face_valence,
+    const thrust::device_ptr<int> di_cumulative_valence,
+    const uint i_nfaces,
+    const uint i_nverts);
 
 FLO_DEVICE_NAMESPACE_END
 

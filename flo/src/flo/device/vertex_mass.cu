@@ -1,6 +1,5 @@
 #include "flo/device/vertex_mass.cuh"
 #include "flo/host/area.hpp"
-#include <thrust/device_ptr.h>
 
 using namespace Eigen;
 
@@ -33,25 +32,26 @@ __global__ void vertex_mass_impl(
 }
 }
 
-FLO_API std::vector<double> vertex_mass(
-    const gsl::span<const Vector3d> i_vertices,
-    const gsl::span<const Vector3i> i_faces)
+FLO_API thrust::device_vector<double> vertex_mass(
+    const thrust::device_ptr<double> di_face_area,
+    const thrust::device_ptr<int> di_vertex_face_adjacency,
+    const thrust::device_ptr<int> di_vertex_face_valence,
+    const thrust::device_ptr<int> di_cumulative_valence,
+    const uint i_nfaces,
+    const uint i_nverts)
 {
-  std::vector<double> mass(i_vertices.size());
-  auto face_area = host::area(i_vertices, i_faces);
+  thrust::device_vector<double> mass(i_nverts);
 
-  // For every face
-  for (uint i = 0; i < i_faces.size(); ++i)
-  {
-    const auto& f = i_faces[i];
-    constexpr auto third = 1.f / 3.f;
-    auto thirdArea = face_area[i] * third;
-
-    mass[f(0)] += thirdArea;
-    mass[f(1)] += thirdArea;
-    mass[f(2)] += thirdArea;
-  }
-
+  size_t nthreads_per_block = 1024;
+  size_t nblocks = i_nverts / nthreads_per_block + 1;
+  vertex_mass_impl<<<nthreads_per_block, nblocks>>>(
+      di_vertex_face_adjacency,
+      di_vertex_face_valence,
+      di_cumulative_valence,
+      di_face_area,
+      mass.data(),
+      i_nverts);
+  
   return mass;
 }
 
