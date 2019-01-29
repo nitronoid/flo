@@ -25,11 +25,9 @@ static void BM_NAME(benchmark::State& state) \
 }\
 BENCHMARK(BM_NAME)
 
-DEVICE_BM_VTA(BM_cube_device_vertex_triangle_adjacency, "../models/cube.obj");
-
-DEVICE_BM_VTA(BM_spot_device_vertex_triangle_adjacency, "../models/spot.obj");
-
-DEVICE_BM_VTA(BM_dense_sphere_400_device_vertex_triangle_adjacency, "../models/dense_sphere_400x400.obj");
-
-DEVICE_BM_VTA(BM_dense_sphere_1k_device_vertex_triangle_adjacency, "../models/dense_sphere_1500x1500.obj");
-
+DEVICE_BM_VTA(DEVICE_vertex_triangle_adjacency_cube_1, "../models/cube.obj");
+DEVICE_BM_VTA(DEVICE_vertex_triangle_adjacency_spot, "../models/spot.obj");
+DEVICE_BM_VTA(DEVICE_vertex_triangle_adjacency_sphere_400, "../models/dense_sphere_400x400.obj");
+DEVICE_BM_VTA(DEVICE_vertex_triangle_adjacency_sphere_1000, "../models/dense_sphere_1000x1000.obj");
+DEVICE_BM_VTA(DEVICE_vertex_triangle_adjacency_sphere_1500, "../models/dense_sphere_1500x1500.obj");
+DEVICE_BM_VTA(DEVICE_vertex_triangle_adjacency_cube_1000, "../models/cube_1k.obj");
