@@ -9,37 +9,37 @@
 FLO_HOST_NAMESPACE_BEGIN
 
 template <int R, int C>
-void insert_block_sparse(
+FLO_API void insert_block_sparse(
     const Eigen::Matrix<double, R, C>& i_block,
     Eigen::SparseMatrix<double>& i_mat,
     uint i_x,
     uint i_y);
 
 template <int R, int C, int IR, int IC>
-void insert_block_dense(
+FLO_API void insert_block_dense(
     const Eigen::Matrix<double, R, C>& i_block,
     Eigen::Matrix<double, IR, IC>& i_mat,
     uint i_x,
     uint i_y);
 
 template <typename T, int R, int C>
-std::vector<Eigen::Matrix<T, C, 1>> matrix_to_array(
+FLO_API std::vector<Eigen::Matrix<T, C, 1>> matrix_to_array(
     const Eigen::Matrix<T, R, C>& i_mat);
 
 template <typename T, int R>
-std::vector<T> matrix_to_array(
+FLO_API std::vector<T> matrix_to_array(
     const Eigen::Matrix<T, R, 1>& i_mat);
 
-Eigen::SparseMatrix<double> to_real_quaternion_matrix(
+FLO_API Eigen::SparseMatrix<double> to_real_quaternion_matrix(
     const Eigen::SparseMatrix<double>& i_real_matrix);
 
-Eigen::Matrix<double, Eigen::Dynamic, 4> to_quaternion_matrix(
+FLO_API Eigen::Matrix<double, Eigen::Dynamic, 4> to_quaternion_matrix(
     const gsl::span<const Eigen::Vector4d> i_qvec);
 
-std::vector<Eigen::Vector4d> to_quaternion_vector(const Eigen::VectorXd& i_vec);
+FLO_API std::vector<Eigen::Vector4d> to_quaternion_vector(const Eigen::VectorXd& i_vec);
 
 template <typename T>
-Eigen::Map<
+FLO_API Eigen::Map<
 Eigen::Matrix<T, Eigen::Dynamic, 1>, Eigen::Unaligned> 
 array_to_matrix(gsl::span<T> i_array)
 {
@@ -50,7 +50,7 @@ array_to_matrix(gsl::span<T> i_array)
 }
 
 template <typename T>
-Eigen::Map<
+FLO_API Eigen::Map<
 const Eigen::Matrix<T, Eigen::Dynamic, 1>, Eigen::Unaligned> 
 array_to_matrix(const gsl::span<const T> i_array)
 {
@@ -61,7 +61,7 @@ array_to_matrix(const gsl::span<const T> i_array)
 }
 
 template <typename T, int R>
-Eigen::Map<
+FLO_API Eigen::Map<
 Eigen::Matrix<T, Eigen::Dynamic, R, Eigen::RowMajor>, Eigen::Unaligned> 
 array_to_matrix(
     gsl::span<Eigen::Matrix<T, R, 1>> i_array)
@@ -73,7 +73,7 @@ array_to_matrix(
 }
 
 template <typename T, int R>
-Eigen::Map<
+FLO_API Eigen::Map<
 const Eigen::Matrix<T, Eigen::Dynamic, R, Eigen::RowMajor>, Eigen::Unaligned> 
 array_to_matrix(
     const gsl::span<const Eigen::Matrix<T, R, 1>> i_array)
@@ -84,7 +84,7 @@ array_to_matrix(
   return array_mask;
 }
 
-#include "flo/host/detail/flo_matrix_operation.inl"//template definitions
+#include "flo/host/flo_matrix_operation.inl"//template definitions
 
 FLO_HOST_NAMESPACE_END
 

@@ -48,12 +48,12 @@ public:
         m_callable((void_ptr_t)std::addressof(i_callable)) 
  {}
 
-  constexpr Ret operator()(Args&& ...i_args) noexcept
+  constexpr Ret operator()(Args&& ...i_args) const noexcept
   {
     return m_callback(m_callable, std::forward<Args>(i_args)...);
   }
 
-  constexpr operator bool() noexcept { return m_callback; }
+  constexpr operator bool() const noexcept { return m_callback; }
 };
 
 }

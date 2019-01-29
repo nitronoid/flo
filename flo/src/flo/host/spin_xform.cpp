@@ -12,7 +12,7 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-std::vector<Vector3d> spin_xform(
+FLO_API std::vector<Vector3d> spin_xform(
     const gsl::span<const Vector3d> i_vertices,
     const gsl::span<const Vector3i> i_faces,
     const gsl::span<const double> i_rho,
@@ -48,7 +48,7 @@ std::vector<Vector3d> spin_xform(
   return new_positions;
 }
 
-std::vector<Vector3d> spin_xform(
+FLO_API std::vector<Vector3d> spin_xform(
     const gsl::span<const Vector3d> i_vertices,
     const gsl::span<const Vector3i> i_faces,
     const gsl::span<const double> i_rho)

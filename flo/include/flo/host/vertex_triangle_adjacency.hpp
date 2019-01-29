@@ -6,7 +6,7 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-void vertex_triangle_adjacency(
+FLO_API void vertex_triangle_adjacency(
     const gsl::span<const Eigen::Vector3i> i_faces,
     const uint i_nverts,
     gsl::span<int> o_adjacency,

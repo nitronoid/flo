@@ -6,7 +6,7 @@
 
 FLO_NAMESPACE_BEGIN
 
-Surface load_mesh(gsl::czstring i_path);
+FLO_API Surface load_mesh(gsl::czstring i_path);
 
 FLO_NAMESPACE_END
 

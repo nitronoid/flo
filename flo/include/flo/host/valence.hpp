@@ -7,7 +7,7 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-std::vector<int> valence(const gsl::span<const Eigen::Vector3i> i_faces);
+FLO_API std::vector<int> valence(const gsl::span<const Eigen::Vector3i> i_faces);
 
 FLO_HOST_NAMESPACE_END
 

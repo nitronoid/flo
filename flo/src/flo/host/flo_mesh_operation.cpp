@@ -5,7 +5,7 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-void remove_mean(gsl::span<Vector4d> io_positions)
+FLO_API void remove_mean(gsl::span<Vector4d> io_positions)
 {
   Vector4d zeroQuat(0.f, 0.f, 0.f, 0.f); 
   auto sum = std::accumulate(
@@ -14,7 +14,7 @@ void remove_mean(gsl::span<Vector4d> io_positions)
   for (auto& pos : io_positions) pos -= average;
 }
 
-void normalize_positions(gsl::span<Vector4d> io_positions)
+FLO_API void normalize_positions(gsl::span<Vector4d> io_positions)
 {
   double max_dist = 0.;
   for (const auto& qpos : io_positions) 

@@ -6,7 +6,7 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-std::vector<double> orthonormalize(
+FLO_API std::vector<double> orthonormalize(
     const gsl::span<const double> i_vectors, 
     const uint i_num_vectors, 
     nonstd::function_ref<

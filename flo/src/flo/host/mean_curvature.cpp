@@ -6,7 +6,7 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-std::vector<Vector3d> mean_curvature_normal(
+FLO_API std::vector<Vector3d> mean_curvature_normal(
     const gsl::span<const Vector3d> i_vertices,
     const SparseMatrix<double>& i_cotangent_laplacian,
     const gsl::span<const double> i_vertex_mass)
@@ -21,7 +21,7 @@ std::vector<Vector3d> mean_curvature_normal(
   return curvature_normal;
 }
 
-std::vector<double> mean_curvature(
+FLO_API std::vector<double> mean_curvature(
     const gsl::span<const Vector3d> i_vertices,
     const SparseMatrix<double>& i_cotangent_laplacian,
     const gsl::span<const double> i_vertex_mass)
@@ -41,7 +41,7 @@ std::vector<double> mean_curvature(
   return curvature;
 }
 
-std::vector<double> signed_mean_curvature(
+FLO_API std::vector<double> signed_mean_curvature(
     const gsl::span<const Vector3d> i_vertices,
     const SparseMatrix<double>& i_cotangent_laplacian,
     const gsl::span<const double> i_vertex_mass,

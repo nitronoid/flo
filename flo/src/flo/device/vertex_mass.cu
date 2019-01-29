@@ -33,7 +33,7 @@ __global__ void vertex_mass_impl(
 }
 }
 
-std::vector<double> vertex_mass(
+FLO_API std::vector<double> vertex_mass(
     const gsl::span<const Vector3d> i_vertices,
     const gsl::span<const Vector3i> i_faces)
 {

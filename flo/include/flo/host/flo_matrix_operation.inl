@@ -1,5 +1,5 @@
 template <int R, int C>
-void insert_block_sparse(
+FLO_API void insert_block_sparse(
     const Eigen::Matrix<double, R, C>& i_block,
     Eigen::SparseMatrix<double>& i_mat,
     uint i_x,
@@ -16,7 +16,7 @@ void insert_block_sparse(
 }
 
 template <int R, int C, int IR, int IC>
-void insert_block_dense(
+FLO_API void insert_block_dense(
     const Eigen::Matrix<double, R, C>& i_block,
     Eigen::Matrix<double, IR, IC>& i_mat,
     uint i_x,
@@ -33,7 +33,7 @@ void insert_block_dense(
 }
 
 template <typename T, int R, int C>
-std::vector<Eigen::Matrix<T, C, 1>> matrix_to_array(
+FLO_API std::vector<Eigen::Matrix<T, C, 1>> matrix_to_array(
     const Eigen::Matrix<T, R, C>& i_mat)
 {
   std::vector<Eigen::Matrix<T, C, 1>> ret;
@@ -48,7 +48,7 @@ std::vector<Eigen::Matrix<T, C, 1>> matrix_to_array(
 }
 
 template <typename T, int R>
-std::vector<T> matrix_to_array(
+FLO_API std::vector<T> matrix_to_array(
     const Eigen::Matrix<T, R, 1>& i_mat)
 {
   std::vector<T> ret;

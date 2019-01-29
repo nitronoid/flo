@@ -6,7 +6,7 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-std::vector<Eigen::Vector3d> willmore_flow(
+FLO_API std::vector<Eigen::Vector3d> willmore_flow(
     const gsl::span<const Eigen::Vector3d> i_vertices,
     const gsl::span<const Eigen::Vector3i> i_faces,
     nonstd::function_ref<

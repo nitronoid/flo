@@ -17,6 +17,20 @@
 #define FLO_DEVICE_NAMESPACE_BEGIN FLO_NAMESPACE_BEGIN namespace device {
 #define FLO_DEVICE_NAMESPACE_END }}
 
+#ifndef __host__
+#define __host__ 
+#endif
+#ifndef __device__
+#define __device__ 
+#endif
+
+#define FLO_API __host__
+#define FLO_DEVICE_ONLY_API __device__
+#define FLO_SHARED_API FLO_API FLO_DEVICE_ONLY_API
+
+// We don't want gsl in cuda (it wasn't implemented properly)
+#define gsl_api 
+
 #include "flo/function_ref.hpp"
 #include <gsl/gsl-lite.hpp>
 #include <Eigen/StdVector>

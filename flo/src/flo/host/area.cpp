@@ -6,7 +6,7 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-std::vector<double> area(
+FLO_API std::vector<double> area(
     const gsl::span<const Vector3d> i_vertices,
     const gsl::span<const Vector3i> i_faces)
 {

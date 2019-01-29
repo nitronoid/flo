@@ -8,7 +8,7 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
-void vertex_triangle_adjacency(
+FLO_API void vertex_triangle_adjacency(
     const thrust::device_ptr<int> dio_faces,
     const uint i_nfaces,
     const uint i_nverts,

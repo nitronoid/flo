@@ -7,7 +7,7 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-std::vector<Vector3d> spin_positions(
+FLO_API std::vector<Vector3d> spin_positions(
     const SparseMatrix<double>& i_quaternion_laplacian, 
     const gsl::span<const Vector4d> i_edges)
 {

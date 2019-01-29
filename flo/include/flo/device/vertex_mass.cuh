@@ -11,7 +11,7 @@ FLO_DEVICE_NAMESPACE_BEGIN
 //__global__ void d_parallelIntAdd(int* a, int* b, int* c);
 //}
 
-std::vector<double> vertex_mass(
+FLO_API std::vector<double> vertex_mass(
     const gsl::span<const Eigen::Vector3d> i_vertices,
     const gsl::span<const Eigen::Vector3i> i_faces);
 

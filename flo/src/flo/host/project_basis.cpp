@@ -5,7 +5,7 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-std::vector<double> project_basis(
+FLO_API std::vector<double> project_basis(
       const gsl::span<const double> i_vector,
       const gsl::span<const double> i_basis, 
       const uint i_basis_cols, 

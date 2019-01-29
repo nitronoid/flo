@@ -12,7 +12,7 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-std::vector<Vector3d> willmore_flow(
+FLO_API std::vector<Vector3d> willmore_flow(
     const gsl::span<const Vector3d> i_vertices,
     const gsl::span<const Vector3i> i_faces,
     nonstd::function_ref<

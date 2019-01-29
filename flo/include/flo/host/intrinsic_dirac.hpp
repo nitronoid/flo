@@ -9,7 +9,7 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-Eigen::SparseMatrix<double> intrinsic_dirac(
+FLO_API Eigen::SparseMatrix<double> intrinsic_dirac(
     const gsl::span<const Eigen::Vector3d> i_vertices, 
     const gsl::span<const Eigen::Vector3i> i_faces,
     const gsl::span<const int> i_valence,

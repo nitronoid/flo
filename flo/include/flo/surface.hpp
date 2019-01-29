@@ -12,8 +12,8 @@ struct Surface
   std::vector<Eigen::Vector3d> vertices;
   std::vector<Eigen::Vector3i> faces;
 
-  std::size_t n_vertices();
-  std::size_t n_faces();
+  FLO_SHARED_API std::size_t n_vertices();
+  FLO_SHARED_API std::size_t n_faces();
 };
 
 FLO_NAMESPACE_END

@@ -8,9 +8,9 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-void remove_mean(gsl::span<Eigen::Vector4d> io_positions);
+FLO_API void remove_mean(gsl::span<Eigen::Vector4d> io_positions);
 
-void normalize_positions(gsl::span<Eigen::Vector4d> io_positions);
+FLO_API void normalize_positions(gsl::span<Eigen::Vector4d> io_positions);
 
 FLO_HOST_NAMESPACE_END
 

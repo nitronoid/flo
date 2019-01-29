@@ -5,7 +5,7 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-std::vector<Vector4d> similarity_xform(
+FLO_API std::vector<Vector4d> similarity_xform(
     const SparseMatrix<double>& i_dirac_matrix)
 {
 	// Calculate the length of our matrix,

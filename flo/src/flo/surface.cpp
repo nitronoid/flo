@@ -2,12 +2,12 @@
 
 FLO_NAMESPACE_BEGIN
 
-std::size_t Surface::n_vertices()
+FLO_SHARED_API std::size_t Surface::n_vertices()
 {
   return vertices.size();
 }
 
-std::size_t Surface::n_faces()
+FLO_SHARED_API std::size_t Surface::n_faces()
 {
   return faces.size();
 }

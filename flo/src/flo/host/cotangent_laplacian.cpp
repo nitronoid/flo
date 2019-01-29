@@ -6,7 +6,7 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-SparseMatrix<double> cotangent_laplacian(
+FLO_API SparseMatrix<double> cotangent_laplacian(
     const gsl::span<const Vector3d> i_vertices,
     const gsl::span<const Vector3i> i_faces)
 {

@@ -6,7 +6,7 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-SparseMatrix<double> to_real_quaternion_matrix(
+FLO_API SparseMatrix<double> to_real_quaternion_matrix(
     const SparseMatrix<double>& i_real_matrix)
 {
   SparseMatrix<double> quat_matrix(
@@ -39,7 +39,7 @@ SparseMatrix<double> to_real_quaternion_matrix(
   return quat_matrix;
 }
 
-Matrix<double, Dynamic, 4> to_quaternion_matrix(
+FLO_API Matrix<double, Dynamic, 4> to_quaternion_matrix(
     const gsl::span<const Vector4d> i_qvec)
 {
   // Real matrix of No. Quats * 4 x 4
@@ -54,7 +54,7 @@ Matrix<double, Dynamic, 4> to_quaternion_matrix(
   return mat;
 }
 
-std::vector<Vector4d> to_quaternion_vector(const VectorXd& i_vec)
+FLO_API std::vector<Vector4d> to_quaternion_vector(const VectorXd& i_vec)
 {
   std::vector<Vector4d> qmat(i_vec.rows() / 4);
   for (uint r = 0u; r < qmat.size(); ++r)

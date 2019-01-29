@@ -7,7 +7,7 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-std::vector<int> valence(const gsl::span<const Vector3i> i_faces)
+FLO_API std::vector<int> valence(const gsl::span<const Vector3i> i_faces)
 {
   auto F = array_to_matrix(i_faces);
   SparseMatrix<int> A;

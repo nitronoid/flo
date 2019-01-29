@@ -7,7 +7,7 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-Eigen::SparseMatrix<double> cotangent_laplacian(
+FLO_API Eigen::SparseMatrix<double> cotangent_laplacian(
     const gsl::span<const Eigen::Vector3d> i_vertices,
     const gsl::span<const Eigen::Vector3i> i_faces);
 

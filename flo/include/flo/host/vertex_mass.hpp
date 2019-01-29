@@ -6,7 +6,7 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-std::vector<double> vertex_mass(
+FLO_API std::vector<double> vertex_mass(
     const gsl::span<const Eigen::Vector3d> i_vertices,
     const gsl::span<const Eigen::Vector3i> i_faces);
 

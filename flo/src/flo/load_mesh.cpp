@@ -8,7 +8,7 @@ using namespace Eigen;
 
 FLO_NAMESPACE_BEGIN
 
-Surface load_mesh(gsl::czstring i_path)
+FLO_API Surface load_mesh(gsl::czstring i_path)
 {
   Matrix<double, Dynamic, 3> V;
   Matrix<int, Dynamic, 3> F;

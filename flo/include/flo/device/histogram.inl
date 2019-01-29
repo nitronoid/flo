@@ -1,6 +1,6 @@
 
 template <typename T>
-void cumulative_dense_histogram_sorted(
+FLO_API void cumulative_dense_histogram_sorted(
     const thrust::device_ptr<T> di_data,
     thrust::device_ptr<T> do_histogram,
     const uint i_ndata,
@@ -22,7 +22,7 @@ void cumulative_dense_histogram_sorted(
 }
 
 template <typename T>
-void cumulative_dense_histogram_unsorted(
+FLO_API void cumulative_dense_histogram_unsorted(
     const thrust::device_ptr<T> di_data,
     thrust::device_ptr<T> do_histogram,
     const uint i_nbins,
@@ -38,7 +38,7 @@ void cumulative_dense_histogram_unsorted(
 }
 
 template <typename T>
-void dense_histogram_sorted(
+FLO_API void dense_histogram_sorted(
     const thrust::device_ptr<T> di_data,
     thrust::device_ptr<T> do_histogram,
     const uint i_ndata,
@@ -52,7 +52,7 @@ void dense_histogram_sorted(
 }
 
 template <typename T>
-void dense_histogram_unsorted(
+FLO_API void dense_histogram_unsorted(
     const thrust::device_ptr<T> di_data,
     thrust::device_ptr<T> do_histogram,
     const uint i_ndata,
@@ -66,7 +66,7 @@ void dense_histogram_unsorted(
 }
 
 template <typename T>
-void dense_histogram_from_cumulative(
+FLO_API void dense_histogram_from_cumulative(
     const thrust::device_ptr<T> di_cumulative,
     thrust::device_ptr<T> do_histogram,
     const uint i_ncumulative)
@@ -78,7 +78,7 @@ void dense_histogram_from_cumulative(
 }
 
 template <typename T>
-void cumulative_histogram_from_dense(
+FLO_API void cumulative_histogram_from_dense(
     const thrust::device_ptr<T> di_dense,
     thrust::device_ptr<T> do_histogram,
     const uint i_ndense)
@@ -89,7 +89,7 @@ void cumulative_histogram_from_dense(
 }
 
 template <typename T>
-void atomic_histogram(
+FLO_API void atomic_histogram(
     const thrust::device_ptr<T> di_data,
     thrust::device_ptr<T> do_histogram,
     const uint i_ndata)

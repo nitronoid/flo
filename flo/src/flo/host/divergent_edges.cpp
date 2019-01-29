@@ -5,7 +5,7 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-std::vector<Vector4d> divergent_edges(
+FLO_API std::vector<Vector4d> divergent_edges(
     const gsl::span<const Vector3d> i_vertices,
     const gsl::span<const Vector3i> i_faces,
     const gsl::span<const Vector4d> i_lambda,
