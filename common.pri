@@ -40,7 +40,7 @@ QMAKE_LFLAGS += -fopenmp
 # Intrinsics flags
 QMAKE_CXXFLAGS += -mfma -mavx2 -m64 -msse -msse2 -msse3
 # Enable all warnings
-QMAKE_CXXFLAGS += -Wall -Wextra -pedantic-errors
+QMAKE_CXXFLAGS += -Wall -Wextra -pedantic-errors -Wno-sign-compare
 # Vectorization info
 QMAKE_CXXFLAGS += -ftree-vectorize -ftree-vectorizer-verbose=5 
 
