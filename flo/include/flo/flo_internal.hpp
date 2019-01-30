@@ -36,4 +36,8 @@
 #include <Eigen/StdVector>
 EIGEN_DEFINE_STL_VECTOR_SPECIALIZATION(Eigen::Vector4d)
 
+#ifdef __CUDACC__
+#include "flo/cuda_math_operation.cuh"
+#endif
+
 #endif//FLO_INCLUDED
