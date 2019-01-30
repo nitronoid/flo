@@ -26,6 +26,8 @@ LIBS += -L/home/s4902673/SuiteSparse/lib
 # Linker libraries
 LIBS += -lcholmod
 
+DEFINES += FLO_USE_DOUBLE_PRECISION
+
 QT -= opengl core gui
 CONFIG += console c++11
 CONFIG -= app_bundle
