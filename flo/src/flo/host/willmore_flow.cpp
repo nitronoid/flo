@@ -12,11 +12,11 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<Vector3d> willmore_flow(
-    const gsl::span<const Vector3d> i_vertices,
+FLO_API std::vector<Matrix<real, 3, 1>> willmore_flow(
+    const gsl::span<const Matrix<real, 3, 1>> i_vertices,
     const gsl::span<const Vector3i> i_faces,
     nonstd::function_ref<
-    void(gsl::span<double> x, const gsl::span<const double> dx)> i_integrator)
+    void(gsl::span<real> x, const gsl::span<const real> dx)> i_integrator)
 {
   // Calculate smooth vertex normals
   auto normals = vertex_normals(i_vertices, i_faces);
@@ -31,7 +31,7 @@ FLO_API std::vector<Vector3d> willmore_flow(
   const uint n_verts = i_vertices.size();
   const uint n_constraints = 4;
   // Build our constraints {1, N.x, N.y, N.z}
-  std::vector<double> constraints(normals.size() * n_constraints);
+  std::vector<real> constraints(normals.size() * n_constraints);
   for (uint i = 0; i < normals.size(); ++i)
   {
     constraints[i + n_verts * 0] = 1.0;
@@ -41,7 +41,7 @@ FLO_API std::vector<Vector3d> willmore_flow(
   }
 
   // Declare an immersed inner-product using the mass matrix
-  const auto ip = [&M](const VectorXd& x, const VectorXd& y) -> double {
+  const auto ip = [&M](const Matrix<real, Dynamic, 1>& x, const Matrix<real, Dynamic, 1>& y) -> real {
     auto single_mat = (x.transpose() * M.asDiagonal() * y).eval();
     return single_mat(0,0);
   };
@@ -51,7 +51,7 @@ FLO_API std::vector<Vector3d> willmore_flow(
   // Calculate the signed mean curvature based on our vertex normals
   auto mc = signed_mean_curvature(i_vertices, L, mass, normals);
   // Apply our flow direction to the the mean curvature half density
-  std::transform(mc.begin(), mc.end(), mc.begin(), [](double x) { return -x; });
+  std::transform(mc.begin(), mc.end(), mc.begin(), [](real x) { return -x; });
   // project the constraints on to our mean curvature
   auto projected = project_basis(mc, basis, n_constraints, ip);
   // take a time step

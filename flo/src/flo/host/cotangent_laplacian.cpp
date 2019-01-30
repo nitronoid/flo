@@ -6,13 +6,13 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API SparseMatrix<double> cotangent_laplacian(
-    const gsl::span<const Vector3d> i_vertices,
+FLO_API SparseMatrix<real> cotangent_laplacian(
+    const gsl::span<const Matrix<real, 3, 1>> i_vertices,
     const gsl::span<const Vector3i> i_faces)
 {
   auto V = array_to_matrix(i_vertices);
   auto F = array_to_matrix(i_faces);
-  SparseMatrix<double> L;
+  SparseMatrix<real> L;
   igl::cotmatrix(V, F, L);
   // Convert to positive semi-definite
   L = (-L.eval());

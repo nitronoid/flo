@@ -5,13 +5,13 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<Vector4d> divergent_edges(
-    const gsl::span<const Vector3d> i_vertices,
+FLO_API std::vector<Matrix<real, 4, 1>> divergent_edges(
+    const gsl::span<const Matrix<real, 3, 1>> i_vertices,
     const gsl::span<const Vector3i> i_faces,
-    const gsl::span<const Vector4d> i_lambda,
-    const SparseMatrix<double> i_cotangent_laplacian)
+    const gsl::span<const Matrix<real, 4, 1>> i_lambda,
+    const SparseMatrix<real> i_cotangent_laplacian)
 {
-  std::vector<Vector4d> new_edges(i_lambda.size(), {0.f, 0.f, 0.f, 0.f});
+  std::vector<Matrix<real, 4, 1>> new_edges(i_lambda.size(), {0.f, 0.f, 0.f, 0.f});
 
   // For every face
   for (const auto& f : i_faces)
@@ -27,7 +27,7 @@ FLO_API std::vector<Vector4d> divergent_edges(
       const auto& l2 = i_lambda[b];
 
       auto edge = i_vertices[a] - i_vertices[b];
-      Vector4d e(edge[0], edge[1], edge[2], 0.f);
+      Matrix<real, 4, 1> e(edge[0], edge[1], edge[2], 0.f);
 
       constexpr auto third = 1.f / 3.f;
       constexpr auto sixth = 1.f / 6.f;

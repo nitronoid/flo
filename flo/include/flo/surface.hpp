@@ -9,7 +9,7 @@ FLO_NAMESPACE_BEGIN
 
 struct Surface
 {
-  std::vector<Eigen::Vector3d> vertices;
+  std::vector<Eigen::Matrix<real, 3, 1>> vertices;
   std::vector<Eigen::Vector3i> faces;
 
   FLO_SHARED_API std::size_t n_vertices();

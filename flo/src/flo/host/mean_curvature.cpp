@@ -6,51 +6,51 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<Vector3d> mean_curvature_normal(
-    const gsl::span<const Vector3d> i_vertices,
-    const SparseMatrix<double>& i_cotangent_laplacian,
-    const gsl::span<const double> i_vertex_mass)
+FLO_API std::vector<Matrix<real, 3, 1>> mean_curvature_normal(
+    const gsl::span<const Matrix<real, 3, 1>> i_vertices,
+    const SparseMatrix<real>& i_cotangent_laplacian,
+    const gsl::span<const real> i_vertex_mass)
 {
   auto V = array_to_matrix(i_vertices);
-  Map<const VectorXd> M(i_vertex_mass.data(), i_vertex_mass.size());
+  Map<const Matrix<real, Dynamic, 1>> M(i_vertex_mass.data(), i_vertex_mass.size());
 
-  VectorXd Minv = 1. / (12. * M.array());
-  Matrix<double, Dynamic, 3> HN 
+  Matrix<real, Dynamic, 1> Minv = 1. / (12. * M.array());
+  Matrix<real, Dynamic, 3> HN 
     = (-Minv).asDiagonal() * (2.0 * i_cotangent_laplacian * V);
   auto curvature_normal = matrix_to_array(HN);
   return curvature_normal;
 }
 
-FLO_API std::vector<double> mean_curvature(
-    const gsl::span<const Vector3d> i_vertices,
-    const SparseMatrix<double>& i_cotangent_laplacian,
-    const gsl::span<const double> i_vertex_mass)
+FLO_API std::vector<real> mean_curvature(
+    const gsl::span<const Matrix<real, 3, 1>> i_vertices,
+    const SparseMatrix<real>& i_cotangent_laplacian,
+    const gsl::span<const real> i_vertex_mass)
 {
   auto curvature_normals = mean_curvature_normal(
       i_vertices, i_cotangent_laplacian, i_vertex_mass);
 
-  std::vector<double> curvature(curvature_normals.size());
+  std::vector<real> curvature(curvature_normals.size());
   std::transform(
       curvature_normals.begin(),
       curvature_normals.end(),
       curvature.begin(),
-      [](const Vector3d& cn) 
+      [](const Matrix<real, 3, 1>& cn) 
       {
         return cn.norm(); 
       });
   return curvature;
 }
 
-FLO_API std::vector<double> signed_mean_curvature(
-    const gsl::span<const Vector3d> i_vertices,
-    const SparseMatrix<double>& i_cotangent_laplacian,
-    const gsl::span<const double> i_vertex_mass,
-    const gsl::span<const Vector3d> i_normals)
+FLO_API std::vector<real> signed_mean_curvature(
+    const gsl::span<const Matrix<real, 3, 1>> i_vertices,
+    const SparseMatrix<real>& i_cotangent_laplacian,
+    const gsl::span<const real> i_vertex_mass,
+    const gsl::span<const Matrix<real, 3, 1>> i_normals)
 {
   auto curvature_normals = mean_curvature_normal(
       i_vertices, i_cotangent_laplacian, i_vertex_mass);
 
-  std::vector<double> curvature(curvature_normals.size());
+  std::vector<real> curvature(curvature_normals.size());
   for (uint i = 0; i < curvature_normals.size(); ++i)
   {
     // if the angle between the unit and curvature normals is obtuse,

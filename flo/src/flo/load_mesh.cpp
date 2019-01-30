@@ -10,7 +10,7 @@ FLO_NAMESPACE_BEGIN
 
 FLO_API Surface load_mesh(gsl::czstring i_path)
 {
-  Matrix<double, Dynamic, 3> V;
+  Matrix<real, Dynamic, 3> V;
   Matrix<int, Dynamic, 3> F;
   igl::readOBJ(i_path, V, F);
 

@@ -5,19 +5,27 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<Vector4d> similarity_xform(
-    const SparseMatrix<double>& i_dirac_matrix)
+FLO_API std::vector<Matrix<real, 4, 1>> similarity_xform(
+    const SparseMatrix<real>& i_dirac_matrix)
 {
 	// Calculate the length of our matrix,
 	// and hence the number of quaternions we should expect
   const uint vlen = i_dirac_matrix.cols();
   const uint qlen = vlen / 4u;
-	// Cholmod solver
-  CholmodSupernodalLLT<SparseMatrix<double>> cg;
+
+	// If double precsion, use Cholmod solver
+#ifdef FLO_USE_DOUBLE_PRECISION
+  CholmodSupernodalLLT<SparseMatrix<real>> cg;
+#else
+  // Cholmod not supported for single precision
+  ConjugateGradient<SparseMatrix<real>, Lower, DiagonalPreconditioner<real>> cg;
+  cg.setTolerance(1e-7);
+#endif
+
   cg.compute(i_dirac_matrix);
 
 	// Init every real part to 1, all imaginary parts to zero
-  VectorXd lambda(vlen);
+  Matrix<real, Dynamic, 1> lambda(vlen);
   lambda.setConstant(0.f);
   for (uint i = 0u; i < qlen; ++i) 
 	{
@@ -35,11 +43,11 @@ FLO_API std::vector<Vector4d> similarity_xform(
   }
 
 	// Extract quaternions from our result matrix
-  std::vector<Vector4d> lambdaQ(qlen);
+  std::vector<Matrix<real, 4, 1>> lambdaQ(qlen);
   for (uint i = 0u; i < qlen; ++i)
   {
 		// W is last in a vector but first in a quaternion
-    lambdaQ[i] = Vector4d(
+    lambdaQ[i] = Matrix<real, 4, 1>(
         lambda(i*4u + 1u),
         lambda(i*4u + 2u),
         lambda(i*4u + 3u),

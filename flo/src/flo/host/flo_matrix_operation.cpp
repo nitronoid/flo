@@ -6,10 +6,10 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API SparseMatrix<double> to_real_quaternion_matrix(
-    const SparseMatrix<double>& i_real_matrix)
+FLO_API SparseMatrix<real> to_real_quaternion_matrix(
+    const SparseMatrix<real>& i_real_matrix)
 {
-  SparseMatrix<double> quat_matrix(
+  SparseMatrix<real> quat_matrix(
       i_real_matrix.rows()*4, i_real_matrix.cols()*4);
 
   Eigen::Matrix<int, Dynamic, 1> dim(i_real_matrix.cols() * 4, 1);
@@ -23,7 +23,7 @@ FLO_API SparseMatrix<double> to_real_quaternion_matrix(
   }
   quat_matrix.reserve(dim);
 
-  using iter_t = SparseMatrix<double>::InnerIterator;
+  using iter_t = SparseMatrix<real>::InnerIterator;
   for (uint i = 0u; i < i_real_matrix.outerSize(); ++i)
   {
     for (iter_t it(i_real_matrix, i); it; ++it)
@@ -31,7 +31,7 @@ FLO_API SparseMatrix<double> to_real_quaternion_matrix(
       auto r = it.row();
       auto c = it.col();
 
-      Vector4d real_quat(0.f, 0.f, 0.f, it.value());
+      Matrix<real, 4, 1> real_quat(0.f, 0.f, 0.f, it.value());
       auto block = quat_to_block(real_quat);
       insert_block_sparse(block, quat_matrix, r, c);
     }
@@ -39,11 +39,11 @@ FLO_API SparseMatrix<double> to_real_quaternion_matrix(
   return quat_matrix;
 }
 
-FLO_API Matrix<double, Dynamic, 4> to_quaternion_matrix(
-    const gsl::span<const Vector4d> i_qvec)
+FLO_API Matrix<real, Dynamic, 4> to_quaternion_matrix(
+    const gsl::span<const Matrix<real, 4, 1>> i_qvec)
 {
   // Real matrix of No. Quats * 4 x 4
-  Matrix<double, Dynamic, 4> mat(i_qvec.size() * 4, 4);
+  Matrix<real, Dynamic, 4> mat(i_qvec.size() * 4, 4);
 
   for (uint i = 0; i < i_qvec.size(); ++i)
   {
@@ -54,12 +54,12 @@ FLO_API Matrix<double, Dynamic, 4> to_quaternion_matrix(
   return mat;
 }
 
-FLO_API std::vector<Vector4d> to_quaternion_vector(const VectorXd& i_vec)
+FLO_API std::vector<Matrix<real, 4, 1>> to_quaternion_vector(const Matrix<real, Dynamic, 1>& i_vec)
 {
-  std::vector<Vector4d> qmat(i_vec.rows() / 4);
+  std::vector<Matrix<real, 4, 1>> qmat(i_vec.rows() / 4);
   for (uint r = 0u; r < qmat.size(); ++r)
   {
-    qmat[r] = Vector4d({i_vec(r*4 + 1, 0),
+    qmat[r] = Matrix<real, 4, 1>({i_vec(r*4 + 1, 0),
                         i_vec(r*4 + 2, 0),
                         i_vec(r*4 + 3, 0),
                         i_vec(r*4 + 0, 0)});

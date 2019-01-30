@@ -1,7 +1,7 @@
 template <int R, int C>
 FLO_API void insert_block_sparse(
-    const Eigen::Matrix<double, R, C>& i_block,
-    Eigen::SparseMatrix<double>& i_mat,
+    const Eigen::Matrix<real, R, C>& i_block,
+    Eigen::SparseMatrix<real>& i_mat,
     uint i_x,
     uint i_y)
 {
@@ -17,8 +17,8 @@ FLO_API void insert_block_sparse(
 
 template <int R, int C, int IR, int IC>
 FLO_API void insert_block_dense(
-    const Eigen::Matrix<double, R, C>& i_block,
-    Eigen::Matrix<double, IR, IC>& i_mat,
+    const Eigen::Matrix<real, R, C>& i_block,
+    Eigen::Matrix<real, IR, IC>& i_mat,
     uint i_x,
     uint i_y)
 {

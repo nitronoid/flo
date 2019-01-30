@@ -12,11 +12,11 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<Vector3d> spin_xform(
-    const gsl::span<const Vector3d> i_vertices,
+FLO_API std::vector<Matrix<real, 3, 1>> spin_xform(
+    const gsl::span<const Matrix<real, 3, 1>> i_vertices,
     const gsl::span<const Vector3i> i_faces,
-    const gsl::span<const double> i_rho,
-    const SparseMatrix<double> i_cotangent_laplacian)
+    const gsl::span<const real> i_rho,
+    const SparseMatrix<real> i_cotangent_laplacian)
 {
   // Calculate the real matrix from our quaternion edges
   auto ql = to_real_quaternion_matrix(i_cotangent_laplacian);
@@ -48,10 +48,10 @@ FLO_API std::vector<Vector3d> spin_xform(
   return new_positions;
 }
 
-FLO_API std::vector<Vector3d> spin_xform(
-    const gsl::span<const Vector3d> i_vertices,
+FLO_API std::vector<Matrix<real, 3, 1>> spin_xform(
+    const gsl::span<const Matrix<real, 3, 1>> i_vertices,
     const gsl::span<const Vector3i> i_faces,
-    const gsl::span<const double> i_rho)
+    const gsl::span<const real> i_rho)
 {
   // Wrapper to calculate the laplacian when not already provided
   auto L = cotangent_laplacian(i_vertices, i_faces);

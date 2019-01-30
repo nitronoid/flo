@@ -7,8 +7,8 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<Eigen::Vector4d> similarity_xform(
-    const Eigen::SparseMatrix<double>& i_dirac_matrix);
+FLO_API std::vector<Eigen::Matrix<real, 4, 1>> similarity_xform(
+    const Eigen::SparseMatrix<real>& i_dirac_matrix);
 
 FLO_HOST_NAMESPACE_END
 

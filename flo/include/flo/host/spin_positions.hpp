@@ -7,9 +7,9 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<Eigen::Vector3d> spin_positions(
-    const Eigen::SparseMatrix<double>& i_quaternion_laplacian, 
-    const gsl::span<const Eigen::Vector4d> i_quaternion_edge_matrix);
+FLO_API std::vector<Eigen::Matrix<real, 3, 1>> spin_positions(
+    const Eigen::SparseMatrix<real>& i_quaternion_laplacian, 
+    const gsl::span<const Eigen::Matrix<real, 4, 1>> i_quaternion_edge_matrix);
 
 FLO_HOST_NAMESPACE_END
 

@@ -8,8 +8,8 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
-FLO_API thrust::device_vector<double> vertex_mass(
-    const thrust::device_ptr<double> di_face_area,
+FLO_API thrust::device_vector<real> vertex_mass(
+    const thrust::device_ptr<real> di_face_area,
     const thrust::device_ptr<int> di_vertex_face_adjacency,
     const thrust::device_ptr<int> di_vertex_face_valence,
     const thrust::device_ptr<int> di_cumulative_valence,

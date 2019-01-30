@@ -7,19 +7,19 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API SparseMatrix<double> intrinsic_dirac(
-    const gsl::span<const Vector3d> i_vertices, 
+FLO_API SparseMatrix<real> intrinsic_dirac(
+    const gsl::span<const Matrix<real, 3, 1>> i_vertices, 
     const gsl::span<const Vector3i> i_faces,
     const gsl::span<const int> i_valence,
-    const gsl::span<const double> i_face_area,
-    const gsl::span<const double> i_rho)
+    const gsl::span<const real> i_face_area,
+    const gsl::span<const real> i_rho)
 {
   // Find the max valence
   uint mv = *std::max_element(i_valence.begin(), i_valence.end());
 
   const uint vlen = i_vertices.size();
   // Allocate for our Eigen problem matrix
-  SparseMatrix<double> D(vlen * 4u, vlen * 4u);
+  SparseMatrix<real> D(vlen * 4u, vlen * 4u);
   D.reserve(Eigen::VectorXi::Constant(vlen*4u, mv));
 
   // For every face
@@ -33,7 +33,7 @@ FLO_API SparseMatrix<double> intrinsic_dirac(
     auto c = i_face_area[k] / 9.f;
 
     // Compute edge vectors as imagnary quaternions
-    std::array<Vector4d, 3> edges;
+    std::array<Matrix<real, 4, 1>, 3> edges;
     // opposing edge per vertex i.e. vertex one oposes edge 1->2
     edges[0].head<3>() = i_vertices[f[2]] - i_vertices[f[1]];
     edges[1].head<3>() = i_vertices[f[0]] - i_vertices[f[2]];
@@ -48,14 +48,14 @@ FLO_API SparseMatrix<double> intrinsic_dirac(
     for (uint j = 0; j < 3; j++)
     {
       // W comes first in a quaternion but last in a vector
-      Vector4d cur_quat(
+      Matrix<real, 4, 1> cur_quat(
           D.coeff(f[i] * 4 + 1, f[j] * 4),
           D.coeff(f[i] * 4 + 2, f[j] * 4),
           D.coeff(f[i] * 4 + 3, f[j] * 4),
           D.coeff(f[i] * 4 + 0, f[j] * 4));
 
       // Calculate the matrix component
-      Vector4d q =
+      Matrix<real, 4, 1> q =
         a * hammilton_product(edges[i], edges[j]) +
         b * (i_rho[f[i]] * edges[j] - i_rho[f[j]] * edges[i]);
       q.w() += i_rho[f[i]] * i_rho[f[j]] * c;

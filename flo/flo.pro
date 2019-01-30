@@ -11,4 +11,6 @@ HEADERS += $$files(include/flo/*(.hpp | .inl | cuh), true)
 SOURCES += $$files(src/*.cpp, true)
 CUDA_SOURCES += $$files(src/*.cu, true) 
 
+DEFINES += FLO_USE_DOUBLE_PRECISION
+
 include($${PWD}/../cuda_compiler.pri)

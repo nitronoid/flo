@@ -6,8 +6,8 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<double> area(
-    const gsl::span<const Eigen::Vector3d> i_vertices,
+FLO_API std::vector<real> area(
+    const gsl::span<const Eigen::Matrix<real, 3, 1>> i_vertices,
     const gsl::span<const Eigen::Vector3i> i_faces);
 
 FLO_HOST_NAMESPACE_END

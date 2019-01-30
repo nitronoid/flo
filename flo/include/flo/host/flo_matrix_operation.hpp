@@ -10,15 +10,15 @@ FLO_HOST_NAMESPACE_BEGIN
 
 template <int R, int C>
 FLO_API void insert_block_sparse(
-    const Eigen::Matrix<double, R, C>& i_block,
-    Eigen::SparseMatrix<double>& i_mat,
+    const Eigen::Matrix<real, R, C>& i_block,
+    Eigen::SparseMatrix<real>& i_mat,
     uint i_x,
     uint i_y);
 
 template <int R, int C, int IR, int IC>
 FLO_API void insert_block_dense(
-    const Eigen::Matrix<double, R, C>& i_block,
-    Eigen::Matrix<double, IR, IC>& i_mat,
+    const Eigen::Matrix<real, R, C>& i_block,
+    Eigen::Matrix<real, IR, IC>& i_mat,
     uint i_x,
     uint i_y);
 
@@ -30,13 +30,13 @@ template <typename T, int R>
 FLO_API std::vector<T> matrix_to_array(
     const Eigen::Matrix<T, R, 1>& i_mat);
 
-FLO_API Eigen::SparseMatrix<double> to_real_quaternion_matrix(
-    const Eigen::SparseMatrix<double>& i_real_matrix);
+FLO_API Eigen::SparseMatrix<real> to_real_quaternion_matrix(
+    const Eigen::SparseMatrix<real>& i_real_matrix);
 
-FLO_API Eigen::Matrix<double, Eigen::Dynamic, 4> to_quaternion_matrix(
-    const gsl::span<const Eigen::Vector4d> i_qvec);
+FLO_API Eigen::Matrix<real, Eigen::Dynamic, 4> to_quaternion_matrix(
+    const gsl::span<const Eigen::Matrix<real, 4, 1>> i_qvec);
 
-FLO_API std::vector<Eigen::Vector4d> to_quaternion_vector(const Eigen::VectorXd& i_vec);
+FLO_API std::vector<Eigen::Matrix<real, 4, 1>> to_quaternion_vector(const Eigen::Matrix<real, Eigen::Dynamic, 1>& i_vec);
 
 template <typename T>
 FLO_API Eigen::Map<
@@ -44,7 +44,7 @@ Eigen::Matrix<T, Eigen::Dynamic, 1>, Eigen::Unaligned>
 array_to_matrix(gsl::span<T> i_array)
 {
   using namespace Eigen;
-  Map<Matrix<T, Dynamic, 1>, Unaligned> array_mask(
+  Map<Matrix<T, Eigen::Dynamic, 1>, Unaligned> array_mask(
       i_array.data(), i_array.size(), 1);
   return array_mask;
 }
@@ -55,7 +55,7 @@ const Eigen::Matrix<T, Eigen::Dynamic, 1>, Eigen::Unaligned>
 array_to_matrix(const gsl::span<const T> i_array)
 {
   using namespace Eigen;
-  Map<const Matrix<T, Dynamic, 1>, Unaligned> array_mask(
+  Map<const Matrix<T, Eigen::Dynamic, 1>, Unaligned> array_mask(
       i_array.data(), i_array.size(), 1);
   return array_mask;
 }
@@ -67,7 +67,7 @@ array_to_matrix(
     gsl::span<Eigen::Matrix<T, R, 1>> i_array)
 {
   using namespace Eigen;
-  Map<Matrix<T, Dynamic, R, RowMajor>, Unaligned> array_mask(
+  Map<Matrix<T, Eigen::Dynamic, R, RowMajor>, Unaligned> array_mask(
       &i_array[0][0], i_array.size(), R);
   return array_mask;
 }
@@ -79,7 +79,7 @@ array_to_matrix(
     const gsl::span<const Eigen::Matrix<T, R, 1>> i_array)
 {
   using namespace Eigen;
-  Map<const Matrix<T, Dynamic, R, RowMajor>, Unaligned> array_mask(
+  Map<const Matrix<T, Eigen::Dynamic, R, RowMajor>, Unaligned> array_mask(
       &i_array[0][0], i_array.size(), R);
   return array_mask;
 }

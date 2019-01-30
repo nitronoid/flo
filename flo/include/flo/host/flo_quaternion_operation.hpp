@@ -8,15 +8,15 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API Eigen::Vector4d hammilton_product(
-    const Eigen::Vector4d& i_rhs, const Eigen::Vector4d& i_lhs);
+FLO_API Eigen::Matrix<real, 4, 1> hammilton_product(
+    const Eigen::Matrix<real, 4, 1>& i_rhs, const Eigen::Matrix<real, 4, 1>& i_lhs);
 
-FLO_API Eigen::Vector4d hammilton_product(
-    const Eigen::Vector3d& i_rhs, const Eigen::Vector3d& i_lhs);
+FLO_API Eigen::Matrix<real, 4, 1> hammilton_product(
+    const Eigen::Matrix<real, 3, 1>& i_rhs, const Eigen::Matrix<real, 3, 1>& i_lhs);
 
-FLO_API Eigen::Matrix4d quat_to_block(const Eigen::Vector4d& i_quat);
+FLO_API Eigen::Matrix<real, 4, 4> quat_to_block(const Eigen::Matrix<real, 4, 1>& i_quat);
 
-FLO_API Eigen::Vector4d conjugate(const Eigen::Vector4d& i_quat);
+FLO_API Eigen::Matrix<real, 4, 1> conjugate(const Eigen::Matrix<real, 4, 1>& i_quat);
 
 FLO_HOST_NAMESPACE_END
 

@@ -4,24 +4,24 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<double> orthonormalize(
-    const gsl::span<const double> i_vectors, 
+FLO_API std::vector<real> orthonormalize(
+    const gsl::span<const real> i_vectors, 
     const uint i_num_vectors, 
     nonstd::function_ref<
-    double(const VectorXd&, const VectorXd&)> i_inner_product)
+    real(const Matrix<real, Dynamic, 1>&, const Matrix<real, Dynamic, 1>&)> i_inner_product)
 {
   // Normalize is defined using a self inner product
-  auto normalize = [&](const VectorXd& x) {
+  auto normalize = [&](const Matrix<real, Dynamic, 1>& x) {
     return x.array() / std::sqrt(i_inner_product(x, x));
   };
   const auto vlen = i_vectors.size() / i_num_vectors;
 
   // Map our input vectors as a matrix
-  Map<const MatrixXd> v(i_vectors.data(), vlen, i_num_vectors); 
+  Map<const Matrix<real, Dynamic, Dynamic>> v(i_vectors.data(), vlen, i_num_vectors); 
 
   // Declare and allocate space for our final basis matrix
-  std::vector<double> basis(vlen * i_num_vectors);
-  Map<MatrixXd> u(basis.data(), vlen, i_num_vectors); 
+  std::vector<real> basis(vlen * i_num_vectors);
+  Map<Matrix<real, Dynamic, Dynamic>> u(basis.data(), vlen, i_num_vectors); 
 
   // The first u0 is v0 normalized
   u.col(0) = normalize(v.col(0));

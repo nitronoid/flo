@@ -7,8 +7,8 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
-FLO_API thrust::device_vector<double> area(
-    const thrust::device_ptr<const double3> i_vertices,
+FLO_API thrust::device_vector<real> area(
+    const thrust::device_ptr<const real3> i_vertices,
     const thrust::device_ptr<const int3> i_faces,
     const uint i_nfaces);
 

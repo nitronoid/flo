@@ -36,6 +36,24 @@
 #include <Eigen/StdVector>
 EIGEN_DEFINE_STL_VECTOR_SPECIALIZATION(Eigen::Vector4d)
 
+FLO_NAMESPACE_BEGIN
+#ifndef FLO_USE_DOUBLE_PRECISION
+  using real = float;
+  #ifdef __CUDACC__
+  using real2 = float2;
+  using real3 = float3;
+  using real4 = float4;
+  #endif
+#else
+  using real = double;
+  #ifdef __CUDACC__
+  using real2 = double2;
+  using real3 = double3;
+  using real4 = double4;
+  #endif
+#endif
+FLO_NAMESPACE_END
+
 #ifdef __CUDACC__
 #include "flo/cuda_math_operation.cuh"
 #endif
