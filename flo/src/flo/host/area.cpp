@@ -18,7 +18,7 @@ FLO_API std::vector<real> area(
   std::vector<real> face_area(i_faces.size());
   std::transform(
       double_area.data(), double_area.data() + i_faces.size(), face_area.data(),
-      [](real a) -> real { return 0.5 * a; });
+      [](real a) -> real { return 0.5f * a; });
   return face_area;
 }
 

@@ -5,7 +5,7 @@
 
 inline flo::Surface make_cube()
 {
-  std::vector<Eigen::Matrix<float, 3, 1>> vertices{
+  std::vector<Eigen::Matrix<flo::real, 3, 1>> vertices{
     {-0.5, -0.5,  0.5},
     { 0.5, -0.5,  0.5},
     {-0.5,  0.5,  0.5},
