@@ -21,7 +21,7 @@ TEST(VertexNormals, cube)
     { 0.57735, -0.57735, -0.57735}};
 
   using namespace testing;
-  EXPECT_THAT(normals, Pointwise(EigenNear2(), expected_normals));
+  EXPECT_THAT(normals, Pointwise(EigenNear(), expected_normals));
 
 }
 
