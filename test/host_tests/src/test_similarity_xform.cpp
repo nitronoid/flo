@@ -1,17 +1,10 @@
 #include "test_common.h"
 
-#include "flo/host/intrinsic_dirac.hpp"
+#include "flo/host/similarity_xform.hpp"
 
-TEST(IntrinsicDirac, cube)
+TEST(SimilarityXform, cube)
 {
   auto cube = make_cube();
-
-  std::vector<int> valence(8, 8);
-  std::vector<flo::real> face_area(12, 0.5f);
-  std::vector<flo::real> rho(8, 3.0f);
-
-  auto D = flo::host::intrinsic_dirac(
-      cube.vertices, cube.faces, valence, face_area, rho);
 
   Eigen::Matrix<flo::real, 32, 32> dense_D(32, 32);
   const flo::real o = 1.0;
@@ -53,10 +46,25 @@ TEST(IntrinsicDirac, cube)
    z,  o,  o, -o,  h,  z, -z, -h,  z,  z,  z,  z,  o, -o,  o, -z,  z,  z,  z,  z, -o, -h, -z,  h, -h,  h, -z,  o,  z,  z,  m, -z, 
    o, -z,  o,  o,  z, -h,  h, -z,  z,  z,  z,  z, -o, -o,  z,  o,  z,  z,  z,  z, -h,  o, -h, -z,  h,  h, -o, -z,  z, -z,  z,  m;
 
-  Eigen::SparseMatrix<flo::real> expected_D = dense_D.sparseView();
+  Eigen::SparseMatrix<flo::real> D = dense_D.sparseView();
 
-  EXPECT_MAT_NEAR(D, expected_D);
+  auto lambda = flo::host::similarity_xform(D);
+
+  using quat_t = Eigen::Matrix<flo::real, 4, 1>;
+  std::vector<quat_t> expected_lambda(8);
+  expected_lambda[0] = quat_t{-0.266601,  0.266601,  0.000000,  0.051751};
+  expected_lambda[1] = quat_t{ 0.159860,  0.159860,  0.000000,  0.232507};
+  expected_lambda[2] = quat_t{-0.159860, -0.159860,  0.000000,  0.232507}; 
+  expected_lambda[3] = quat_t{ 0.266601, -0.266601,  0.000000,  0.051751};
+  expected_lambda[4] = quat_t{-0.266601, -0.266601, -0.000000,  0.051751}; 
+  expected_lambda[5] = quat_t{ 0.159860, -0.159860,  0.000000,  0.232507};
+  expected_lambda[6] = quat_t{-0.159860,  0.159860, -0.000000,  0.232507}; 
+  expected_lambda[7] = quat_t{ 0.266601,  0.266601,  0.000000,  0.051751};
+
+  using namespace testing;
+  EXPECT_THAT(lambda, Pointwise(EigenNear(), expected_lambda));
 }
+
 
 
 

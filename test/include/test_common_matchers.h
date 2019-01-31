@@ -23,10 +23,20 @@ MATCHER(EigenNear,"")
 
 namespace Eigen
 {
-inline void PrintTo(const Eigen::MatrixXd &m, std::ostream *os)
+template <typename Real, int R, int C>
+void PrintTo(const Eigen::Matrix<Real, R, C> &m, std::ostream *os)
 {
   *os << '\n' << m;
 }
+template void PrintTo(const Eigen::Matrix<double, 2, 1>& m, std::ostream *os);
+template void PrintTo(const Eigen::Matrix<double, 3, 1>& m, std::ostream *os);
+template void PrintTo(const Eigen::Matrix<double, 4, 1>& m, std::ostream *os);
+template void PrintTo(const Eigen::Matrix<double, Dynamic, 1>& m, std::ostream *os);
+template void PrintTo(const Eigen::Matrix<double, Dynamic, Dynamic>& m, std::ostream *os);
+//inline void PrintTo(const Eigen::MatrixXd &m, std::ostream *os)
+//{
+//  *os << '\n' << m;
+//}
 }
 
 #endif//FLO_INCLUDED_TEST_COMMON_MATCHERS
