@@ -8,7 +8,6 @@ TEST(VertexNormals, cube)
 
   auto normals = flo::host::vertex_normals(cube.vertices, cube.faces);
 
-
   using normal_t = Eigen::Matrix<flo::real, 3, 1>;
   std::vector<normal_t> expected_normals {
     {-0.57735, -0.57735,  0.57735},
