@@ -2,6 +2,7 @@ LIBS += -L${CUDA_PATH}/lib -L${CUDA_PATH}/lib64 -L${CUDA_PATH}/lib64/nvidia
 LIBS += -lcudart -lcurand -licudata -lcudart_static -lcudadevrt
 
 INCLUDEPATH += \
+  ${HOME}/cusplibrary \
   ${CUDA_PATH}/include \
   ${CUDA_PATH}/include/cuda 
 
