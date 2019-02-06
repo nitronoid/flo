@@ -8,6 +8,15 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
+__global__ void d_build_triplets(
+    const thrust::device_ptr<const real3> di_vertices,
+    const thrust::device_ptr<const int3> di_faces,
+    const thrust::device_ptr<const real> di_face_area,
+    const uint i_nfaces,
+    thrust::device_ptr<int> do_I,
+    thrust::device_ptr<int> do_J,
+    thrust::device_ptr<real> do_V);
+
 FLO_API cusp::coo_matrix<int, real, cusp::device_memory> cotangent_laplacian(
     const thrust::device_ptr<const real3> di_vertices,
     const thrust::device_ptr<const int3> di_faces,
