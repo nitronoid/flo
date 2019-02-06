@@ -1,4 +1,7 @@
 #include "flo/device/cotangent_laplacian.cuh"
+#include <thrust/sort.h>
+#include <thrust/reduce.h>
+
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
@@ -161,14 +164,13 @@ FLO_API cusp::coo_matrix<int, real, cusp::device_memory> cotangent_laplacian(
   thrust::device_vector<real> V(ntriplets);
 
   dim3 block_dim;
-  block_dim.x = 1024 / 12;
-  block_dim.y = 3;
-  block_dim.z = 4;
+  block_dim.x = 1024 / 12; 
+  block_dim.y = 4;
+  block_dim.z = 3;
   size_t nthreads_per_block = block_dim.x * block_dim.y * block_dim.z;
   size_t nblocks = ntriplets / nthreads_per_block + 1;
+  size_t shared_memory_size = sizeof(flo::real)*block_dim.x*4;
 
-  size_t shared_memory_size =
-    sizeof(real)*block_dim.x*4 + sizeof(uchar2)*block_dim.x*12;
 
   d_build_triplets<<<nblocks, block_dim, shared_memory_size>>>(
         di_vertices, 
@@ -178,6 +180,21 @@ FLO_API cusp::coo_matrix<int, real, cusp::device_memory> cotangent_laplacian(
         I.data(), 
         J.data(), 
         V.data());
+ 
+  {
+    using namespace thrust;
+    stable_sort_by_key(J.begin(), J.end(), make_zip_iterator(make_tuple(I.begin(), V.begin())));
+    stable_sort_by_key(I.begin(), I.end(), make_zip_iterator(make_tuple(J.begin(), V.begin())));
+
+    reduce_by_key(
+        make_zip_iterator(make_tuple(I.begin(), J.begin())),
+        make_zip_iterator(make_tuple(I.end(), J.end())),
+        V.begin(),
+        make_zip_iterator(make_tuple(d_L.row_indices.begin(), d_L.column_indices.begin())),
+        d_L.values.begin(),
+        equal_to<tuple<int,int>>(),
+        plus<float>());
+  }
 
   return d_L;
 }
