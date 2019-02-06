@@ -134,9 +134,12 @@ __global__ void d_build_triplets(
   __syncthreads();
 
   // Will replace this with prettier functions later
-  do_I[tid] = (&f.x)[(threadIdx.y & 1u) + 1u];
-  do_J[tid] = (&f.x)[((threadIdx.y >> 1u) & 1u) + 1u];
-  do_V[tid] = cot_alpha[e_idx];
+  uint8_t source =  (threadIdx.y        & 1u) + 1u;
+  uint8_t dest   = ((threadIdx.y >> 1u) & 1u) + 1u;
+  int sign = (source == dest)*2 - 1;
+  do_I[tid] = (&f.x)[source];
+  do_J[tid] = (&f.x)[dest];
+  do_V[tid] = cot_alpha[e_idx] * sign;
 }
 //}
 
