@@ -5,21 +5,6 @@
 
 TEST(CotangentLaplacian, cube)
 {
-  //Eigen::Matrix<flo::real, 8, 8> dense_L(8,8);
-  //dense_L <<
-  //   3, -1, -1,  0, -0,  0, -1, -0, 
-  //  -1,  3, -0, -1,  0,  0,  0, -1, 
-  //  -1, -0,  3, -1, -1,  0,  0,  0, 
-  //   0, -1, -1,  3, -0, -1,  0, -0, 
-  //  -0,  0, -1, -0,  3, -1, -1,  0, 
-  //   0,  0,  0, -1, -1,  3, -0, -1, 
-  //  -1,  0,  0,  0, -1, -0,  3, -1, 
-  //  -0, -1,  0, -0,  0, -1, -1,  3;
-  //Eigen::SparseMatrix<flo::real> expected_L = dense_L.sparseView();
-
-
-  //------------------------------------------------------------------------
-  
   // cube faces all have area (1*1)/2 = 0.5
   std::vector<flo::real> h_area(12, 0.5);
   thrust::device_vector<flo::real> d_area = h_area;
@@ -44,43 +29,52 @@ TEST(CotangentLaplacian, cube)
       cube.n_faces(),
       total_valence);
 
-  cusp::print(d_L);
+  std::vector<int> I(total_valence+cube.n_vertices());
+  std::vector<int> J(total_valence+cube.n_vertices());
+  std::vector<flo::real> V(total_valence+cube.n_vertices());
 
-  //auto ntrip = cube.n_faces()*12;
-  //thrust::device_vector<int> I(ntrip);
-  //thrust::device_vector<int> J(ntrip);
-  //thrust::device_vector<flo::real> V(ntrip);
+  thrust::copy(d_L.row_indices.begin(), d_L.row_indices.end(), I.begin());
+  thrust::copy(d_L.column_indices.begin(), d_L.column_indices.end(), J.begin());
+  thrust::copy(d_L.values.begin(), d_L.values.end(), V.begin());
 
-  //dim3 block_dim;
-  //block_dim.x = 1024 / 12; 
-  //block_dim.y = 4;
-  //block_dim.z = 3;
-  //size_t nthreads_per_block = block_dim.x * block_dim.y * block_dim.z;
-  //size_t nblocks = ntrip / nthreads_per_block + 1;
-  //size_t shared_memory_size = sizeof(flo::real)*block_dim.x*4;
 
-  //std::cout<<"Launch Config: \n";
-  //std::cout<<"Block dim, x,y,z: ("<<block_dim.x<<", "<<block_dim.y<<", "<<block_dim.z<<")\n";
-  //std::cout<<"Threads per block: "<<nthreads_per_block<<'\n';
-  //std::cout<<"Num Blocks: "<<nblocks<<'\n';
-  //std::cout<<"Shared memory size"<<shared_memory_size<<" (bytes)\n";
+  std::vector<int> expected_I {
+    0, 0, 0, 0, 0, 0, 
+    1, 1, 1, 1, 1, 
+    2, 2, 2, 2, 2,
+    3, 3, 3, 3, 3, 3,
+    4, 4, 4, 4, 4, 4,
+    5, 5, 5, 5, 5, 
+    6, 6, 6, 6, 6,
+    7, 7, 7, 7, 7, 7
+  };
 
-  //flo::device::d_build_triplets<<<nblocks, block_dim, shared_memory_size>>>(
-  //    d_verts.data(),
-  //    d_faces.data(),
-  //    d_area.data(),
-  //    cube.n_faces(),
-  //    I.data(),
-  //    J.data(),
-  //    V.data());
+  std::vector<int> expected_J {
+    0, 1, 2, 4, 6, 7,
+    0, 1, 2, 3, 7,
+    0, 1, 2, 3, 4,
+    1, 2, 3, 4, 5, 7,
+    0, 2, 3, 4, 5, 6,
+    3, 4, 5, 6, 7,
+    0, 4, 5, 6, 7,
+    0, 1, 3, 5, 6, 7
+  };
 
-  //auto h_I = device_vector_to_host(I);
-  //auto h_J = device_vector_to_host(J);
-  //auto h_V = device_vector_to_host(V);
-  //for (int i = 0; i < ntrip; ++i)
-  //{
-  //  std::cout<<"("<<h_I[i]<<", "<<h_J[i]<<") := "<<h_V[i]<<'\n';
-  //}
+  std::vector<flo::real> expected_V {
+    3, -1, -1, -0, -1, -0,
+   -1,  3, -0, -1, -1,
+   -1, -0,  3, -1, -1,
+   -1, -1,  3, -0, -1, -0,
+   -0, -1, -0,  3, -1, -1,
+   -1, -1,  3, -0, -1,
+   -1, -1, -0,  3, -1,
+   -0, -1, -0, -1, -1, 3 
+  };
+
+  using namespace testing;
+  EXPECT_THAT(I, Pointwise(Eq(), expected_I));
+  EXPECT_THAT(J, Pointwise(Eq(), expected_J));
+  EXPECT_THAT(V, Pointwise(FloatNear(FLOAT_SOFT_EPSILON), expected_V));
 
 }
 
