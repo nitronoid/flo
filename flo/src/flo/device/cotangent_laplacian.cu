@@ -215,9 +215,9 @@ cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
 
   {
     using namespace thrust;
-    stable_sort_by_key(
+    sort_by_key(
       J.begin(), J.end(), make_zip_iterator(make_tuple(I.begin(), V.begin())));
-    stable_sort_by_key(
+    sort_by_key(
       I.begin(), I.end(), make_zip_iterator(make_tuple(J.begin(), V.begin())));
 
     reduce_by_key(make_zip_iterator(make_tuple(I.begin(), J.begin())),
