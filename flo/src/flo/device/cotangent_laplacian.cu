@@ -101,47 +101,43 @@ d_build_triplets(const thrust::device_ptr<const real3> di_vertices,
   // Create pointers into the block dividing it for the different uses
   real* cached_value = shared_memory;
   // There are is a cached value for each corner of the face so we offset
-  real3* points = (real3*)(cached_value + blockDim.x * 3);
+  real3* points = (real3*)(cached_value + blockDim.z * 3);
   // There are nfaces *3 vertex values (duplicated for each face vertex)
-  real* edge_norm2 = (real*)(points + blockDim.x * 3);
+  real* edge_norm2 = (real*)(points + blockDim.z * 3);
 
   // Block index
   const uint bid = block_index();
-
-  // thread index in block. IMPORTANT, we rotate the thread id's
-  const uint tid =
-    bid * block_volume() + (threadIdx.y + threadIdx.z * 4 + threadIdx.x * 12);
+  // Unique thread index from x, y, z
+  const uint tid = unique_thread_idx3();
 
   // Check we're not out of range
   if (tid >= i_nfaces * 12)
     return;
 
-  // calculated from the x index only
-  const uint f_idx = unique_thread_idx1();
+  // calculated from the z index only
+  const uint f_idx = blockIdx.z * blockDim.z + threadIdx.z;
   // Get the relevant face
   const int3 f = di_faces[f_idx];
 
   // Global block index multiplied by number of edges in a block by edge id
   const uint global_edge_idx =
-    bid * (blockDim.x * 3) + (threadIdx.z + threadIdx.x * 3);
+    bid * (blockDim.z * 3) + (threadIdx.y + threadIdx.z * 3);
 
   // Get the vertex order
-  const uchar3 loop = edge_loop(threadIdx.z);
+  const uchar3 loop = edge_loop(threadIdx.y);
   // Compute local edge indices rotated by the vertex order
-  const int e_idx0 = threadIdx.x * 3 + loop.x;
-  const int e_idx1 = threadIdx.x * 3 + loop.y;
-  const int e_idx2 = threadIdx.x * 3 + loop.z;
+  const int e_idx0 = threadIdx.z * 3 + loop.x;
+  const int e_idx1 = threadIdx.z * 3 + loop.y;
+  const int e_idx2 = threadIdx.z * 3 + loop.z;
 
-  if (f_idx < i_nfaces && !threadIdx.y && !threadIdx.z)
+  if (f_idx < i_nfaces && !threadIdx.x && !threadIdx.y)
   {
     // Duplicate for each corner of the face to reduce bank conflicts
     cached_value[e_idx0] = cached_value[e_idx1] = cached_value[e_idx2] =
       di_face_area[f_idx] * 8.f;
   }
-  __syncthreads();
-
   // Run a thread for each face-edge
-  bool edge_thread = global_edge_idx < i_nfaces * 3 && !threadIdx.y;
+  bool edge_thread = global_edge_idx < i_nfaces * 3 && !threadIdx.x;
   if (edge_thread)
   {
     // Write the vertex positions into shared memory
@@ -166,8 +162,8 @@ d_build_triplets(const thrust::device_ptr<const real3> di_vertices,
   __syncthreads();
 
   // Get the vertex index pair to write our value to
-  int source = nth_element(loop, (threadIdx.y & 1u) + 1u);
-  int dest = nth_element(loop, ((threadIdx.y >> 1u) & 1u) + 1u);
+  int source = nth_element(loop, (threadIdx.x & 1u) + 1u);
+  int dest = nth_element(loop, ((threadIdx.x >> 1u) & 1u) + 1u);
   // Write the row and column indices
   do_I[tid] = nth_element(f, source);
   do_J[tid] = nth_element(f, dest);
@@ -193,16 +189,16 @@ cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
   thrust::device_vector<real> V(ntriplets);
 
   dim3 block_dim;
-  block_dim.x = 1024 / 12;
-  block_dim.y = 4;
-  block_dim.z = 3;
+  block_dim.x = 4;
+  block_dim.y = 3;
+  block_dim.z = 64;
   size_t nthreads_per_block = block_dim.x * block_dim.y * block_dim.z;
   size_t nblocks = ntriplets / nthreads_per_block + 1;
-  // face area | cot_alpha  =>  sizeof(real) * 3
-  // vertex positions       =>  sizeof(real3) * 3 ==  sizeof(real) * 9
-  // edge squared lengths   =>  sizeof(real) * 3
-  // === (3 + 9 + 3) * sizeof(real)
-  size_t shared_memory_size = sizeof(flo::real) * block_dim.x * 15;
+  // face area | cot_alpha  =>  sizeof(real) * 3 * #F
+  // vertex positions       =>  sizeof(real3) * 3 * #F ==  sizeof(real) * 9 * #F
+  // edge squared lengths   =>  sizeof(real) * 3 * #F
+  // === (3 + 9 + 3) * #F * sizeof(real)
+  size_t shared_memory_size = sizeof(flo::real) * block_dim.z * 15;
 
   d_build_triplets<<<nblocks, block_dim, shared_memory_size>>>(di_vertices,
                                                                di_faces,
