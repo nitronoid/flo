@@ -47,6 +47,17 @@ __device__ __forceinline__ uint unique_thread_idx3()
      threadIdx.z * blockDim.x * blockDim.y);
 }
 
+__device__ __forceinline__ uint block_index()
+{
+  return blockIdx.x + blockIdx.y * gridDim.x +
+         blockIdx.z * gridDim.x * gridDim.y;
+}
+
+__device__ __forceinline__ uint block_volume()
+{
+  return blockDim.x * blockDim.y * blockDim.z;
+}
+
 __device__ __forceinline__ uint8_t cycle(uint8_t i_x)
 {
   /************************
@@ -95,31 +106,24 @@ d_build_triplets(const thrust::device_ptr<const real3> di_vertices,
   real* edge_norm2 = (real*)(points + blockDim.x * 3);
 
   // Block index
-  const uint block_index =
-    blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y;
-  // Number of threads in a block
-  const uint n_threads_in_block = blockDim.x * blockDim.y * blockDim.z;
+  const uint bid = block_index();
 
+  // thread index in block. IMPORTANT, we rotate the thread id's
   const uint tid =
-    block_index * n_threads_in_block +
-    // thread index in block. IMPORTANT, we rotate the thread id's
-    (threadIdx.y + threadIdx.z * blockDim.y +
-     threadIdx.x * blockDim.y * blockDim.z);
+    bid * block_volume() + (threadIdx.y + threadIdx.z * 4 + threadIdx.x * 12);
 
   // Check we're not out of range
-  if (tid >= i_nfaces * blockDim.y * blockDim.z)
+  if (tid >= i_nfaces * 12)
     return;
 
   // calculated from the x index only
-  const uint f_idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const uint f_idx = unique_thread_idx1();
   // Get the relevant face
   const int3 f = di_faces[f_idx];
 
+  // Global block index multiplied by number of edges in a block by edge id
   const uint global_edge_idx =
-    // Global block index multiplied by number of edges in a block
-    block_index * (blockDim.x * blockDim.z) +
-    // Edge id in this block
-    (threadIdx.z + threadIdx.x * blockDim.z);
+    bid * (blockDim.x * 3) + (threadIdx.z + threadIdx.x * 3);
 
   // Get the vertex order
   const uchar3 loop = edge_loop(threadIdx.z);
@@ -130,16 +134,14 @@ d_build_triplets(const thrust::device_ptr<const real3> di_vertices,
 
   if (f_idx < i_nfaces && !threadIdx.y && !threadIdx.z)
   {
-    // Write the face area, we do this to reduce global memory reads
-    real scaled_area = di_face_area[f_idx] * 8.f;
     // Duplicate for each corner of the face to reduce bank conflicts
     cached_value[e_idx0] = cached_value[e_idx1] = cached_value[e_idx2] =
-      scaled_area;
+      di_face_area[f_idx] * 8.f;
   }
   __syncthreads();
 
   // Run a thread for each face-edge
-  bool edge_thread = global_edge_idx < i_nfaces * blockDim.z && !threadIdx.y;
+  bool edge_thread = global_edge_idx < i_nfaces * 3 && !threadIdx.y;
   if (edge_thread)
   {
     // Write the vertex positions into shared memory
@@ -164,8 +166,8 @@ d_build_triplets(const thrust::device_ptr<const real3> di_vertices,
   __syncthreads();
 
   // Get the vertex index pair to write our value to
-  uint8_t source = nth_element(loop, (threadIdx.y & 1u) + 1u);
-  uint8_t dest = nth_element(loop, ((threadIdx.y >> 1u) & 1u) + 1u);
+  int source = nth_element(loop, (threadIdx.y & 1u) + 1u);
+  int dest = nth_element(loop, ((threadIdx.y >> 1u) & 1u) + 1u);
   // Write the row and column indices
   do_I[tid] = nth_element(f, source);
   do_J[tid] = nth_element(f, dest);
