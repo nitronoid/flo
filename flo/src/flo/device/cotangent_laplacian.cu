@@ -227,7 +227,7 @@ cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
                                                d_L.column_indices.begin())),
                   d_L.values.begin(),
                   equal_to<tuple<int, int>>(),
-                  plus<float>());
+                  plus<real>());
   }
 
   return d_L;
