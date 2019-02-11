@@ -1,5 +1,6 @@
 #include "flo/host/similarity_xform.hpp"
 #include <Eigen/CholmodSupport>
+#include <Eigen/SparseCholesky>
 
 using namespace Eigen;
 
@@ -18,8 +19,7 @@ FLO_API std::vector<Matrix<real, 4, 1>> similarity_xform(
   CholmodSupernodalLLT<SparseMatrix<real>> cg;
 #else
   // Cholmod not supported for single precision
-  ConjugateGradient<SparseMatrix<real>, Lower, DiagonalPreconditioner<real>> cg;
-  cg.setTolerance(1e-7);
+  SimplicialLDLT<SparseMatrix<real>, Lower> cg;
 #endif
 
   cg.compute(i_dirac_matrix);
