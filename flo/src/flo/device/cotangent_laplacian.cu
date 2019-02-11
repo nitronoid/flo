@@ -84,17 +84,18 @@ __device__ __forceinline__ uchar3 edge_loop(uint8_t i_e)
   loop.y = cycle(loop.z);
   return loop;
 }
+}  // namespace
 
 // block dim should be #F*4*3, where #F is some number of faces,
 // we have three edges per triangle face, and write four values per edge
-__global__ void
-d_build_triplets(const thrust::device_ptr<const real3> di_vertices,
-                 const thrust::device_ptr<const int3> di_faces,
-                 const thrust::device_ptr<const real> di_face_area,
-                 const uint i_nfaces,
-                 thrust::device_ptr<int> do_I,
-                 thrust::device_ptr<int> do_J,
-                 thrust::device_ptr<real> do_V)
+__global__ void d_cotangent_laplacian_triplets(
+  const thrust::device_ptr<const real3> di_vertices,
+  const thrust::device_ptr<const int3> di_faces,
+  const thrust::device_ptr<const real> di_face_area,
+  const uint i_nfaces,
+  thrust::device_ptr<int> do_I,
+  thrust::device_ptr<int> do_J,
+  thrust::device_ptr<real> do_V)
 {
   // Declare one shared memory block
   extern __shared__ real shared_memory[];
@@ -170,19 +171,39 @@ d_build_triplets(const thrust::device_ptr<const real3> di_vertices,
   // If the vertex pair are non identical, our entry should be negative
   do_V[tid] = cached_value[e_idx0] * ((source == dest) * 2 - 1);
 }
-}  // namespace
+//}  // namespace
+
+template <typename RandomAccessIterator1, typename... RandomAccessIterator2>
+void multi_sort(RandomAccessIterator1&& i_key_begin,
+                RandomAccessIterator1&& i_key_end,
+                RandomAccessIterator1&& i_new_key_begin,
+                RandomAccessIterator2&&... i_data_begin)
+{
+  using expand = int[];
+  auto new_key_end = i_new_key_begin + (i_key_end - i_key_begin);
+  thrust::sequence(i_new_key_begin, new_key_end);
+  thrust::sort_by_key(i_key_begin, i_key_end, i_new_key_begin);
+  expand{((void)thrust::gather(
+            i_new_key_begin, new_key_end, i_data_begin, i_data_begin),
+          0)...};
+}
+
+template <typename RandomAccessIterator1, typename... RandomAccessIterator2>
+void multi_sort(RandomAccessIterator1&& i_key_begin,
+                RandomAccessIterator1&& i_key_end,
+                RandomAccessIterator2&&... i_data_begin)
+{
+  thrust::device_vector<int> seq(i_key_end - i_key_begin);
+  gather_sort(i_key_begin, i_key_end, seq.begin(), i_data_begin...);
+}
 
 FLO_API cusp::coo_matrix<int, real, cusp::device_memory>
 cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
                     const thrust::device_ptr<const int3> di_faces,
                     const thrust::device_ptr<const real> di_face_area,
                     const int i_nverts,
-                    const int i_nfaces,
-                    const int i_total_valence)
+                    const int i_nfaces)
 {
-  using SparseMatrix = cusp::coo_matrix<int, real, cusp::device_memory>;
-  SparseMatrix d_L(i_nverts, i_nverts, i_total_valence + i_nverts);
-
   const int ntriplets = i_nfaces * 12;
   thrust::device_vector<int> I(ntriplets);
   thrust::device_vector<int> J(ntriplets);
@@ -200,31 +221,43 @@ cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
   // === (3 + 9 + 3) * #F * sizeof(real)
   size_t shared_memory_size = sizeof(flo::real) * block_dim.z * 15;
 
-  d_build_triplets<<<nblocks, block_dim, shared_memory_size>>>(di_vertices,
-                                                               di_faces,
-                                                               di_face_area,
-                                                               i_nfaces,
-                                                               I.data(),
-                                                               J.data(),
-                                                               V.data());
+  d_cotangent_laplacian_triplets<<<nblocks, block_dim, shared_memory_size>>>(
+    di_vertices,
+    di_faces,
+    di_face_area,
+    i_nfaces,
+    I.data(),
+    J.data(),
+    V.data());
   cudaDeviceSynchronize();
 
-  {
-    using namespace thrust;
-    sort_by_key(
-      J.begin(), J.end(), make_zip_iterator(make_tuple(I.begin(), V.begin())));
-    sort_by_key(
-      I.begin(), I.end(), make_zip_iterator(make_tuple(J.begin(), V.begin())));
+  auto coord_begin =
+    thrust::make_zip_iterator(thrust::make_tuple(I.begin(), J.begin()));
+  auto coord_end = coord_begin + ntriplets;
 
-    reduce_by_key(make_zip_iterator(make_tuple(I.begin(), J.begin())),
-                  make_zip_iterator(make_tuple(I.end(), J.end())),
-                  V.begin(),
-                  make_zip_iterator(make_tuple(d_L.row_indices.begin(),
-                                               d_L.column_indices.begin())),
-                  d_L.values.begin(),
-                  equal_to<tuple<int, int>>(),
-                  plus<real>());
-  }
+  thrust::device_vector<int> seq(ntriplets);
+  multi_sort(J.begin(), J.end(), seq.begin(), I.begin(), V.begin());
+  multi_sort(I.begin(), I.end(), seq.begin(), J.begin(), V.begin());
+
+  int num_entries =
+    thrust::inner_product(coord_begin,
+                          coord_end - 1,
+                          coord_begin + 1,
+                          int(0),
+                          thrust::plus<int>(),
+                          thrust::not_equal_to<thrust::tuple<int, int>>());
+
+  using SparseMatrix = cusp::coo_matrix<int, real, cusp::device_memory>;
+  SparseMatrix d_L(i_nverts, i_nverts, num_entries + 1);
+
+  thrust::reduce_by_key(coord_begin,
+                        coord_end,
+                        V.begin(),
+                        thrust::make_zip_iterator(thrust::make_tuple(
+                          d_L.row_indices.begin(), d_L.column_indices.begin())),
+                        d_L.values.begin(),
+                        thrust::equal_to<thrust::tuple<int, int>>(),
+                        thrust::plus<real>());
 
   return d_L;
 }
