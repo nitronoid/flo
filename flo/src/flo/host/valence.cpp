@@ -15,7 +15,7 @@ FLO_API std::vector<int> valence(const gsl::span<const Vector3i> i_faces)
   std::vector<int> degree(A.cols());
   for (uint i = 0; i < A.cols(); ++i)
   {
-    degree[i] = A.col(i).size();
+    degree[i] = A.col(i).nonZeros();
   }
   return degree;
 }
