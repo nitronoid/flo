@@ -22,7 +22,8 @@ cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
                     const thrust::device_ptr<const int3> di_faces,
                     const thrust::device_ptr<const real> di_face_area,
                     const int i_nverts,
-                    const int i_nfaces);
+                    const int i_nfaces,
+                    const int i_total_valence);
 
 FLO_DEVICE_NAMESPACE_END
 

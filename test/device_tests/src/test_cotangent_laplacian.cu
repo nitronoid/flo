@@ -19,12 +19,15 @@ TEST(CotangentLaplacian, cube)
   thrust::device_vector<flo::real3> d_verts(cube.n_vertices());
   thrust::copy(raw_vert_ptr, raw_vert_ptr + cube.n_vertices(), d_verts.data());
 
+  int total_valence = 36;
+
   auto d_L = flo::device::cotangent_laplacian(
       d_verts.data(),
       d_faces.data(),
       d_area.data(),
       cube.n_vertices(),
-      cube.n_faces());
+      cube.n_faces(),
+      total_valence);
 
   std::vector<int> I(d_L.row_indices.size());
   std::vector<int> J(d_L.column_indices.size());

@@ -202,7 +202,8 @@ cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
                     const thrust::device_ptr<const int3> di_faces,
                     const thrust::device_ptr<const real> di_face_area,
                     const int i_nverts,
-                    const int i_nfaces)
+                    const int i_nfaces,
+                    const int i_total_valence)
 {
   const int ntriplets = i_nfaces * 12;
   thrust::device_vector<int> I(ntriplets);
@@ -239,16 +240,16 @@ cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
   multi_sort(J.begin(), J.end(), seq.begin(), I.begin(), V.begin());
   multi_sort(I.begin(), I.end(), seq.begin(), J.begin(), V.begin());
 
-  int num_entries =
-    thrust::inner_product(coord_begin,
-                          coord_end - 1,
-                          coord_begin + 1,
-                          int(0),
-                          thrust::plus<int>(),
-                          thrust::not_equal_to<thrust::tuple<int, int>>());
+  //int num_entries =
+  //  thrust::inner_product(coord_begin,
+  //                        coord_end - 1,
+  //                        coord_begin + 1,
+  //                        int(0),
+  //                        thrust::plus<int>(),
+  //                        thrust::not_equal_to<thrust::tuple<int, int>>());
 
   using SparseMatrix = cusp::coo_matrix<int, real, cusp::device_memory>;
-  SparseMatrix d_L(i_nverts, i_nverts, num_entries + 1);
+  SparseMatrix d_L(i_nverts, i_nverts, i_total_valence + i_nverts);//num_entries + 1);
 
   thrust::reduce_by_key(coord_begin,
                         coord_end,
