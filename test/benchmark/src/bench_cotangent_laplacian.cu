@@ -3,13 +3,12 @@
 #include "test_common.h"
 #include "flo/device/area.cuh"
 #include "flo/device/cotangent_laplacian.cuh"
-#include "flo/load_mesh.hpp"
 #include "flo/host/valence.hpp"
 
 #define DEVICE_BM_CLK(BM_NAME, FILE_NAME)                                      \
   static void BM_NAME(benchmark::State& state)                                 \
   {                                                                            \
-    auto surf = flo::load_mesh(FILE_NAME);                                     \
+    auto surf = TestCache::get_mesh(FILE_NAME);                                \
     auto raw_vert_ptr = (flo::real3*)(&surf.vertices[0][0]);                   \
     auto raw_face_ptr = (int3*)(&surf.faces[0][0]);                            \
     thrust::device_vector<int3> d_faces(surf.n_faces());                       \
@@ -50,7 +49,7 @@
 #define DEVICE_BM_CL(BM_NAME, FILE_NAME)                                       \
   static void BM_NAME(benchmark::State& state)                                 \
   {                                                                            \
-    auto surf = flo::load_mesh(FILE_NAME);                                     \
+    auto surf = TestCache::get_mesh(FILE_NAME);                                \
     auto vv = flo::host::valence(surf.faces); \
     auto tv = std::accumulate(vv.begin(), vv.end(), 0);\
     auto raw_vert_ptr = (flo::real3*)(&surf.vertices[0][0]);                   \

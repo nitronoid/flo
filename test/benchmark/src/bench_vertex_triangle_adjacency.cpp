@@ -1,12 +1,11 @@
 #include <benchmark/benchmark.h>
 #include "test_common.h"
 #include "flo/host/vertex_triangle_adjacency.hpp"
-#include "flo/load_mesh.hpp"
 
 #define HOST_BM_VTA(BM_NAME, FILE_NAME) \
 static void BM_NAME(benchmark::State& state) \
 { \
-  auto surf = flo::load_mesh(FILE_NAME); \
+  auto surf = TestCache::get_mesh(FILE_NAME);                                \
   std::vector<int> adjacency(surf.n_faces() * 3); \
   std::vector<int> valence(surf.n_vertices()); \
   std::vector<int> cumulative_valence(surf.n_vertices() + 1); \

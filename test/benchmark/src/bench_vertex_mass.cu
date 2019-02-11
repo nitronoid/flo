@@ -2,12 +2,11 @@
 #include "test_common.h"
 #include "flo/device/vertex_triangle_adjacency.cuh"
 #include "flo/device/vertex_mass.cuh"
-#include "flo/load_mesh.hpp"
 
 #define DEVICE_BM_VM(BM_NAME, FILE_NAME) \
 static void BM_NAME(benchmark::State& state) \
 { \
-  auto surf = flo::load_mesh(FILE_NAME); \
+  auto surf = TestCache::get_mesh(FILE_NAME);                                \
   thrust::device_vector<int> d_face_verts(surf.n_faces() * 3); \
   thrust::copy_n((&surf.faces[0][0]), surf.n_faces() * 3, d_face_verts.data());\
   thrust::device_vector<int> d_adjacency(surf.n_faces() * 3);\

@@ -1,12 +1,11 @@
 #include <benchmark/benchmark.h>
 #include "test_common.h"
 #include "flo/host/vertex_mass.hpp"
-#include "flo/load_mesh.hpp"
 
 #define HOST_BM_VM(BM_NAME, FILE_NAME) \
 static void BM_NAME(benchmark::State& state) \
 { \
-  auto surf = flo::load_mesh(FILE_NAME); \
+    auto surf = TestCache::get_mesh(FILE_NAME);                                \
   for (auto _ : state) \
   { \
     benchmark::DoNotOptimize(flo::host::vertex_mass(surf.vertices, surf.faces));\

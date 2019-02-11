@@ -1,12 +1,11 @@
 #include <benchmark/benchmark.h>
 #include "test_common.h"
 #include "flo/host/area.hpp"
-#include "flo/load_mesh.hpp"
 
 #define HOST_BM_FA(BM_NAME, FILE_NAME) \
 static void BM_NAME(benchmark::State& state) \
 { \
-  auto surf = flo::load_mesh(FILE_NAME); \
+  auto surf = TestCache::get_mesh(FILE_NAME);                                \
   for (auto _ : state) \
   { \
     benchmark::DoNotOptimize(flo::host::area(surf.vertices, surf.faces));\
