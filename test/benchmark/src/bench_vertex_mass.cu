@@ -20,8 +20,8 @@ static void BM_NAME(benchmark::State& state) \
       d_adjacency.data(),\
       d_valence.data(),\
       d_cumulative_valence.data());\
-  std::vector<double> h_area(12, 0.5);\
-  thrust::device_vector<double> d_area = h_area;\
+  std::vector<flo::real> h_area(12, 0.5);\
+  thrust::device_vector<flo::real> d_area = h_area;\
   for (auto _ : state)\
   {\
     benchmark::DoNotOptimize(flo::device::vertex_mass(\

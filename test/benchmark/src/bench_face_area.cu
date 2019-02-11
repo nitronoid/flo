@@ -7,11 +7,11 @@
 static void BM_NAME(benchmark::State& state) \
 { \
   auto surf = flo::load_mesh(FILE_NAME); \
-  auto raw_vert_ptr = (double3*)(&surf.vertices[0][0]);\
+  auto raw_vert_ptr = (flo::real3*)(&surf.vertices[0][0]);\
   auto raw_face_ptr = (int3*)(&surf.faces[0][0]);\
   thrust::device_vector<int3> d_faces(surf.n_faces());\
   thrust::copy(raw_face_ptr, raw_face_ptr + surf.n_faces(), d_faces.data());\
-  thrust::device_vector<double3> d_verts(surf.n_vertices());\
+  thrust::device_vector<flo::real3> d_verts(surf.n_vertices());\
   thrust::copy(raw_vert_ptr, raw_vert_ptr + surf.n_vertices(), d_verts.data());\
   for (auto _ : state)\
   {\
