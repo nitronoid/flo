@@ -26,7 +26,8 @@ LIBS += -L/home/s4902673/SuiteSparse/lib
 # Linker libraries
 LIBS += -lcholmod
 
-DEFINES += FLO_USE_DOUBLE_PRECISION
+#DEFINES += FLO_USE_DOUBLE_PRECISION
+DEFINES += THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA
 
 QT -= opengl core gui
 CONFIG += console c++11
