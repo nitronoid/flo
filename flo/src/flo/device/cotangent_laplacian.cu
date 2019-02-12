@@ -173,11 +173,13 @@ __global__ void d_cotangent_laplacian_triplets(
 }
 //}  // namespace
 
-template <typename RandomAccessIterator1, typename... RandomAccessIterator2>
-void multi_sort(RandomAccessIterator1&& i_key_begin,
-                RandomAccessIterator1&& i_key_end,
-                RandomAccessIterator1&& i_new_key_begin,
-                RandomAccessIterator2&&... i_data_begin)
+template <typename RandomAccessIterator1,
+          typename RandomAccessIterator2,
+          typename... RandomAccessIterator3>
+void multi_sort_by_key(RandomAccessIterator1&& i_key_begin,
+                       RandomAccessIterator1&& i_key_end,
+                       RandomAccessIterator2&& i_new_key_begin,
+                       RandomAccessIterator3&&... i_data_begin)
 {
   using expand = int[];
   auto new_key_end = i_new_key_begin + (i_key_end - i_key_begin);
@@ -186,15 +188,6 @@ void multi_sort(RandomAccessIterator1&& i_key_begin,
   expand{((void)thrust::gather(
             i_new_key_begin, new_key_end, i_data_begin, i_data_begin),
           0)...};
-}
-
-template <typename RandomAccessIterator1, typename... RandomAccessIterator2>
-void multi_sort(RandomAccessIterator1&& i_key_begin,
-                RandomAccessIterator1&& i_key_end,
-                RandomAccessIterator2&&... i_data_begin)
-{
-  thrust::device_vector<int> seq(i_key_end - i_key_begin);
-  gather_sort(i_key_begin, i_key_end, seq.begin(), i_data_begin...);
 }
 
 FLO_API cusp::coo_matrix<int, real, cusp::device_memory>
@@ -237,8 +230,8 @@ cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
   auto coord_end = coord_begin + ntriplets;
 
   thrust::device_vector<int> seq(ntriplets);
-  multi_sort(J.begin(), J.end(), seq.begin(), I.begin(), V.begin());
-  multi_sort(I.begin(), I.end(), seq.begin(), J.begin(), V.begin());
+  multi_sort_by_key(J.begin(), J.end(), seq.begin(), I.begin(), V.begin());
+  multi_sort_by_key(I.begin(), I.end(), seq.begin(), J.begin(), V.begin());
 
   //int num_entries =
   //  thrust::inner_product(coord_begin,
