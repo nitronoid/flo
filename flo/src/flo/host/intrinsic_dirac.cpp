@@ -32,13 +32,13 @@ FLO_API SparseMatrix<real> intrinsic_dirac(
     auto b = 1.f / 6.f;
     auto c = i_face_area[k] / 9.f;
 
-    // Compute edge vectors as imagnary quaternions
+    // Compute edge vectors as imaginary quaternions
     std::array<Matrix<real, 4, 1>, 3> edges;
-    // opposing edge per vertex i.e. vertex one oposes edge 1->2
+    // opposing edge per vertex i.e. vertex one opposes edge 1->2
     edges[0].head<3>() = i_vertices[f[2]] - i_vertices[f[1]];
     edges[1].head<3>() = i_vertices[f[0]] - i_vertices[f[2]];
     edges[2].head<3>() = i_vertices[f[1]] - i_vertices[f[0]];
-    // Init real part to zero
+    // Initialize real part to zero
     edges[0].w() = 0.f;
     edges[1].w() = 0.f;
     edges[2].w() = 0.f;
@@ -59,7 +59,7 @@ FLO_API SparseMatrix<real> intrinsic_dirac(
         a * hammilton_product(edges[i], edges[j]) +
         b * (i_rho[f[i]] * edges[j] - i_rho[f[j]] * edges[i]);
       q.w() += i_rho[f[i]] * i_rho[f[j]] * c;
-      // Sum it with any exisiting value
+      // Sum it with any existing value
       cur_quat += q;
 
       // Write it back into our matrix
