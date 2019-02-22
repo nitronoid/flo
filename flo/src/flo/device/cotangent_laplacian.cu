@@ -1,4 +1,5 @@
 #include "flo/device/cotangent_laplacian.cuh"
+#include "flo/device/thread_util.cuh"
 #include <thrust/sort.h>
 #include <thrust/reduce.h>
 
@@ -6,84 +7,6 @@ FLO_DEVICE_NAMESPACE_BEGIN
 
 namespace
 {
-template <typename T>
-__device__ __forceinline__ auto nth_element(const T& i_tuple, uint8_t i_index)
-  -> decltype(i_tuple.x)
-{
-  return (&i_tuple.x)[i_index];
-}
-
-__device__ __forceinline__ uint unique_thread_idx1()
-{
-  return
-    // Global block index
-    (blockIdx.x) *
-      // Number of threads in a block
-      (blockDim.x) +
-    // thread index in block
-    (threadIdx.x);
-}
-
-__device__ __forceinline__ uint unique_thread_idx2()
-{
-  return
-    // Global block index
-    (blockIdx.x + blockIdx.y * gridDim.x) *
-      // Number of threads in a block
-      (blockDim.x * blockDim.y) +
-    // thread index in block
-    (threadIdx.x + threadIdx.y * blockDim.x);
-}
-
-__device__ __forceinline__ uint unique_thread_idx3()
-{
-  return
-    // Global block index
-    (blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y) *
-      // Number of threads in a block
-      (blockDim.x * blockDim.y * blockDim.z) +
-    // thread index in block
-    (threadIdx.x + threadIdx.y * blockDim.x +
-     threadIdx.z * blockDim.x * blockDim.y);
-}
-
-__device__ __forceinline__ uint block_index()
-{
-  return blockIdx.x + blockIdx.y * gridDim.x +
-         blockIdx.z * gridDim.x * gridDim.y;
-}
-
-__device__ __forceinline__ uint block_volume()
-{
-  return blockDim.x * blockDim.y * blockDim.z;
-}
-
-__device__ __forceinline__ uint8_t cycle(uint8_t i_x)
-{
-  /************************
-     mapping is as follows
-     0 -> 2
-     1 -> 0
-     2 -> 1
-  ************************/
-  uint8_t c = i_x + 0xFC;
-  return __ffs(c) - 1;
-}
-
-__device__ __forceinline__ uchar3 edge_loop(uint8_t i_e)
-{
-  /************************
-    e.g. input == 1
-     x -> 1
-     y -> 2
-     z -> 0
-  ************************/
-  uchar3 loop;
-  loop.x = i_e;
-  loop.z = cycle(loop.x);
-  loop.y = cycle(loop.z);
-  return loop;
-}
 }  // namespace
 
 // block dim should be #F*4*3, where #F is some number of faces,
@@ -190,6 +113,23 @@ void multi_sort_by_key(RandomAccessIterator1&& i_key_begin,
           0)...};
 }
 
+template <typename RandomAccessIterator1,
+          typename RandomAccessIterator2,
+          typename... RandomAccessIterator3>
+void multi_stable_sort_by_key(RandomAccessIterator1&& i_key_begin,
+                              RandomAccessIterator1&& i_key_end,
+                              RandomAccessIterator2&& i_new_key_begin,
+                              RandomAccessIterator3&&... i_data_begin)
+{
+  using expand = int[];
+  auto new_key_end = i_new_key_begin + (i_key_end - i_key_begin);
+  thrust::sequence(i_new_key_begin, new_key_end);
+  thrust::stable_sort_by_key(i_key_begin, i_key_end, i_new_key_begin);
+  expand{((void)thrust::gather(
+            i_new_key_begin, new_key_end, i_data_begin, i_data_begin),
+          0)...};
+}
+
 FLO_API cusp::coo_matrix<int, real, cusp::device_memory>
 cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
                     const thrust::device_ptr<const int3> di_faces,
@@ -231,18 +171,12 @@ cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
 
   thrust::device_vector<int> seq(ntriplets);
   multi_sort_by_key(J.begin(), J.end(), seq.begin(), I.begin(), V.begin());
-  multi_sort_by_key(I.begin(), I.end(), seq.begin(), J.begin(), V.begin());
-
-  //int num_entries =
-  //  thrust::inner_product(coord_begin,
-  //                        coord_end - 1,
-  //                        coord_begin + 1,
-  //                        int(0),
-  //                        thrust::plus<int>(),
-  //                        thrust::not_equal_to<thrust::tuple<int, int>>());
+  multi_stable_sort_by_key(
+    I.begin(), I.end(), seq.begin(), J.begin(), V.begin());
 
   using SparseMatrix = cusp::coo_matrix<int, real, cusp::device_memory>;
-  SparseMatrix d_L(i_nverts, i_nverts, i_total_valence + i_nverts);//num_entries + 1);
+  SparseMatrix d_L(
+    i_nverts, i_nverts, i_total_valence + i_nverts);  // num_entries + 1);
 
   thrust::reduce_by_key(coord_begin,
                         coord_end,
