@@ -80,6 +80,17 @@ inline double rsqrt(double x)
 }
 #endif
 
+// FOR INDEXING BUILT IN VEC TYPES
+FLO_DEVICE_NAMESPACE_BEGIN
+template <typename T>
+__host__ __device__ auto nth_element(const T& i_tuple, uint8_t i_index)
+  -> decltype(i_tuple.x)
+{
+  return (&i_tuple.x)[i_index];
+}
+FLO_DEVICE_NAMESPACE_END
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // constructors
 ////////////////////////////////////////////////////////////////////////////////
