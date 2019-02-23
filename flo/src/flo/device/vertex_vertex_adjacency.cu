@@ -67,7 +67,7 @@ __global__ void d_adjacency_matrix_offset(
                                   di_vertex_adjacency + begin,
                                   di_vertex_adjacency + end,
                                   edge.y);
-  do_offset[fid * 6 + loop.y * 2 + major] = iter - di_vertex_adjacency;
+  do_offset[fid * 6 + loop.z * 2 + major] = iter - di_vertex_adjacency;
 }
 
 }  // namespace
@@ -99,7 +99,7 @@ vertex_vertex_adjacency(const thrust::device_ptr<const int3> di_faces,
 
   do_cumulative_valence[0] = 0;
   flo::device::cumulative_dense_histogram_sorted(
-    I.data(), do_cumulative_valence + 1, total_valence, i_nvertices - 1);
+    I.data(), do_cumulative_valence + 1, total_valence, i_nvertices);
   flo::device::dense_histogram_from_cumulative(
     do_cumulative_valence + 1, do_valence, i_nvertices);
 
