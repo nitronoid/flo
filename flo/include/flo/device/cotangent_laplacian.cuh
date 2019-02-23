@@ -15,9 +15,9 @@ __global__ void d_cotangent_laplacian_atomic(
   const thrust::device_ptr<const int> di_cumulative_valence,
   const thrust::device_ptr<const int> di_entry_offset,
   const uint i_nfaces,
-  thrust::device_ptr<int> do_I,
-  thrust::device_ptr<int> do_J,
-  thrust::device_ptr<real> do_V);
+  thrust::device_ptr<int> do_rows,
+  thrust::device_ptr<int> do_columns,
+  thrust::device_ptr<real> do_values);
 
 FLO_API cusp::coo_matrix<int, real, cusp::device_memory>
 cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
@@ -28,6 +28,17 @@ cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
                     const int i_nverts,
                     const int i_nfaces,
                     const int i_total_valence);
+
+void
+cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
+                    const thrust::device_ptr<const int3> di_faces,
+                    const thrust::device_ptr<const real> di_face_area,
+                    const thrust::device_ptr<const int> di_cumulative_valence,
+                    const thrust::device_ptr<const int2> di_entry_offset,
+                    const int i_nfaces,
+                    thrust::device_ptr<int> do_rows,
+                    thrust::device_ptr<int> do_columns,
+                    thrust::device_ptr<real> do_values);
 
 __global__ void d_cotangent_laplacian_triplets(
   const thrust::device_ptr<const real3> di_vertices,
