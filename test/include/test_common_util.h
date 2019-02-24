@@ -1,9 +1,9 @@
 #ifndef FLO_INCLUDED_TEST_COMMON_UTIL
 #define FLO_INCLUDED_TEST_COMMON_UTIL
 
-#include "flo/surface.hpp"
+#include "flo/host/surface.hpp"
 
-inline flo::Surface make_cube()
+inline flo::host::Surface make_cube()
 {
   std::vector<Eigen::Matrix<flo::real, 3, 1>> vertices{
     {-0.5, -0.5,  0.5},
