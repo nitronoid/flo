@@ -1,12 +1,12 @@
 #include "flo/flo_internal.hpp"
 #include "flo/host/flo_matrix_operation.hpp"
-#include "flo/load_mesh.hpp"
+#include "flo/host/load_mesh.hpp"
 #include <Eigen/Dense>
 #include <igl/readOBJ.h>
 
 using namespace Eigen;
 
-FLO_NAMESPACE_BEGIN
+FLO_HOST_NAMESPACE_BEGIN
 
 FLO_API Surface load_mesh(gsl::czstring i_path)
 {
@@ -22,4 +22,4 @@ FLO_API Surface load_mesh(gsl::czstring i_path)
   return Surface{std::move(vertices), std::move(faces)};
 }
 
-FLO_NAMESPACE_END
+FLO_HOST_NAMESPACE_END
