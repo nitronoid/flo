@@ -49,7 +49,7 @@ struct TestCache
       std::cout << "Performing device copy\n";
       auto d_mesh = flo::device::make_surface(h_mesh);
 #endif
-      m_cache[i_file_path] = {std::move(h_mesh)
+      m_cache[i_file_path] = SurfTuple{std::move(h_mesh)
 #ifdef __CUDACC__
                               ,std::move(d_mesh)
 #endif

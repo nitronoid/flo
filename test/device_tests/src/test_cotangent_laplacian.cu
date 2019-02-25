@@ -86,15 +86,25 @@ TEST(CotangentLaplacianOffsets, cube)
                                          d_adjacency.data(),
                                          d_cumulative_valence.data(),
                                          cube.n_faces());
+  using SparseMatrix =                                              
+    cusp::coo_matrix<int, flo::real, cusp::device_memory>;          
+  SparseMatrix d_L(cube.n_vertices(),                               
+                   cube.n_vertices(),                               
+                   d_cumulative_valence.back() + cube.n_vertices());
+  thrust::device_vector<int> d_diagonals(cube.n_vertices());
 
-  auto d_L = flo::device::cotangent_laplacian(d_verts.data(),
-                                              d_faces.data(),
-                                              d_area.data(),
-                                              d_cumulative_valence.data(),
-                                              d_offsets.data(),
-                                              cube.n_vertices(),
-                                              cube.n_faces(),
-                                              36);
+  flo::device::cotangent_laplacian(d_verts.data(),       
+                                   d_faces.data(),          
+                                   d_area.data(),              
+                                   d_cumulative_valence.data(),
+                                   d_offsets.data(),           
+                                   cube.n_vertices(),          
+                                   cube.n_faces(),             
+                                   d_cumulative_valence.back(),
+                                   d_diagonals.data(),         
+                                   d_L.row_indices.data(),     
+                                   d_L.column_indices.data(),  
+                                   d_L.values.data());         
 
   std::vector<int> I(d_L.row_indices.size());
   std::vector<int> J(d_L.column_indices.size());
@@ -104,18 +114,18 @@ TEST(CotangentLaplacianOffsets, cube)
   thrust::copy(d_L.column_indices.begin(), d_L.column_indices.end(), J.begin());
   thrust::copy(d_L.values.begin(), d_L.values.end(), V.begin());
 
-  std::vector<int> expected_I{0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 2, 2, 0, 2,
-                              2, 3, 3, 0, 3, 3, 3, 4, 4, 4, 0, 4, 4, 5, 5,
-                              0, 5, 5, 6, 6, 6, 0, 6, 7, 7, 7, 7, 7, 0};
+  std::vector<int> expected_I{0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2,
+                              2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5,
+                              5, 5, 5, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7};
 
-  std::vector<int> expected_J{0, 1, 2, 4, 6, 7, 0, 0, 2, 3, 7, 0, 1, 0, 3,
-                              4, 1, 2, 0, 4, 5, 7, 0, 2, 3, 0, 5, 6, 3, 4,
-                              0, 6, 7, 0, 4, 5, 0, 7, 0, 1, 3, 5, 6, 0};
+  std::vector<int> expected_J{0, 1, 2, 4, 6, 7, 0, 1, 2, 3, 7, 0, 1, 2, 3,
+                              4, 1, 2, 3, 4, 5, 7, 0, 2, 3, 4, 5, 6, 3, 4,
+                              5, 6, 7, 0, 4, 5, 6, 7, 0, 1, 3, 5, 6, 7};
 
-  std::vector<flo::real> expected_V{0,  -1, -1, -0, -1, -0, -1, 0,  -0, -1, -1,
-                                    -1, -0, 0,  -1, -1, -1, -1, 0,  -0, -1, -0,
-                                    -0, -1, -0, 0,  -1, -1, -1, -1, 0,  -0, -1,
-                                    -1, -1, -0, 0,  -1, -0, -1, -0, -1, -1, 0};
+  std::vector<flo::real> expected_V{3,  -1, -1, -0, -1, -0, -1, 3,  -0, -1, -1,
+                                    -1, -0, 3,  -1, -1, -1, -1, 3,  -0, -1, -0,
+                                    -0, -1, -0, 3,  -1, -1, -1, -1, 3,  -0, -1,
+                                    -1, -1, -0, 3,  -1, -0, -1, -0, -1, -1, 3};
   using namespace testing;
   EXPECT_THAT(I, Pointwise(Eq(), expected_I));
   EXPECT_THAT(J, Pointwise(Eq(), expected_J));
