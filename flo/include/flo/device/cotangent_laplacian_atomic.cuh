@@ -7,23 +7,16 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
-FLO_API cusp::coo_matrix<int, real, cusp::device_memory>
-cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
-                    const thrust::device_ptr<const int3> di_faces,
-                    const thrust::device_ptr<const real> di_face_area,
-                    const thrust::device_ptr<const int> di_cumulative_valence,
-                    const thrust::device_ptr<const int2> di_entry_offset,
-                    const int i_nverts,
-                    const int i_nfaces,
-                    const int i_total_valence);
-
 void cotangent_laplacian(
   const thrust::device_ptr<const real3> di_vertices,
   const thrust::device_ptr<const int3> di_faces,
   const thrust::device_ptr<const real> di_face_area,
   const thrust::device_ptr<const int> di_cumulative_valence,
   const thrust::device_ptr<const int2> di_entry_offset,
+  const int i_nverts,
   const int i_nfaces,
+  const int i_total_valence,
+  thrust::device_ptr<int> do_diagonals,
   thrust::device_ptr<int> do_rows,
   thrust::device_ptr<int> do_columns,
   thrust::device_ptr<real> do_values);

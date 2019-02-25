@@ -49,7 +49,7 @@ d_cotangent_laplacian_atomic(const real3* __restrict__ di_vertices,
   const uint8_t major = !(threadIdx.y & 1);
 
   // Only write once per face
-  if (!loop.x)
+  if (!threadIdx.y)
   {
     // Duplicate for each corner of the face to reduce bank conflicts
     cached_value[local_e0] = cached_value[local_e1] = cached_value[local_e2] =
@@ -92,39 +92,16 @@ d_cotangent_laplacian_atomic(const real3* __restrict__ di_vertices,
 
 }  // namespace
 
-FLO_API cusp::coo_matrix<int, real, cusp::device_memory>
-cotangent_laplacian(const thrust::device_ptr<const real3> di_vertices,
-                    const thrust::device_ptr<const int3> di_faces,
-                    const thrust::device_ptr<const real> di_face_area,
-                    const thrust::device_ptr<const int> di_cumulative_valence,
-                    const thrust::device_ptr<const int2> di_entry_offset,
-                    const int i_nverts,
-                    const int i_nfaces,
-                    const int i_total_valence)
-{
-  using SparseMatrix = cusp::coo_matrix<int, real, cusp::device_memory>;
-  SparseMatrix d_L(i_nverts, i_nverts, i_total_valence + i_nverts);
-  thrust::fill(d_L.values.begin(), d_L.values.end(), 0);
-  cotangent_laplacian(di_vertices,
-                      di_faces,
-                      di_face_area,
-                      di_cumulative_valence,
-                      di_entry_offset,
-                      i_nfaces,
-                      d_L.row_indices.data(),
-                      d_L.column_indices.data(),
-                      d_L.values.data());
-
-  return d_L;
-}
-
 void cotangent_laplacian(
   const thrust::device_ptr<const real3> di_vertices,
   const thrust::device_ptr<const int3> di_faces,
   const thrust::device_ptr<const real> di_face_area,
   const thrust::device_ptr<const int> di_cumulative_valence,
   const thrust::device_ptr<const int2> di_entry_offset,
+  const int i_nverts,
   const int i_nfaces,
+  const int i_total_valence,
+  thrust::device_ptr<int> do_diagonals,
   thrust::device_ptr<int> do_rows,
   thrust::device_ptr<int> do_columns,
   thrust::device_ptr<real> do_values)
@@ -157,6 +134,30 @@ void cotangent_laplacian(
     do_columns.get(),
     do_values.get());
   cudaDeviceSynchronize();
+
+  thrust::counting_iterator<int> counter(0);
+  thrust::copy_if(
+      counter,
+      counter + i_total_valence + i_nverts,
+      do_diagonals + 1,
+      [do_rows] __device__ (int i) -> bool
+      {
+      // This is intended
+        return do_rows[i-1] > do_rows[i];
+      });
+
+  auto row_diag_begin = thrust::make_permutation_iterator(do_rows, do_diagonals);
+  thrust::sequence(row_diag_begin, row_diag_begin + i_nverts);
+
+  auto column_diag_begin = thrust::make_permutation_iterator(do_columns, do_diagonals);
+  thrust::sequence(column_diag_begin, column_diag_begin + i_nverts);
+  
+  thrust::reduce_by_key(
+      do_rows, 
+      do_rows + i_total_valence + i_nverts, 
+      thrust::make_transform_iterator(do_values, thrust::negate<int>()),
+      thrust::make_discard_iterator(),
+      thrust::make_permutation_iterator(do_values, do_diagonals));
 }
 
 FLO_DEVICE_NAMESPACE_END
