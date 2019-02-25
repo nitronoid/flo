@@ -3,12 +3,11 @@
 #include "test_common.h"
 #include "flo/host/cotangent_laplacian.hpp"
 #include "flo/host/valence.hpp"
-#include "flo/load_mesh.hpp"
 
 #define HOST_BM_CL(BM_NAME, FILE_NAME)                              \
   static void BM_NAME(benchmark::State& state)                      \
   {                                                                 \
-    auto surf = TestCache::get_mesh(FILE_NAME);                     \
+    auto surf = TestCache::get_mesh<TestCache::HOST>(FILE_NAME);    \
     for (auto _ : state)                                            \
     {                                                               \
       benchmark::DoNotOptimize(                                     \
