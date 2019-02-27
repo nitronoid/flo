@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <string>
 #include <iostream>
+#include <memory>
 #include "flo/host/surface.hpp"
 #ifdef __CUDACC__
 #include "flo/device/surface.cuh"
@@ -13,9 +14,9 @@
 struct TestCache
 {
   // Only include device surface in the cache if we target cuda
-  using SurfTuple = std::tuple<flo::host::Surface
+  using SurfTuple = std::tuple<std::unique_ptr<flo::host::Surface>
 #ifdef __CUDACC__
-                               ,flo::device::Surface
+                               ,std::unique_ptr<flo::device::Surface>
 #endif
                                >;
 
@@ -34,7 +35,7 @@ struct TestCache
 #endif
             >
   inline static auto get_mesh(const std::string& i_file_path) ->
-    typename std::tuple_element<k_MEM, SurfTuple>::type&
+    decltype(*std::get<k_MEM>(SurfTuple{}))&
   {
 #ifndef __CUDACC__
     static_assert(X != DEVICE, "Device surface not available without CUDA");
@@ -44,19 +45,21 @@ struct TestCache
     if (mesh_it == m_cache.end())
     {
       std::cout << "Loading mesh from file: " << i_file_path << '\n';
-      auto h_mesh = flo::host::load_mesh(i_file_path.c_str());
+      std::unique_ptr<flo::host::Surface> h_mesh(new flo::host::Surface);
+      *h_mesh = flo::host::load_mesh(i_file_path.c_str());
 #ifdef __CUDACC__
       std::cout << "Performing device copy\n";
-      auto d_mesh = flo::device::make_surface(h_mesh);
+      std::unique_ptr<flo::device::Surface> d_mesh(new flo::device::Surface);
+      *d_mesh = flo::device::make_surface(*h_mesh);
 #endif
       m_cache[i_file_path] = SurfTuple{std::move(h_mesh)
 #ifdef __CUDACC__
                               ,std::move(d_mesh)
 #endif
       };
-      return std::get<k_MEM>(m_cache[i_file_path]);
+      return *std::get<k_MEM>(m_cache[i_file_path]);
     }
-    return std::get<k_MEM>(mesh_it->second);
+    return *std::get<k_MEM>(mesh_it->second);
   }
 };
 
