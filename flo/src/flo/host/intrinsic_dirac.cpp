@@ -15,15 +15,17 @@ FLO_API SparseMatrix<real> intrinsic_dirac(
     const gsl::span<const real> i_rho)
 {
   // Find the max valence
-  uint mv = *std::max_element(i_valence.begin(), i_valence.end());
+  int mv = *std::max_element(i_valence.begin(), i_valence.end());
 
-  const uint vlen = i_vertices.size();
+
+  const int vlen = i_vertices.size();
   // Allocate for our Eigen problem matrix
   SparseMatrix<real> D(vlen * 4u, vlen * 4u);
-  D.reserve(Eigen::VectorXi::Constant(vlen*4u, mv));
+  D.reserve(Eigen::VectorXi::Constant(vlen*4u, mv*4));
+
 
   // For every face
-  for (uint k = 0u; k < i_faces.size(); ++k)
+  for (int k = 0; k < i_faces.size(); ++k)
   {
     // Get a reference to the face vertex indices
     const auto& f = i_faces[k];
@@ -44,8 +46,8 @@ FLO_API SparseMatrix<real> intrinsic_dirac(
     edges[2].w() = 0.f;
 
     // increment matrix entry for each ordered pair of vertices
-    for (uint i = 0; i < 3; i++)
-    for (uint j = 0; j < 3; j++)
+    for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
     {
       // W comes first in a quaternion but last in a vector
       Matrix<real, 4, 1> cur_quat(
