@@ -35,7 +35,8 @@ d_cotangent_laplacian_atomic(const real3* __restrict__ di_vertices,
   const uint fid = blockIdx.x * blockDim.x + threadIdx.x;
 
   // Check we're not out of range
-  if (fid >= i_nfaces) return;
+  if (fid >= i_nfaces)
+    return;
 
   // Get the vertex order, need to half the tid as we have two threads per edge
   const uchar3 loop = edge_loop(threadIdx.y >> 1);
@@ -136,28 +137,34 @@ void cotangent_laplacian(
   cudaDeviceSynchronize();
 
   thrust::counting_iterator<int> counter(0);
-  thrust::copy_if(
-      counter,
-      counter + i_total_valence + i_nverts,
-      do_diagonals + 1,
-      [do_rows] __device__ (int i) -> bool
-      {
-      // This is intended
-        return do_rows[i-1] > do_rows[i];
-      });
+  thrust::for_each(counter+di_cumulative_valence[1],
+                   counter + i_total_valence + i_nverts,
+                   [do_diagonals = do_diagonals.get(),
+                    do_rows = do_rows.get()] __device__(const int i) {
+                     const int d = do_rows[i - 1];
+                     if (d > do_rows[i])
+                     {
+                       do_diagonals[d] = i;
+                     }
+                   });
 
-  auto row_diag_begin = thrust::make_permutation_iterator(do_rows, do_diagonals);
-  thrust::sequence(row_diag_begin, row_diag_begin + i_nverts);
+  // Iterator for diagonal matrix entries
+  auto diag_begin = thrust::make_permutation_iterator(
+    thrust::make_zip_iterator(thrust::make_tuple(do_rows, do_columns)),
+    do_diagonals);
 
-  auto column_diag_begin = thrust::make_permutation_iterator(do_columns, do_diagonals);
-  thrust::sequence(column_diag_begin, column_diag_begin + i_nverts);
-  
+  // Generate the diagonal entry, row and column indices
+  thrust::transform(
+    counter, counter + i_nverts, diag_begin, [] __device__(const int i) {
+      return thrust::make_tuple(i, i);
+    });
+
   thrust::reduce_by_key(
-      do_rows, 
-      do_rows + i_total_valence + i_nverts, 
-      thrust::make_transform_iterator(do_values, thrust::negate<int>()),
-      thrust::make_discard_iterator(),
-      thrust::make_permutation_iterator(do_values, do_diagonals));
+    do_rows,
+    do_rows + i_total_valence + i_nverts,
+    thrust::make_transform_iterator(do_values, thrust::negate<int>()),
+    thrust::make_discard_iterator(),
+    thrust::make_permutation_iterator(do_values, do_diagonals));
 }
 
 FLO_DEVICE_NAMESPACE_END
