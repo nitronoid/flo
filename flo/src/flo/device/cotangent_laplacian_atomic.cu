@@ -7,6 +7,21 @@ FLO_DEVICE_NAMESPACE_BEGIN
 
 namespace
 {
+#ifdef FLO_USE_DOUBLE_PRECISION
+__device__ double atomicAdd(double* __restrict__ i_address, const double i_val)
+{
+  auto address_as_ull = reinterpret_cast<unsigned long long int*>(i_address);
+  unsigned long long int old = *address_as_ull, ass;
+  do
+  {
+    ass = old;
+    old = atomicCAS(address_as_ull,
+                    ass,
+                    __double_as_longlong(i_val + __longlong_as_double(ass)));
+  } while (ass != old);
+  return __longlong_as_double(old);
+}
+#endif
 // block dim should be 3*#F, where #F is some number of faces,
 // we have three edges per triangle face, and write two values per edge
 __global__ void
@@ -137,16 +152,12 @@ void cotangent_laplacian(
   cudaDeviceSynchronize();
 
   thrust::counting_iterator<int> counter(0);
-  thrust::for_each(counter+di_cumulative_valence[1],
-                   counter + i_total_valence + i_nverts,
-                   [do_diagonals = do_diagonals.get(),
-                    do_rows = do_rows.get()] __device__(const int i) {
-                     const int d = do_rows[i - 1];
-                     if (d > do_rows[i])
-                     {
-                       do_diagonals[d] = i;
-                     }
-                   });
+  thrust::copy_if(counter + di_cumulative_valence[1] + 1,
+                  counter + i_total_valence + i_nverts,
+                  do_diagonals + 1,
+                  [do_rows = do_rows.get()] __device__ (int x) {
+                    return !do_rows[x];
+                  });
 
   // Iterator for diagonal matrix entries
   auto diag_begin = thrust::make_permutation_iterator(
@@ -162,7 +173,7 @@ void cotangent_laplacian(
   thrust::reduce_by_key(
     do_rows,
     do_rows + i_total_valence + i_nverts,
-    thrust::make_transform_iterator(do_values, thrust::negate<int>()),
+    thrust::make_transform_iterator(do_values, thrust::negate<flo::real>()),
     thrust::make_discard_iterator(),
     thrust::make_permutation_iterator(do_values, do_diagonals));
 }

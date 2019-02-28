@@ -42,7 +42,7 @@ __global__ void d_adjacency_matrix_offset(
   const uint i_nfaces,
   thrust::device_ptr<int> do_offset)
 {
-  const uint fid = blockIdx.y * blockDim.y + threadIdx.y;
+  const uint fid = blockIdx.x * blockDim.x + threadIdx.x;
 
   // Check we're not out of range
   if (fid >= i_nfaces)
@@ -50,14 +50,14 @@ __global__ void d_adjacency_matrix_offset(
 
   // Determine whether we are calculating a column or row major offset
   // even threads are col major while odd ones are row major
-  uint8_t major = threadIdx.x & 1;
+  uint8_t major = threadIdx.y & 1;
 
   // Get the vertex order, need to half the tid as we have two threads per edge
-  const uint32_t edge_idx = threadIdx.x >> 1;
+  const uint32_t edge_idx = threadIdx.y >> 1;
   const uchar3 loop = edge_loop(edge_idx);
   // Compute local edge indices rotated by the offset major
-  const int2 ep = make_int2(fid * 3 + nth_element(loop, major),
-                            fid * 3 + nth_element(loop, !major));
+  const int2 ep = make_int2(fid * 3 + nth_element(loop, 1 + major),
+                            fid * 3 + nth_element(loop, 1 + !major));
 
   int2 edge = make_int2(di_faces[ep.x], di_faces[ep.y]);
 
@@ -67,7 +67,7 @@ __global__ void d_adjacency_matrix_offset(
                                   di_vertex_adjacency + begin,
                                   di_vertex_adjacency + end,
                                   edge.y);
-  do_offset[fid * 6 + loop.z * 2 + major] = iter - di_vertex_adjacency;
+  do_offset[fid * 6 + loop.x * 2 + major] = iter - di_vertex_adjacency;
 }
 
 }  // namespace
@@ -115,8 +115,8 @@ thrust::device_vector<int2> adjacency_matrix_offset(
   thrust::device_vector<int2> d_offsets(i_nfaces * 3);
 
   dim3 block_dim;
-  block_dim.x = 6;
-  block_dim.y = 170;
+  block_dim.y = 6;
+  block_dim.x = 170;
   int nblocks = i_nfaces * 6 / (block_dim.x * block_dim.y * block_dim.z) + 1;
   d_adjacency_matrix_offset<<<nblocks, block_dim>>>(
     thrust::device_ptr<const int>{(const int*)di_faces.get()},
