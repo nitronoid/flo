@@ -11,7 +11,7 @@
     const std::string name = #NAME;                                       \
     const std::string matrix_prefix = "../matrices/" + name;              \
     const auto& surf =                                                    \
-      TestCache::get_mesh<TestCache::HOST>("../models/" + name + ".obj"); \
+      TestCache::get_mesh<TestCache::HOST>(name + ".obj");                \
     auto L = flo::host::cotangent_laplacian(surf.vertices, surf.faces);   \
     Eigen::SparseMatrix<flo::real> expected_L;                            \
     Eigen::loadMarket(expected_L,                                         \

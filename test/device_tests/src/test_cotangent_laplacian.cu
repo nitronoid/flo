@@ -17,7 +17,7 @@ TEST(CotangentLaplacianTriplets, cube)
   const std::string name = "cube";
   const std::string matrix_prefix = "../matrices/" + name;
   const auto& surf =
-    TestCache::get_mesh<TestCache::DEVICE>("../models/" + name + ".obj");
+    TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 
   cusp::array1d<int, cusp::host_memory> int_temp;
   cusp::array1d<flo::real, cusp::host_memory> real_temp;
@@ -58,7 +58,7 @@ TEST(CotangentLaplacianTriplets, cube)
     const std::string name = #NAME;                                            \
     const std::string matrix_prefix = "../matrices/" + name;                   \
     const auto& surf =                                                         \
-      TestCache::get_mesh<TestCache::DEVICE>("../models/" + name + ".obj");    \
+      TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");    \
     cusp::array1d<int, cusp::host_memory> int_temp;                            \
     cusp::array1d<flo::real, cusp::host_memory> real_temp;                     \
     cusp::io::read_matrix_market_file(real_temp,                               \
@@ -126,7 +126,7 @@ COTANGENT_LAPLACIAN_ATOMIC_TEST(spot)
 //  std::string name = "spot";
 //  std::string matrix_prefix = "../matrices/" + name;
 //  const auto& surf =
-//    TestCache::get_mesh<TestCache::DEVICE>("../models/" + name + ".obj");
+//    TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 //
 //  cusp::array1d<int, cusp::device_memory> d_valence(surf.n_vertices());
 //  cusp::array1d<int, cusp::device_memory> d_cumulative_valence(
@@ -189,7 +189,7 @@ COTANGENT_LAPLACIAN_ATOMIC_TEST(spot)
 //  std::string name = "spot";
 //  std::string matrix_prefix = "../matrices/" + name;
 //  const auto& d_surf =
-//    TestCache::get_mesh<TestCache::DEVICE>("../models/" + name + ".obj");
+//    TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 //
 //  cusp::array1d<int, cusp::device_memory> d_valence(d_surf.n_vertices());
 //  cusp::array1d<int, cusp::device_memory> d_cumulative_valence(
@@ -236,7 +236,7 @@ COTANGENT_LAPLACIAN_ATOMIC_TEST(spot)
 //  cusp::array1d<int, cusp::host_memory> values = d_L.values;
 //
 //  const auto& h_surf =
-//    TestCache::get_mesh<TestCache::HOST>("../models/" + name + ".obj");
+//    TestCache::get_mesh<TestCache::HOST>(name + ".obj");
 //  const auto h_L =
 //    flo::host::cotangent_laplacian(h_surf.vertices, h_surf.faces);
 //  gsl::span<const flo::real> expected_values{h_L.valuePtr(),

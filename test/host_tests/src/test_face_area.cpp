@@ -8,7 +8,7 @@
     const std::string name = #NAME;                                          \
     const std::string matrix_prefix = "../matrices/" + name;                 \
     const auto& surf =                                                       \
-      TestCache::get_mesh<TestCache::HOST>("../models/" + name + ".obj");    \
+      TestCache::get_mesh<TestCache::HOST>(name + ".obj");                   \
     auto A = flo::host::area(surf.vertices, surf.faces);                     \
     Eigen::Matrix<flo::real, 1, Eigen::Dynamic> dense_A;                     \
     Eigen::loadMarketVector(dense_A, matrix_prefix + "/area/area.mtx");      \
