@@ -77,19 +77,9 @@
   }                                                                         \
   BENCHMARK(BM_NAME)
 
-DEVICE_BM_CLT(DEVICE_cotangent_laplacian_triplets_cube_1, "../models/cube.obj");
-DEVICE_BM_CLT(DEVICE_cotangent_laplacian_triplets_spot, "../models/spot.obj");
-DEVICE_BM_CLT(DEVICE_cotangent_laplacian_triplets_sphere_400,
-              "../models/dense_sphere_400x400.obj");
-DEVICE_BM_CLT(DEVICE_cotangent_laplacian_triplets_sphere_1000,
-              "../models/dense_sphere_1000x1000.obj");
-DEVICE_BM_CLA(DEVICE_cotangent_laplacian_atomic_cube_1, "../models/cube.obj");
-DEVICE_BM_CLA(DEVICE_cotangent_laplacian_atomic_spot, "../models/spot.obj");
-DEVICE_BM_CLA(DEVICE_cotangent_laplacian_atomic_sphere_400,
-              "../models/dense_sphere_400x400.obj");
-DEVICE_BM_CLA(DEVICE_cotangent_laplacian_atomic_sphere_1000,
-              "../models/dense_sphere_1000x1000.obj");
-// DEVICE_BM_CL(DEVICE_face_area_sphere_1500,
-// "../models/dense_sphere_1500x1500.obj");
-// DEVICE_BM_CL(DEVICE_face_area_cube_1000,
-// "../models/cube_1k.obj");
+DEVICE_BM_CLA(DEVICE_cotangent_laplacian_cube_1, "cube.obj");
+DEVICE_BM_CLA(DEVICE_cotangent_laplacian_spot, "spot.obj");
+DEVICE_BM_CLA(DEVICE_cotangent_laplacian_sphere_400, 
+    "dense_sphere_400x400.obj");
+DEVICE_BM_CLA(DEVICE_cotangent_laplacian_sphere_1000, 
+    "dense_sphere_1000x1000.obj");

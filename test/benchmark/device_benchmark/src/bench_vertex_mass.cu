@@ -33,12 +33,7 @@
   }                                                                         \
   BENCHMARK(BM_NAME)
 
-DEVICE_BM_VM(DEVICE_vertex_mass_cube_1, "../models/cube.obj");
-DEVICE_BM_VM(DEVICE_vertex_mass_spot, "../models/spot.obj");
-DEVICE_BM_VM(DEVICE_vertex_mass_sphere_400,
-             "../models/dense_sphere_400x400.obj");
-DEVICE_BM_VM(DEVICE_vertex_mass_sphere_1000,
-             "../models/dense_sphere_1000x1000.obj");
-// DEVICE_BM_VM(DEVICE_vertex_mass_sphere_1500,
-// "../models/dense_sphere_1500x1500.obj");
-// DEVICE_BM_VM(DEVICE_vertex_mass_cube_1000, "../models/cube_1k.obj");
+DEVICE_BM_VM(DEVICE_vertex_mass_cube_1, "cube.obj");
+DEVICE_BM_VM(DEVICE_vertex_mass_spot, "spot.obj");
+DEVICE_BM_VM(DEVICE_vertex_mass_sphere_400, "dense_sphere_400x400.obj");
+DEVICE_BM_VM(DEVICE_vertex_mass_sphere_1000, "dense_sphere_1000x1000.obj");
