@@ -21,6 +21,6 @@ FACE_AREA_TEST(cube)
 FACE_AREA_TEST(spot)
 // FACE_AREA_TEST(dense_sphere_400x400)
 // FACE_AREA_TEST(dense_sphere_1000x1000)
-// COTANGENT_LAPLACIAN_TEST(dense_sphere_1500x1500)
+// FACE_AREA_TEST(dense_sphere_1500x1500)
 
 #undef FACE_AREA_TEST
