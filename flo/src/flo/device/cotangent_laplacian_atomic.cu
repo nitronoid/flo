@@ -165,8 +165,8 @@ void cotangent_laplacian(
     do_diagonals);
 
   // Generate the diagonal entry, row and column indices
-  thrust::transform(
-    counter, counter + i_nverts, diag_begin, [] __device__(const int i) {
+  thrust::tabulate(
+     diag_begin, diag_begin + i_nverts, [] __device__(const int i) {
       return thrust::make_tuple(i, i);
     });
 
