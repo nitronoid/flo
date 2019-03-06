@@ -3,7 +3,6 @@
 
 #include "flo/flo_internal.hpp"
 #include <thrust/device_ptr.h>
-#include <cusp/coo_matrix.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
