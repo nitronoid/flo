@@ -1,12 +1,12 @@
-#ifndef FLO_DEVICE_INCLUDED_COTANGENT_LAPLACIAN_ATOMIC
-#define FLO_DEVICE_INCLUDED_COTANGENT_LAPLACIAN_ATOMIC
+#ifndef FLO_DEVICE_INCLUDED_INTRINSIC_DIRAC
+#define FLO_DEVICE_INCLUDED_INTRINSIC_DIRAC
 
 #include "flo/flo_internal.hpp"
 #include <thrust/device_ptr.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
-void cotangent_laplacian(
+void intrinsic_dirac(
   const thrust::device_ptr<const real3> di_vertices,
   const thrust::device_ptr<const int3> di_faces,
   const thrust::device_ptr<const real> di_face_area,
@@ -18,8 +18,8 @@ void cotangent_laplacian(
   thrust::device_ptr<int> do_diagonals,
   thrust::device_ptr<int> do_rows,
   thrust::device_ptr<int> do_columns,
-  thrust::device_ptr<real> do_values);
+  thrust::device_ptr<real4> do_values);
 
 FLO_DEVICE_NAMESPACE_END
 
-#endif  // FLO_DEVICE_INCLUDED_COTANGENT_LAPLACIAN_ATOMIC
+#endif//FLO_DEVICE_INCLUDED_INTRINSIC_DIRAC
