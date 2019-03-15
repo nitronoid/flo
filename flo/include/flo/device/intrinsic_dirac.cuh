@@ -10,6 +10,7 @@ void intrinsic_dirac(
   const thrust::device_ptr<const real3> di_vertices,
   const thrust::device_ptr<const int3> di_faces,
   const thrust::device_ptr<const real> di_face_area,
+  const thrust::device_ptr<const real> di_rho,
   const thrust::device_ptr<const int> di_cumulative_valence,
   const thrust::device_ptr<const int2> di_entry_offset,
   const int i_nverts,

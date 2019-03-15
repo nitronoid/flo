@@ -7,27 +7,49 @@ FLO_DEVICE_NAMESPACE_BEGIN
 
 namespace
 {
-#ifdef FLO_USE_DOUBLE_PRECISION
-__device__ double atomicAdd(double* __restrict__ i_address, const double i_val)
+__device__ real4 hammilton_product(const real3& i_rhs, const real3& i_lhs)
 {
-  auto address_as_ull = reinterpret_cast<unsigned long long int*>(i_address);
-  unsigned long long int old = *address_as_ull, ass;
-  do
-  {
-    ass = old;
-    old = atomicCAS(address_as_ull,
-                    ass,
-                    __double_as_longlong(i_val + __longlong_as_double(ass)));
-  } while (ass != old);
-  return __longlong_as_double(old);
+  const auto a1 = 0.f;
+  const auto b1 = i_rhs.x;
+  const auto c1 = i_rhs.y;
+  const auto d1 = i_rhs.z;
+  const auto a2 = 0.f;
+  const auto b2 = i_lhs.x;
+  const auto c2 = i_lhs.y;
+  const auto d2 = i_lhs.z;
+  // W is last in a vector
+  return make_float4(
+      a1*b2 + b1*a2 + c1*d2 - d1*c2,
+      a1*c2 - b1*d2 + c1*a2 + d1*b2,
+      a1*d2 + b1*c2 - c1*b2 + d1*a2,
+      a1*a2 - b1*b2 - c1*c2 - d1*d2);
 }
-#endif
+//__device__ double atomicAdd(double* __restrict__ i_address, const double i_val)
+//{
+//  auto address_as_ull = reinterpret_cast<unsigned long long int*>(i_address);
+//  unsigned long long int old = *address_as_ull, ass;
+//  do
+//  {
+//    ass = old;
+//    old = atomicCAS(address_as_ull,
+//                    ass,
+//                    __double_as_longlong(i_val + __longlong_as_double(ass)));
+//  } while (ass != old);
+//  return __longlong_as_double(old);
+//}
+
+template <typename T>
+__device__ constexpr T reciprocal(T&& i_value) noexcept
+{
+  return T{1} / i_value;
+}
 // block dim should be 3*#F, where #F is some number of faces,
 // we have three edges per triangle face, and write two values per edge
 __global__ void
 d_intrinsic_dirac_atomic(const real3* __restrict__ di_vertices,
                          const int* __restrict__ di_faces,
                          const real* __restrict__ di_face_area,
+                         const real* __restrict__ di_rho,
                          const int* __restrict__ di_cumulative_valence,
                          const int* __restrict__ di_entry_offset,
                          const uint i_nfaces,
@@ -38,13 +60,15 @@ d_intrinsic_dirac_atomic(const real3* __restrict__ di_vertices,
   // Declare one shared memory block
   extern __shared__ uint8_t shared_memory[];
   // Create pointers into the block dividing it for the different uses
-  real* __restrict__ cached_value = (real*)shared_memory;
+  real* __restrict__ face_area = (real*)shared_memory;
   // There is a cached value for each corner of the face so we offset
-  real3* __restrict__ points = (real3*)(cached_value + blockDim.x * 3);
+  real3* __restrict__ edges = (real3*)(face_area + blockDim.x * 3);
   // There are nfaces *3 vertex values (duplicated for each face vertex)
-  real* __restrict__ edge_norm2 = (real*)(points + blockDim.x * 3);
+  real* __restrict__ edge_norm2 = (real*)(edges + blockDim.x * 3);
   // There are nfaces *3 squared edge lengths (duplicated for each face vertex)
-  uint32_t* __restrict__ eid = (uint32_t*)(edge_norm2 + blockDim.x * 3);
+  real* __restrict__ rho = (real*)(edge_norm2 + blockDim.x * 3);
+  // There are nfaces *3 vertex rho values (duplicated for each face vertex)
+  uint32_t* __restrict__ eid = (uint32_t*)(rho + blockDim.x * 3);
 
   // Calculate which face this thread is acting on
   const uint fid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -68,30 +92,34 @@ d_intrinsic_dirac_atomic(const real3* __restrict__ di_vertices,
   if (!threadIdx.y)
   {
     // Duplicate for each corner of the face to reduce bank conflicts
-    cached_value[local_e0] = cached_value[local_e1] = cached_value[local_e2] =
-      di_face_area[fid] * 8.f;
+    face_area[local_e0] = face_area[local_e1] = face_area[local_e2] =
+      di_face_area[fid];
   }
   // Write the vertex positions into shared memory
   if (major)
   {
-    points[local_e0] = di_vertices[di_faces[fid * 3 + loop.x]];
+    const uint32_t vid = di_faces[fid * 3 + loop.x];
+    rho[local_e0] = di_rho[vid];
+    edges[local_e0] = di_vertices[vid];
   }
   __syncthreads();
   // Compute squared length of edges and write to shared memory
   if (major)
   {
-    const real3 e = points[local_e2] - points[local_e1];
-    edge_norm2[local_e0] = dot(e, e);
+    edges[local_e0] = edges[local_e2] - edges[local_e1];
   }
   __syncthreads();
-  if (major)
-  {
-    // Save the cotangent value into shared memory as multiple threads will,
-    // write it into the final matrix
-    cached_value[local_e0] =
-      (edge_norm2[local_e1] + edge_norm2[local_e2] - edge_norm2[local_e0]) /
-      cached_value[local_e0];
-  }
+  const uint16_t O1 = threadIdx.x * 3 + nth_element(loop, 1 + major);
+  const uint16_t O2 = threadIdx.x * 3 + nth_element(loop, 1 + !major);
+  // Calc imaginary part
+  real4 value =
+    hammilton_product(edges[O1], edges[O2]) / (-4.f * face_area[local_e0]);
+  value += make_float4(
+    reciprocal(6.f) * (rho[O1] * edges[O2] - rho[O2] * edges[O1]));
+  // Add real part
+  value.w +=
+    rho[O1] * rho[O2] * face_area[local_e0] * reciprocal(9.f);
+
   // Write the opposing edge ID's into shared memory to reduce global reads
   eid[local_e0 * 2 + !major] =
     di_faces[fid * 3 + nth_element(loop, 1 + !major)];
@@ -103,24 +131,28 @@ d_intrinsic_dirac_atomic(const real3* __restrict__ di_vertices,
   // Write the row and column indices
   do_rows[address] = R;
   do_columns[address] = C;
-  atomicAdd(do_values + address, -cached_value[local_e0]);
+  auto out = reinterpret_cast<real*>(do_values + address);
+  atomicAdd(out + 0, value.x);
+  atomicAdd(out + 1, value.y);
+  atomicAdd(out + 2, value.z);
+  atomicAdd(out + 3, value.w);
 }
 
 }  // namespace
 
-void intrinsic_dirac(
-  const thrust::device_ptr<const real3> di_vertices,
-  const thrust::device_ptr<const int3> di_faces,
-  const thrust::device_ptr<const real> di_face_area,
-  const thrust::device_ptr<const int> di_cumulative_valence,
-  const thrust::device_ptr<const int2> di_entry_offset,
-  const int i_nverts,
-  const int i_nfaces,
-  const int i_total_valence,
-  thrust::device_ptr<int> do_diagonals,
-  thrust::device_ptr<int> do_rows,
-  thrust::device_ptr<int> do_columns,
-  thrust::device_ptr<real4> do_values)
+void intrinsic_dirac(const thrust::device_ptr<const real3> di_vertices,
+                     const thrust::device_ptr<const int3> di_faces,
+                     const thrust::device_ptr<const real> di_face_area,
+                     const thrust::device_ptr<const real> di_rho,
+                     const thrust::device_ptr<const int> di_cumulative_valence,
+                     const thrust::device_ptr<const int2> di_entry_offset,
+                     const int i_nverts,
+                     const int i_nfaces,
+                     const int i_total_valence,
+                     thrust::device_ptr<int> do_diagonals,
+                     thrust::device_ptr<int> do_rows,
+                     thrust::device_ptr<int> do_columns,
+                     thrust::device_ptr<real4> do_values)
 {
   dim3 block_dim;
   block_dim.y = 6;
@@ -132,7 +164,7 @@ void intrinsic_dirac(
   // edge squared lengths   =>  sizeof(real) * 3 * #F
   // === (3 + 9 + 3) * #F * sizeof(real)
   size_t shared_memory_size =
-    sizeof(flo::real) * block_dim.x * 15 + sizeof(uint32_t) * 6 * block_dim.x;
+    sizeof(flo::real) * block_dim.x * 18 + sizeof(uint32_t) * 6 * block_dim.x;
 
   // When passing the face and offset data to cuda, we reinterpret them as int
   // arrays. The advantage of this is coalesced memory reads by neighboring
@@ -143,6 +175,7 @@ void intrinsic_dirac(
     di_vertices.get(),
     reinterpret_cast<const int*>(di_faces.get()),
     di_face_area.get(),
+    di_rho.get(),
     di_cumulative_valence.get(),
     reinterpret_cast<const int*>(di_entry_offset.get()),
     i_nfaces,
@@ -152,12 +185,11 @@ void intrinsic_dirac(
   cudaDeviceSynchronize();
 
   thrust::counting_iterator<int> counter(0);
-  thrust::copy_if(counter + di_cumulative_valence[1] + 1,
-                  counter + i_total_valence + i_nverts,
-                  do_diagonals + 1,
-                  [do_rows = do_rows.get()] __device__ (int x) {
-                    return !do_rows[x];
-                  });
+  thrust::copy_if(
+    counter + di_cumulative_valence[1] + 1,
+    counter + i_total_valence + i_nverts,
+    do_diagonals + 1,
+    [do_rows = do_rows.get()] __device__(int x) { return !do_rows[x]; });
 
   // Iterator for diagonal matrix entries
   auto diag_begin = thrust::make_permutation_iterator(
@@ -170,12 +202,6 @@ void intrinsic_dirac(
       return thrust::make_tuple(i, i);
     });
 
-  thrust::reduce_by_key(
-    do_rows,
-    do_rows + i_total_valence + i_nverts,
-    thrust::make_transform_iterator(do_values, thrust::negate<flo::real>()),
-    thrust::make_discard_iterator(),
-    thrust::make_permutation_iterator(do_values, do_diagonals));
 }
 
 FLO_DEVICE_NAMESPACE_END
