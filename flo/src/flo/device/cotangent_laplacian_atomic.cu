@@ -2,6 +2,7 @@
 #include "flo/device/thread_util.cuh"
 #include <thrust/sort.h>
 #include <thrust/reduce.h>
+#include <thrust/iterator/discard_iterator.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
