@@ -34,5 +34,22 @@ FLO_API Surface make_surface(const ::flo::host::Surface& i_host_surface)
   return d_surface;
 }
 
+FLO_API SurfaceViewMutable make_surface_view(::flo::device::Surface& i_surface)
+{
+  return {i_surface.vertices.data(),
+          i_surface.faces.data(),
+          i_surface.n_vertices(),
+          i_surface.n_faces()};
+}
+
+FLO_API SurfaceViewImmutable
+make_surface_view(const ::flo::device::Surface& i_surface)
+{
+  return {i_surface.vertices.data(),
+          i_surface.faces.data(),
+          i_surface.n_vertices(),
+          i_surface.n_faces()};
+}
+
 FLO_DEVICE_NAMESPACE_END
 
