@@ -47,7 +47,7 @@ __global__ void d_cotangent_laplacian_triplets(
     bid * (blockDim.z * 3) + (threadIdx.y + threadIdx.z * 3);
 
   // Get the vertex order
-  const uchar3 loop = edge_loop(threadIdx.y);
+  const uchar3 loop = tri_edge_loop(threadIdx.y);
   // Compute local edge indices rotated by the vertex order
   const int e_idx0 = threadIdx.z * 3 + loop.x;
   const int e_idx1 = threadIdx.z * 3 + loop.y;

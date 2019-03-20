@@ -17,7 +17,11 @@ __device__ __forceinline__ uint block_volume();
 
 __device__ __forceinline__ uint8_t cycle(uint8_t i_x);
 
-__device__ __forceinline__ uchar3 edge_loop(uint8_t i_e);
+__device__ __forceinline__ uchar3 tri_edge_loop(uint8_t i_e);
+
+__device__ __forceinline__ uchar4 quat_loop(uint8_t i_e);
+
+__device__ __forceinline__ int sign_from_bit(uint8_t i_byte, uint8_t i_bit);
 
 #include "flo/device/thread_util.inl"
 

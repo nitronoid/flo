@@ -2,6 +2,9 @@
 #include "flo/device/thread_util.cuh"
 #include <thrust/sort.h>
 #include <thrust/reduce.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/iterator/discard_iterator.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
@@ -9,40 +12,113 @@ namespace
 {
 __device__ real4 hammilton_product(const real3& i_rhs, const real3& i_lhs)
 {
-  const auto a1 = 0.f;
-  const auto b1 = i_rhs.x;
-  const auto c1 = i_rhs.y;
-  const auto d1 = i_rhs.z;
-  const auto a2 = 0.f;
-  const auto b2 = i_lhs.x;
-  const auto c2 = i_lhs.y;
-  const auto d2 = i_lhs.z;
+  const real a1 = 0.f;
+  const real b1 = i_rhs.x;
+  const real c1 = i_rhs.y;
+  const real d1 = i_rhs.z;
+  const real a2 = 0.f;
+  const real b2 = i_lhs.x;
+  const real c2 = i_lhs.y;
+  const real d2 = i_lhs.z;
   // W is last in a vector
-  return make_float4(
-      a1*b2 + b1*a2 + c1*d2 - d1*c2,
-      a1*c2 - b1*d2 + c1*a2 + d1*b2,
-      a1*d2 + b1*c2 - c1*b2 + d1*a2,
-      a1*a2 - b1*b2 - c1*c2 - d1*d2);
+  return make_float4(a1 * b2 + b1 * a2 + c1 * d2 - d1 * c2,
+                     a1 * c2 - b1 * d2 + c1 * a2 + d1 * b2,
+                     a1 * d2 + b1 * c2 - c1 * b2 + d1 * a2,
+                     a1 * a2 - b1 * b2 - c1 * c2 - d1 * d2);
 }
-//__device__ double atomicAdd(double* __restrict__ i_address, const double i_val)
-//{
-//  auto address_as_ull = reinterpret_cast<unsigned long long int*>(i_address);
-//  unsigned long long int old = *address_as_ull, ass;
-//  do
-//  {
-//    ass = old;
-//    old = atomicCAS(address_as_ull,
-//                    ass,
-//                    __double_as_longlong(i_val + __longlong_as_double(ass)));
-//  } while (ass != old);
-//  return __longlong_as_double(old);
-//}
 
 template <typename T>
 __device__ constexpr T reciprocal(T&& i_value) noexcept
 {
   return T{1} / i_value;
 }
+
+__global__ void
+d_to_real_quaternion_matrix(const int* __restrict__ di_rows,
+                            const int* __restrict__ di_columns,
+                            const real4* __restrict__ di_values,
+                            const int* __restrict__ di_cumulative_column_size,
+                            const int i_nvalues,
+                            int* __restrict__ do_rows,
+                            int* __restrict__ do_columns,
+                            real* __restrict__ do_values)
+{
+  // Declare one shared memory block
+  extern __shared__ uint8_t shared_memory[];
+  // Create pointers into the block dividing it for the different uses
+  real4* __restrict__ quaternion_entry = (real4*)shared_memory;
+  // Offset our shared memory pointer by the number of values * sizeof(real4)
+  int32_t* __restrict__ row_index =
+    (int32_t*)(quaternion_entry + blockDim.x * 4);
+  // Offset our shared memory pointer by the number of values * sizeof(int)
+  int32_t* __restrict__ col_index = (int32_t*)(row_index + blockDim.x * 4);
+
+  // Calculate which entry this thread is transforming
+  const uint global_id = blockIdx.x * blockDim.x + threadIdx.x;
+
+  // Guard against out of range threads
+  if (global_id >= i_nvalues)
+    return;
+
+  // Get our block local id for shared memory access
+  const uint16_t local_id = threadIdx.x * 4 + threadIdx.y;
+
+  if (!threadIdx.y)
+  {
+    // Read the quaternion entry once
+    const real4 quat = di_values[global_id];
+    // Copy the quaternion across shared memory so all threads have access
+    quaternion_entry[threadIdx.x * 4 + 0] = quat;
+    quaternion_entry[threadIdx.x * 4 + 1] = quat;
+    quaternion_entry[threadIdx.x * 4 + 2] = quat;
+    quaternion_entry[threadIdx.x * 4 + 3] = quat;
+    // Read the row index once
+    const int row = di_rows[global_id];
+    // Copy across shared memory so all threads have access
+    row_index[threadIdx.x * 4 + 0] = row;
+    row_index[threadIdx.x * 4 + 1] = row;
+    row_index[threadIdx.x * 4 + 2] = row;
+    row_index[threadIdx.x * 4 + 3] = row;
+    // Read the column index once
+    const int col = di_columns[global_id];
+    // Copy across shared memory so all threads have access
+    col_index[threadIdx.x * 4 + 0] = col;
+    col_index[threadIdx.x * 4 + 1] = col;
+    col_index[threadIdx.x * 4 + 2] = col;
+    col_index[threadIdx.x * 4 + 3] = col;
+    //printf("TID: %d,  LID: %d,   R: %d,  C: %d,  Q: (%f, [%f, %f, %f])\n", global_id, local_id, row, col, quat.w, quat.x, quat.y, quat.z);
+  }
+  __syncthreads();
+  const uint8_t sign = (0xAC90 >> (threadIdx.y * 4u)) & 15u;
+  const uchar4 loop = quat_loop(threadIdx.y);
+  real4 quat;
+  quat.x =
+    nth_element(quaternion_entry[local_id], loop.x) * sign_from_bit(sign, 0u);
+  quat.y =
+    nth_element(quaternion_entry[local_id], loop.y) * sign_from_bit(sign, 1u);
+  quat.z =
+    nth_element(quaternion_entry[local_id], loop.z) * sign_from_bit(sign, 2u);
+  quat.w =
+    nth_element(quaternion_entry[local_id], loop.w) * sign_from_bit(sign, 3u);
+
+  // Calculate where we're writing to
+  const uint32_t prev_col_offset =
+    di_cumulative_column_size[row_index[local_id] - 1];
+  const uint32_t curr_col_offset =
+    di_cumulative_column_size[row_index[local_id]] - prev_col_offset;
+  const uint32_t offset = prev_col_offset * 16 +
+                          curr_col_offset * 4 * threadIdx.y +
+                          (global_id - prev_col_offset) * 4;
+
+//  printf("TID: %d,  LID: %d,   R: %d,  C: %d,  PC: %d,  CC: %d,  O: %d  Q: (%f, [%f, %f, %f])\n", global_id, local_id, row_index[local_id], col_index[local_id], prev_col_offset, curr_col_offset, offset, quat.w, quat.x, quat.y, quat.z);
+  // Use a vector cast to write using a 16 byte instruction
+  *reinterpret_cast<real4*>(do_values + offset) = quat;
+  int32_t C = col_index[local_id] * 4;
+  *reinterpret_cast<int4*>(do_columns + offset) = make_int4(C, C + 1, C + 2, C + 3);
+  *reinterpret_cast<int4*>(do_rows + offset) =
+    make_int4(row_index[local_id] * 4 + threadIdx.y);
+}
+
 // block dim should be 3*#F, where #F is some number of faces,
 // we have three edges per triangle face, and write two values per edge
 __global__ void
@@ -50,7 +126,6 @@ d_intrinsic_dirac_atomic(const real3* __restrict__ di_vertices,
                          const int* __restrict__ di_faces,
                          const real* __restrict__ di_face_area,
                          const real* __restrict__ di_rho,
-                         const int* __restrict__ di_cumulative_valence,
                          const int* __restrict__ di_entry_offset,
                          const uint i_nfaces,
                          int* __restrict__ do_rows,
@@ -78,7 +153,7 @@ d_intrinsic_dirac_atomic(const real3* __restrict__ di_vertices,
     return;
 
   // Get the vertex order, need to half the tid as we have two threads per edge
-  const uchar3 loop = edge_loop(threadIdx.y >> 1);
+  const uchar3 loop = tri_edge_loop(threadIdx.y >> 1);
 
   // Compute local edge indices rotated by the corner this thread corresponds to
   const uint16_t local_e0 = threadIdx.x * 3 + loop.x;
@@ -114,11 +189,10 @@ d_intrinsic_dirac_atomic(const real3* __restrict__ di_vertices,
   // Calc imaginary part
   real4 value =
     hammilton_product(edges[O1], edges[O2]) / (-4.f * face_area[local_e0]);
-  value += make_float4(
-    reciprocal(6.f) * (rho[O1] * edges[O2] - rho[O2] * edges[O1]));
+  value +=
+    make_float4(reciprocal(6.f) * (rho[O1] * edges[O2] - rho[O2] * edges[O1]));
   // Add real part
-  value.w +=
-    rho[O1] * rho[O2] * face_area[local_e0] * reciprocal(9.f);
+  value.w += rho[O1] * rho[O2] * face_area[local_e0] * reciprocal(9.f);
 
   // Write the opposing edge ID's into shared memory to reduce global reads
   eid[local_e0 * 2 + !major] =
@@ -138,21 +212,105 @@ d_intrinsic_dirac_atomic(const real3* __restrict__ di_vertices,
   atomicAdd(out + 3, value.w);
 }
 
+struct dirac_diagonal
+  : public thrust::unary_function<thrust::tuple<int, const int>, flo::real4>
+{
+  dirac_diagonal(thrust::device_ptr<const real3> di_vertices,
+                 thrust::device_ptr<const int3> di_faces,
+                 thrust::device_ptr<const real> di_face_area,
+                 thrust::device_ptr<const real> di_rho)
+    : di_vertices(std::move(di_vertices.get()))
+    , di_faces(std::move(di_faces.get()))
+    , di_face_area(std::move(di_face_area.get()))
+    , di_rho(std::move(di_rho.get()))
+  {
+  }
+
+  const real3* __restrict__ di_vertices;
+  const int3* __restrict__ di_faces;
+  const real* __restrict__ di_face_area;
+  const real* __restrict__ di_rho;
+
+  __host__ __device__ flo::real4
+  operator()(thrust::tuple<int, const int> id) const
+  {
+    const int vid = id.get<0>();
+    const int fid = id.get<1>();
+    // Remove vid from faces[fid]
+    int2 edge_idxs;
+    {
+      const int3 f = di_faces[fid];
+      if (f.x == vid)
+        edge_idxs = make_int2(f.y, f.z);
+      if (f.y == vid)
+        edge_idxs = make_int2(f.x, f.z);
+      if (f.z == vid)
+        edge_idxs = make_int2(f.x, f.y);
+    }
+
+    const real3 edge = di_vertices[edge_idxs.y] - di_vertices[edge_idxs.x];
+    const real rho = di_rho[vid];
+    const real area = di_face_area[fid];
+
+    flo::real4 o_val;
+    o_val.x = o_val.y = o_val.z = 0.f;
+    o_val.w =
+      dot(edge, edge) / (4.f * area) + (rho * rho * area) * reciprocal(9.f);
+    return o_val;
+  }
+};
+
 }  // namespace
 
-void intrinsic_dirac(const thrust::device_ptr<const real3> di_vertices,
-                     const thrust::device_ptr<const int3> di_faces,
-                     const thrust::device_ptr<const real> di_face_area,
-                     const thrust::device_ptr<const real> di_rho,
-                     const thrust::device_ptr<const int> di_cumulative_valence,
-                     const thrust::device_ptr<const int2> di_entry_offset,
-                     const int i_nverts,
-                     const int i_nfaces,
-                     const int i_total_valence,
-                     thrust::device_ptr<int> do_diagonals,
-                     thrust::device_ptr<int> do_rows,
-                     thrust::device_ptr<int> do_columns,
-                     thrust::device_ptr<real4> do_values)
+void to_real_quaternion_matrix(
+  const thrust::device_ptr<const int> di_rows,
+  const thrust::device_ptr<const int> di_columns,
+  const thrust::device_ptr<const real4> di_values,
+  const thrust::device_ptr<const int> di_cumulative_column_size,
+  const int i_nvalues,
+  thrust::device_ptr<int> do_rows,
+  thrust::device_ptr<int> do_columns,
+  thrust::device_ptr<real> do_values)
+{
+  dim3 block_dim;
+  block_dim.y = 4;
+  block_dim.x = 256;
+  size_t nthreads_per_block = block_dim.x * block_dim.y * block_dim.z;
+  size_t nblocks = i_nvalues * 4 / nthreads_per_block + 1;
+  // face area | cot_alpha  =>  sizeof(real) * 3 * #F
+  // vertex positions       =>  sizeof(real3) * 3 * #F ==  sizeof(real) * 9 * #F
+  // edge squared lengths   =>  sizeof(real) * 3 * #F
+  // === (3 + 9 + 3) * #F * sizeof(real)
+  size_t shared_memory_size =
+    (sizeof(flo::real4) + sizeof(uint32_t) * 2) * 4 * block_dim.x;
+
+  d_to_real_quaternion_matrix<<<nblocks, block_dim, shared_memory_size>>>(
+    di_rows.get(),
+    di_columns.get(),
+    di_values.get(),
+    di_cumulative_column_size.get(),
+    i_nvalues,
+    do_rows.get(),
+    do_columns.get(),
+    do_values.get());
+  cudaDeviceSynchronize();
+}
+
+void intrinsic_dirac(
+  const thrust::device_ptr<const real3> di_vertices,
+  const thrust::device_ptr<const int3> di_faces,
+  const thrust::device_ptr<const real> di_face_area,
+  const thrust::device_ptr<const real> di_rho,
+  const thrust::device_ptr<const int> di_cumulative_valence,
+  const thrust::device_ptr<const int2> di_entry_offset,
+  const thrust::device_ptr<const int> di_cumulative_triangle_valence,
+  const thrust::device_ptr<const int> di_vertex_triangle_adjacency,
+  const int i_nverts,
+  const int i_nfaces,
+  thrust::device_ptr<int> do_diagonals,
+  thrust::device_ptr<int> do_rows,
+  thrust::device_ptr<int> do_columns,
+  thrust::device_ptr<real4> do_values)
 {
   dim3 block_dim;
   block_dim.y = 6;
@@ -176,7 +334,6 @@ void intrinsic_dirac(const thrust::device_ptr<const real3> di_vertices,
     reinterpret_cast<const int*>(di_faces.get()),
     di_face_area.get(),
     di_rho.get(),
-    di_cumulative_valence.get(),
     reinterpret_cast<const int*>(di_entry_offset.get()),
     i_nfaces,
     do_rows.get(),
@@ -187,7 +344,7 @@ void intrinsic_dirac(const thrust::device_ptr<const real3> di_vertices,
   thrust::counting_iterator<int> counter(0);
   thrust::copy_if(
     counter + di_cumulative_valence[1] + 1,
-    counter + i_total_valence + i_nverts,
+    counter + di_cumulative_valence[i_nverts] + i_nverts,
     do_diagonals + 1,
     [do_rows = do_rows.get()] __device__(int x) { return !do_rows[x]; });
 
@@ -202,6 +359,33 @@ void intrinsic_dirac(const thrust::device_ptr<const real3> di_vertices,
       return thrust::make_tuple(i, i);
     });
 
+  // Generate the inverse mapping of vertex triangle adjacency
+  // [3, 2, 4] will yield [0,0,0, 1,1, 2,2,2,2]
+  thrust::device_vector<int> vert_id(di_cumulative_valence[i_nverts]);
+  thrust::copy_n(thrust::constant_iterator<int>(1),
+                 i_nverts - 1,
+                 thrust::make_permutation_iterator(
+                   vert_id.begin(), di_cumulative_triangle_valence + 1));
+  thrust::inclusive_scan(vert_id.begin(), vert_id.end(), vert_id.begin());
+
+  // Iterate over adjacent faces and the corresponding vertex id
+  auto face_vertex_iter = thrust::make_zip_iterator(
+    thrust::make_tuple(vert_id.data(), di_vertex_triangle_adjacency));
+
+  // Transform opposing edge's, found through the vertex triangle adjacency
+  // information, into diagonal dirac contributions
+  // Doing this through the iterator saves a memory allocation
+  auto dirac_iter = thrust::make_transform_iterator(
+    face_vertex_iter,
+    dirac_diagonal{di_vertices, di_faces, di_face_area, di_rho});
+  flo::real4 q = (*dirac_iter);
+
+  thrust::reduce_by_key(
+    vert_id.begin(),
+    vert_id.end(),
+    dirac_iter,
+    thrust::make_discard_iterator(),
+    thrust::make_permutation_iterator(do_values, do_diagonals));
 }
 
 FLO_DEVICE_NAMESPACE_END

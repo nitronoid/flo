@@ -13,14 +13,25 @@ void intrinsic_dirac(
   const thrust::device_ptr<const real> di_rho,
   const thrust::device_ptr<const int> di_cumulative_valence,
   const thrust::device_ptr<const int2> di_entry_offset,
+  const thrust::device_ptr<const int> di_cumulative_triangle_valence,
+  const thrust::device_ptr<const int> di_vertex_triangle_adjacency,
   const int i_nverts,
   const int i_nfaces,
-  const int i_total_valence,
   thrust::device_ptr<int> do_diagonals,
   thrust::device_ptr<int> do_rows,
   thrust::device_ptr<int> do_columns,
   thrust::device_ptr<real4> do_values);
 
+void to_real_quaternion_matrix(
+  const thrust::device_ptr<const int> di_rows,
+  const thrust::device_ptr<const int> di_columns,
+  const thrust::device_ptr<const real4> di_values,
+  const thrust::device_ptr<const int> di_column_size,
+  const int i_nvalues,
+  thrust::device_ptr<int> do_rows,
+  thrust::device_ptr<int> do_columns,
+  thrust::device_ptr<real> do_values);
+
 FLO_DEVICE_NAMESPACE_END
 
-#endif//FLO_DEVICE_INCLUDED_INTRINSIC_DIRAC
+#endif  // FLO_DEVICE_INCLUDED_INTRINSIC_DIRAC

@@ -29,7 +29,6 @@ __global__ void
 d_cotangent_laplacian_atomic(const real3* __restrict__ di_vertices,
                              const int* __restrict__ di_faces,
                              const real* __restrict__ di_face_area,
-                             const int* __restrict__ di_cumulative_valence,
                              const int* __restrict__ di_entry_offset,
                              const uint i_nfaces,
                              int* __restrict__ do_rows,
@@ -55,7 +54,7 @@ d_cotangent_laplacian_atomic(const real3* __restrict__ di_vertices,
     return;
 
   // Get the vertex order, need to half the tid as we have two threads per edge
-  const uchar3 loop = edge_loop(threadIdx.y >> 1);
+  const uchar3 loop = tri_edge_loop(threadIdx.y >> 1);
 
   // Compute local edge indices rotated by the corner this thread corresponds to
   const uint16_t local_e0 = threadIdx.x * 3 + loop.x;
@@ -83,6 +82,7 @@ d_cotangent_laplacian_atomic(const real3* __restrict__ di_vertices,
   {
     const real3 e = points[local_e2] - points[local_e1];
     edge_norm2[local_e0] = dot(e, e);
+    //    __fmaf_rz(e.x,e.x, __fmaf_rz(e.y,e.y, e.z*e.z));
   }
   __syncthreads();
   if (major)
@@ -117,7 +117,6 @@ void cotangent_laplacian(
   const thrust::device_ptr<const int2> di_entry_offset,
   const int i_nverts,
   const int i_nfaces,
-  const int i_total_valence,
   thrust::device_ptr<int> do_diagonals,
   thrust::device_ptr<int> do_rows,
   thrust::device_ptr<int> do_columns,
@@ -144,7 +143,6 @@ void cotangent_laplacian(
     di_vertices.get(),
     reinterpret_cast<const int*>(di_faces.get()),
     di_face_area.get(),
-    di_cumulative_valence.get(),
     reinterpret_cast<const int*>(di_entry_offset.get()),
     i_nfaces,
     do_rows.get(),
@@ -152,13 +150,13 @@ void cotangent_laplacian(
     do_values.get());
   cudaDeviceSynchronize();
 
+  const uint32_t n_values = di_cumulative_valence[i_nverts] + i_nverts;
   thrust::counting_iterator<int> counter(0);
-  thrust::copy_if(counter + di_cumulative_valence[1] + 1,
-                  counter + i_total_valence + i_nverts,
-                  do_diagonals + 1,
-                  [do_rows = do_rows.get()] __device__ (int x) {
-                    return !do_rows[x];
-                  });
+  thrust::copy_if(
+    counter + di_cumulative_valence[1] + 1,
+    counter + n_values,
+    do_diagonals + 1,
+    [do_rows = do_rows.get()] __device__(int x) { return !do_rows[x]; });
 
   // Iterator for diagonal matrix entries
   auto diag_begin = thrust::make_permutation_iterator(
@@ -167,13 +165,13 @@ void cotangent_laplacian(
 
   // Generate the diagonal entry, row and column indices
   thrust::tabulate(
-     diag_begin, diag_begin + i_nverts, [] __device__(const int i) {
+    diag_begin, diag_begin + i_nverts, [] __device__(const int i) {
       return thrust::make_tuple(i, i);
     });
 
   thrust::reduce_by_key(
     do_rows,
-    do_rows + i_total_valence + i_nverts,
+    do_rows + n_values,
     thrust::make_transform_iterator(do_values, thrust::negate<flo::real>()),
     thrust::make_discard_iterator(),
     thrust::make_permutation_iterator(do_values, do_diagonals));
