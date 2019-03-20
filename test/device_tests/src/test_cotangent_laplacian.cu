@@ -4,6 +4,8 @@
 #include <cusp/io/matrix_market.h>
 #include "flo/device/cotangent_laplacian.cuh"
 #include "flo/device/vertex_vertex_adjacency.cuh"
+#include "flo/device/vertex_triangle_adjacency.cuh"
+#include "flo/device/vertex_mass.cuh"
 #include "flo/device/area.cuh"
 
 #include "flo/host/cotangent_laplacian.hpp"
@@ -16,8 +18,7 @@ TEST(CotangentLaplacianTriplets, cube)
 {
   const std::string name = "cube";
   const std::string matrix_prefix = "../matrices/" + name;
-  const auto& surf =
-    TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
+  const auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 
   cusp::array1d<int, cusp::host_memory> int_temp;
   cusp::array1d<flo::real, cusp::host_memory> real_temp;
@@ -51,14 +52,12 @@ TEST(CotangentLaplacianTriplets, cube)
               Pointwise(FloatNear(FLOAT_SOFT_EPSILON), expected_L.values));
 }
 
-
 #define COTANGENT_LAPLACIAN_ATOMIC_TEST(NAME)                                  \
   TEST(CotangentLaplacianAtomic, NAME)                                         \
   {                                                                            \
     const std::string name = #NAME;                                            \
     const std::string matrix_prefix = "../matrices/" + name;                   \
-    const auto& surf =                                                         \
-      TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");    \
+    const auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");  \
     cusp::array1d<int, cusp::host_memory> int_temp;                            \
     cusp::array1d<flo::real, cusp::host_memory> real_temp;                     \
     cusp::io::read_matrix_market_file(real_temp,                               \
@@ -90,7 +89,6 @@ TEST(CotangentLaplacianTriplets, cube)
                                      d_offsets.data(),                         \
                                      surf.n_vertices(),                        \
                                      surf.n_faces(),                           \
-                                     d_cumulative_valence.back(),              \
                                      d_diagonals.data(),                       \
                                      d_L.row_indices.data(),                   \
                                      d_L.column_indices.data(),                \
@@ -121,7 +119,7 @@ COTANGENT_LAPLACIAN_ATOMIC_TEST(cube)
 COTANGENT_LAPLACIAN_ATOMIC_TEST(spot)
 // COTANGENT_LAPLACIAN_ATOMIC_TEST(dense_sphere_400x400)
 
-//TEST(WRITE_MAT, mat)
+// TEST(WRITE_MAT, mat)
 //{
 //  std::string name = "spot";
 //  std::string matrix_prefix = "../matrices/" + name;
@@ -150,7 +148,8 @@ COTANGENT_LAPLACIAN_ATOMIC_TEST(spot)
 //  // std::cout << "Write cumulative valence\n";
 //
 //  auto d_area =
-//    flo::device::area(surf.vertices.data(), surf.faces.data(), surf.n_faces());
+//    flo::device::area(surf.vertices.data(), surf.faces.data(),
+//    surf.n_faces());
 //  auto d_offsets =
 //    flo::device::adjacency_matrix_offset(surf.faces.data(),
 //                                         d_adjacency.data(),
@@ -246,4 +245,40 @@ COTANGENT_LAPLACIAN_ATOMIC_TEST(spot)
 //  using namespace testing;
 //  EXPECT_THAT(values,
 //              Pointwise(FloatNear(FLOAT_SOFT_EPSILON), expected_values));
+//}
+
+//TEST(WRITE_MAT, mat)
+//{
+//  std::string name = "spot";
+//  std::string matrix_prefix = "../matrices/" + name;
+//  const auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
+//  auto faces_copy = surf.faces;
+//
+//  cusp::array1d<flo::real, cusp::host_memory> real_temp;
+//  cusp::io::read_matrix_market_file(real_temp,
+//                                    matrix_prefix + "/area/area.mtx");
+//  cusp::array1d<flo::real, cusp::device_memory> d_area = real_temp;
+//
+//  cusp::array1d<int, cusp::device_memory> d_adjacency(surf.n_faces() * 3);
+//  cusp::array1d<int, cusp::device_memory> d_valence(surf.n_vertices());
+//  cusp::array1d<int, cusp::device_memory> d_cumulative_valence(
+//    surf.n_vertices() + 1);
+//  flo::device::vertex_triangle_adjacency(
+//    thrust::device_ptr<int>{(int*)faces_copy.data().get()},
+//    surf.n_faces(),
+//    surf.n_vertices(),
+//    d_adjacency.data(),
+//    d_valence.data(),
+//    d_cumulative_valence.data());
+//
+//  cusp::array1d<flo::real, cusp::host_memory> d_mass = flo::device::vertex_mass(d_area.data(),
+//                                         d_adjacency.data(),
+//                                         d_valence.data(),
+//                                         d_cumulative_valence.data(),
+//                                         d_area.size(),
+//                                         d_valence.size());
+//  std::cout << "Calc adjacency\n";
+//  cusp::io::write_matrix_market_file(
+//    d_mass, matrix_prefix + "/vertex_mass/vertex_mass.mtx");
+//  std::cout << "Write adjacency\n";
 //}
