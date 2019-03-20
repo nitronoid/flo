@@ -2,6 +2,7 @@
 #include "flo/device/thread_util.cuh"
 #include <thrust/sort.h>
 #include <thrust/reduce.h>
+#include <thrust/device_vector.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/iterator/discard_iterator.h>
