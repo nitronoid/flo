@@ -104,6 +104,6 @@ using SparseHostMatrix = cusp::coo_matrix<int, flo::real, cusp::host_memory>;
   }
 
 INTRINSIC_DIRAC_TEST(cube)
-// INTRINSIC_DIRAC_TEST(spot)
+INTRINSIC_DIRAC_TEST(spot)
 // INTRINSIC_DIRAC_TEST(dense_sphere_400x400)
 
