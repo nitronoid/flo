@@ -38,9 +38,11 @@ d_cotangent_laplacian_atomic(const real3* __restrict__ di_vertices,
   // Declare one shared memory block
   extern __shared__ uint8_t shared_memory[];
   // Create pointers into the block dividing it for the different uses
-  real* __restrict__ cached_value = (real*)shared_memory;
+  real* __restrict__ area = (real*)shared_memory;
+  // Create pointers into the block dividing it for the different uses
+  real* __restrict__ result = (real*)(area + blockDim.x * 3);
   // There is a cached value for each corner of the face so we offset
-  real3* __restrict__ points = (real3*)(cached_value + blockDim.x * 3);
+  real3* __restrict__ points = (real3*)(result + blockDim.x * 3);
   // There are nfaces *3 vertex values (duplicated for each face vertex)
   real* __restrict__ edge_norm2 = (real*)(points + blockDim.x * 3);
   // There are nfaces *3 squared edge lengths (duplicated for each face vertex)
@@ -68,7 +70,7 @@ d_cotangent_laplacian_atomic(const real3* __restrict__ di_vertices,
   if (!threadIdx.y)
   {
     // Duplicate for each corner of the face to reduce bank conflicts
-    cached_value[local_e0] = cached_value[local_e1] = cached_value[local_e2] =
+    area[local_e0] = area[local_e1] = area[local_e2] =
       di_face_area[fid] * 8.f;
   }
   // Write the vertex positions into shared memory
@@ -89,9 +91,9 @@ d_cotangent_laplacian_atomic(const real3* __restrict__ di_vertices,
   {
     // Save the cotangent value into shared memory as multiple threads will,
     // write it into the final matrix
-    cached_value[local_e0] =
+    result[local_e0] =
       (edge_norm2[local_e1] + edge_norm2[local_e2] - edge_norm2[local_e0]) /
-      cached_value[local_e0];
+      area[local_e0];
   }
   // Write the opposing edge ID's into shared memory to reduce global reads
   eid[local_e0 * 2 + !major] =
@@ -104,7 +106,7 @@ d_cotangent_laplacian_atomic(const real3* __restrict__ di_vertices,
   // Write the row and column indices
   do_rows[address] = R;
   do_columns[address] = C;
-  atomicAdd(do_values + address, -cached_value[local_e0]);
+  atomicAdd(do_values + address, -result[local_e0]);
 }
 
 }  // namespace
@@ -132,7 +134,7 @@ void cotangent_laplacian(
   // edge squared lengths   =>  sizeof(real) * 3 * #F
   // === (3 + 9 + 3) * #F * sizeof(real)
   size_t shared_memory_size =
-    sizeof(flo::real) * block_dim.x * 15 + sizeof(uint32_t) * 6 * block_dim.x;
+    sizeof(flo::real) * block_dim.x * 18 + sizeof(uint32_t) * 6 * block_dim.x;
 
   // When passing the face and offset data to cuda, we reinterpret them as int
   // arrays. The advantage of this is coalesced memory reads by neighboring
