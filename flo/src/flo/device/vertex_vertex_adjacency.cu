@@ -54,7 +54,7 @@ __global__ void d_adjacency_matrix_offset(
 
   // Get the vertex order, need to half the tid as we have two threads per edge
   const uint32_t edge_idx = threadIdx.y >> 1;
-  const uchar3 loop = edge_loop(edge_idx);
+  const uchar3 loop = tri_edge_loop(edge_idx);
   // Compute local edge indices rotated by the offset major
   const int2 ep = make_int2(fid * 3 + nth_element(loop, 1 + major),
                             fid * 3 + nth_element(loop, 1 + !major));
