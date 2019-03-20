@@ -68,7 +68,6 @@
                                        d_offsets.data(),                    \
                                        surf.n_vertices(),                   \
                                        surf.n_faces(),                      \
-                                       d_cumulative_valence.back(),         \
                                        d_diagonals.data(),                  \
                                        d_L.row_indices.data(),              \
                                        d_L.column_indices.data(),           \
