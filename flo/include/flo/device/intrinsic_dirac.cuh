@@ -6,7 +6,7 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
-void intrinsic_dirac(
+FLO_API void intrinsic_dirac(
   const thrust::device_ptr<const real3> di_vertices,
   const thrust::device_ptr<const int3> di_faces,
   const thrust::device_ptr<const real> di_face_area,
@@ -22,7 +22,7 @@ void intrinsic_dirac(
   thrust::device_ptr<int> do_columns,
   thrust::device_ptr<real4> do_values);
 
-void to_real_quaternion_matrix(
+FLO_API void to_real_quaternion_matrix(
   const thrust::device_ptr<const int> di_rows,
   const thrust::device_ptr<const int> di_columns,
   const thrust::device_ptr<const real4> di_values,
