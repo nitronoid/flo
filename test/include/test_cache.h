@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include "flo/host/surface.hpp"
 #ifdef __CUDACC__
 #include "flo/device/surface.cuh"
@@ -26,6 +27,10 @@ struct TestCache
   static SurfMap m_cache;
   static const std::string m_mesh_path;
 
+private:
+  static std::mutex m_mutex;
+
+public:
   // For the user to indicate which memory space they wish to access
   enum SURFACEMEM { HOST = 0, DEVICE = 1 };
 
@@ -42,6 +47,7 @@ struct TestCache
 #ifndef __CUDACC__
     static_assert(X != DEVICE, "Device surface not available without CUDA");
 #endif
+    std::unique_lock<std::mutex> lock(m_mutex);
     const std::string base_path = STRINGIFY(MESH_PATH);
     const std::string file_path = base_path + '/' + i_file_path;
 
