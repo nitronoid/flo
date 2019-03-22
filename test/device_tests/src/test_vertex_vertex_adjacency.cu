@@ -1,7 +1,7 @@
 #include "test_common.h"
 #include "device_test_util.h"
 #include <cusp/io/matrix_market.h>
-#include "flo/device/vertex_triangle_adjacency.cuh"
+#include "flo/device/vertex_vertex_adjacency.cuh"
 
 namespace
 {
@@ -11,20 +11,18 @@ void test(std::string name)
   const auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 
   // Declare device side arrays to dump our results
-  cusp::array1d<int, cusp::device_memory> d_adjacency(surf.n_faces() * 3);
+  cusp::array1d<int, cusp::device_memory> d_adjacency(surf.n_faces() * 12);
   cusp::array1d<int, cusp::device_memory> d_valence(surf.n_vertices());
   cusp::array1d<int, cusp::device_memory> d_cumulative_valence(
     surf.n_vertices() + 1);
 
-  thrust::device_vector<int> temp(surf.n_faces() * 3);
-
   // Run the function
-  flo::device::vertex_triangle_adjacency(
+  int n_adjacency = flo::device::vertex_vertex_adjacency(
     surf.faces,
-    temp.data(),
     d_adjacency,
     d_valence,
     {d_cumulative_valence.begin() + 1, d_cumulative_valence.end()});
+  d_adjacency.resize(n_adjacency);
 
   // Copy the results back to the host side
   cusp::array1d<int, cusp::host_memory> h_adjacency = d_adjacency;
@@ -35,17 +33,17 @@ void test(std::string name)
   // Read expected results from disk
   cusp::array1d<int, cusp::host_memory> expected_valence;
   cusp::io::read_matrix_market_file(
-    expected_valence, matrix_prefix + "/vertex_triangle_adjacency/valence.mtx");
+    expected_valence, matrix_prefix + "/vertex_vertex_adjacency/valence.mtx");
 
   cusp::array1d<int, cusp::host_memory> expected_cumulative_valence;
   cusp::io::read_matrix_market_file(
     expected_cumulative_valence,
-    matrix_prefix + "/vertex_triangle_adjacency/cumulative_valence.mtx");
+    matrix_prefix + "/vertex_vertex_adjacency/cumulative_valence.mtx");
 
   cusp::array1d<int, cusp::host_memory> expected_adjacency;
-  cusp::io::read_matrix_market_file(
-    expected_adjacency,
-    matrix_prefix + "/vertex_triangle_adjacency/adjacency.mtx");
+  cusp::io::read_matrix_market_file(expected_adjacency,
+                                    matrix_prefix +
+                                      "/vertex_vertex_adjacency/adjacency.mtx");
 
   // Test the results
   using namespace testing;
@@ -56,13 +54,13 @@ void test(std::string name)
 }
 }  // namespace
 
-#define FLO_VERTEX_TRIANGLE_ADJACENCY_TEST(NAME) \
-  TEST(VertexTriangleAdjacency, NAME)            \
-  {                                              \
-    test(#NAME);                                 \
+#define FLO_VERTEX_VERTEX_ADJACENCY_TEST(NAME) \
+  TEST(VertexVertexAdjacency, NAME)          \
+  {                                            \
+    test(#NAME);                               \
   }
 
-FLO_VERTEX_TRIANGLE_ADJACENCY_TEST(cube)
-FLO_VERTEX_TRIANGLE_ADJACENCY_TEST(spot)
+FLO_VERTEX_VERTEX_ADJACENCY_TEST(cube)
+FLO_VERTEX_VERTEX_ADJACENCY_TEST(spot)
 
-#undef FLO_VERTEX_TRIANGLE_ADJACENCY_TEST
+#undef FLO_VERTEX_VERTEX_ADJACENCY_TEST
