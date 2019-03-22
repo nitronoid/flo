@@ -9,11 +9,7 @@
 FLO_DEVICE_NAMESPACE_BEGIN
 
 FLO_API void similarity_xform(
-  const cusp::coo_matrix_view<
-    typename cusp::array1d<int, cusp::device_memory>::const_view,
-    typename cusp::array1d<int, cusp::device_memory>::const_view,
-    typename cusp::array1d<real, cusp::device_memory>::const_view>
-    di_dirac_matrix,
+  cusp::coo_matrix<int, real, cusp::device_memory>::const_view di_dirac_matrix,
   cusp::array1d<real, cusp::device_memory>::view do_xform)
 {
   thrust::tabulate(do_xform.begin(), do_xform.end(), [] __device__(int x) {

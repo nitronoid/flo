@@ -2,35 +2,29 @@
 #define FLO_DEVICE_INCLUDED_INTRINSIC_DIRAC
 
 #include "flo/flo_internal.hpp"
-#include <thrust/device_ptr.h>
+#include <cusp/array1d.h>
+#include <cusp/coo_matrix.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
 FLO_API void intrinsic_dirac(
-  const thrust::device_ptr<const real3> di_vertices,
-  const thrust::device_ptr<const int3> di_faces,
-  const thrust::device_ptr<const real> di_face_area,
-  const thrust::device_ptr<const real> di_rho,
-  const thrust::device_ptr<const int> di_cumulative_valence,
-  const thrust::device_ptr<const int2> di_entry_offset,
-  const thrust::device_ptr<const int> di_cumulative_triangle_valence,
-  const thrust::device_ptr<const int> di_vertex_triangle_adjacency,
-  const int i_nverts,
-  const int i_nfaces,
-  thrust::device_ptr<int> do_diagonals,
-  thrust::device_ptr<int> do_rows,
-  thrust::device_ptr<int> do_columns,
-  thrust::device_ptr<real4> do_values);
+  cusp::array1d<real3, cusp::device_memory>::const_view di_vertices,
+  cusp::array1d<int3, cusp::device_memory>::const_view di_faces,
+  cusp::array1d<real, cusp::device_memory>::const_view di_face_area,
+  cusp::array1d<real, cusp::device_memory>::const_view di_rho,
+  cusp::array1d<int2, cusp::device_memory>::const_view di_entry_offset,
+  cusp::array1d<int, cusp::device_memory>::const_view
+    di_cumulative_triangle_valence,
+  cusp::array1d<int, cusp::device_memory>::const_view
+    di_vertex_triangle_adjacency,
+  cusp::array1d<int, cusp::device_memory>::view do_diagonals,
+  cusp::coo_matrix<int, real4, cusp::device_memory>::view do_dirac_matrix);
 
 FLO_API void to_real_quaternion_matrix(
-  const thrust::device_ptr<const int> di_rows,
-  const thrust::device_ptr<const int> di_columns,
-  const thrust::device_ptr<const real4> di_values,
-  const thrust::device_ptr<const int> di_column_size,
-  const int i_nvalues,
-  thrust::device_ptr<int> do_rows,
-  thrust::device_ptr<int> do_columns,
-  thrust::device_ptr<real> do_values);
+  cusp::coo_matrix<int, real4, cusp::device_memory>::const_view
+    di_quaternion_matrix,
+  cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_column_size,
+  cusp::coo_matrix<int, real, cusp::device_memory>::view do_real_matrix);
 
 FLO_DEVICE_NAMESPACE_END
 

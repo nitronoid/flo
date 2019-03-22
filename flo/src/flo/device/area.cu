@@ -2,23 +2,25 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
-FLO_API thrust::device_vector<real> area(
-    const thrust::device_ptr<const real3> i_vertices,
-    const thrust::device_ptr<const int3> i_faces,
-    const uint i_nfaces)
+FLO_API void
+area(cusp::array1d<real3, cusp::device_memory>::const_view di_vertices,
+     cusp::array1d<int3, cusp::device_memory>::const_view di_faces,
+     cusp::array1d<real, cusp::device_memory>::view do_face_area)
 {
-  thrust::device_vector<real> face_area(i_nfaces);
-  thrust::transform(
-      i_faces,
-      i_faces + i_nfaces,
-      face_area.begin(),
-      [i_vertices] __host__ __device__ (const int3& face)
-      {
-        return length(cross(
-            real3(i_vertices[face.y]) - real3(i_vertices[face.x]), 
-            real3(i_vertices[face.z]) - real3(i_vertices[face.x]))) * 0.5;
-      });
-  return face_area;
+  thrust::transform(di_faces.begin(),
+                    di_faces.end(),
+                    do_face_area.begin(),
+                    [d_vertices = di_vertices.begin().base().get()] __device__(
+                      const int3& face) {
+                      real3 normal;
+                      {
+                        const real3 v0 = d_vertices[face.x];
+                        const real3 v1 = d_vertices[face.y];
+                        const real3 v2 = d_vertices[face.z];
+                        normal = cross(v1 - v0, v2 - v0);
+                      }
+                      return __fsqrt_rd(dot(normal, normal)) * 0.5;
+                    });
 }
 
 FLO_DEVICE_NAMESPACE_END

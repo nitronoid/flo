@@ -1,57 +1,46 @@
 #include "flo/device/vertex_mass.cuh"
-
-using namespace Eigen;
+#include <thrust/iterator/transform_output_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/iterator/discard_iterator.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
 namespace
 {
-__global__ void vertex_mass_impl(
-    const thrust::device_ptr<const int> di_vertex_face_adjacency,
-    const thrust::device_ptr<const int> di_vertex_face_valence,
-    const thrust::device_ptr<const int> di_vertex_offset,
-    const thrust::device_ptr<const real> di_face_area,
-    thrust::device_ptr<real> dio_mass,
-    const uint i_n_verts)
+struct Divide3
 {
-  size_t tid = threadIdx.x + blockIdx.x * blockDim.x;
-  // one thread per mass
-  if (tid >= i_n_verts) return;
+  static constexpr real third = 1.f / 3.f;
 
-  const int valence = di_vertex_face_valence[tid];
-  const int offset = di_vertex_offset[tid];
-
-  real total_area = 0.f;
-  for (int i = 0; i < valence; ++i)
+  __host__ __device__ real operator()(real x) const
   {
-    total_area += di_face_area[di_vertex_face_adjacency[offset + i]];
+    return x * third;
   }
-  constexpr auto third = 1.f / 3.f;
-  dio_mass[tid] = total_area * third;
-}
-}
+};
+}  // namespace
 
-FLO_API thrust::device_vector<real> vertex_mass(
-    const thrust::device_ptr<real> di_face_area,
-    const thrust::device_ptr<int> di_vertex_face_adjacency,
-    const thrust::device_ptr<int> di_vertex_face_valence,
-    const thrust::device_ptr<int> di_cumulative_valence,
-    const uint i_nfaces,
-    const uint i_nverts)
+FLO_API void vertex_mass(
+  cusp::array1d<real, cusp::device_memory>::const_view di_face_area,
+  cusp::array1d<int, cusp::device_memory>::const_view di_adjacency,
+  cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_valence,
+  cusp::array1d<real, cusp::device_memory>::view do_vertex_mass)
 {
-  thrust::device_vector<real> mass(i_nverts);
+  // Generate the inverse mapping of vertex triangle adjacency
+  // [3, 2, 4] will yield [0,0,0, 1,1, 2,2,2,2]
+  thrust::device_vector<int> vert_id(di_cumulative_valence.back());
+  thrust::copy_n(thrust::constant_iterator<int>(1),
+                 do_vertex_mass.size() - 1,
+                 thrust::make_permutation_iterator(
+                   vert_id.begin(), di_cumulative_valence.begin()));
+  thrust::inclusive_scan(vert_id.begin(), vert_id.end(), vert_id.begin());
 
-  size_t nthreads_per_block = 1024;
-  size_t nblocks = i_nverts / nthreads_per_block + 1;
-  vertex_mass_impl<<<nblocks, nthreads_per_block>>>(
-      di_vertex_face_adjacency,
-      di_vertex_face_valence,
-      di_cumulative_valence,
-      di_face_area,
-      mass.data(),
-      i_nverts);
-  
-  return mass;
+  // Reduce the face areas using the inverse adjacency mapping to lookup by face
+  thrust::reduce_by_key(
+    vert_id.begin(),
+    vert_id.end(),
+    thrust::make_permutation_iterator(di_face_area.begin(),
+                                      di_adjacency.begin()),
+    vert_id.begin(),
+    thrust::make_transform_output_iterator(do_vertex_mass.begin(), Divide3{}));
 }
 
 FLO_DEVICE_NAMESPACE_END

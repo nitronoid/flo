@@ -2,19 +2,16 @@
 #define FLO_DEVICE_INCLUDED_VERTEX_MASS
 
 #include "flo/flo_internal.hpp"
-#include <Eigen/Dense>
-#include <thrust/device_ptr.h>
-#include <thrust/device_vector.h>
+#include <cusp/array1d.h>
+#include <cusp/coo_matrix.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
-FLO_API thrust::device_vector<real> vertex_mass(
-    const thrust::device_ptr<real> di_face_area,
-    const thrust::device_ptr<int> di_vertex_face_adjacency,
-    const thrust::device_ptr<int> di_vertex_face_valence,
-    const thrust::device_ptr<int> di_cumulative_valence,
-    const uint i_nfaces,
-    const uint i_nverts);
+FLO_API void vertex_mass(
+  cusp::array1d<real, cusp::device_memory>::const_view di_face_area,
+  cusp::array1d<int, cusp::device_memory>::const_view di_adjacency,
+  cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_valence,
+  cusp::array1d<real, cusp::device_memory>::view do_vertex_mass);
 
 FLO_DEVICE_NAMESPACE_END
 

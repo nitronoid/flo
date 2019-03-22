@@ -3,14 +3,14 @@
 
 #include "flo/flo_internal.hpp"
 #include "flo/host/surface.hpp"
-#include <thrust/device_vector.h>
+#include <cusp/array1d.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
 struct Surface
 {
-  thrust::device_vector<real3> vertices;
-  thrust::device_vector<int3> faces;
+  cusp::array1d<real3, cusp::device_memory> vertices;
+  cusp::array1d<int3, cusp::device_memory> faces;
 
   FLO_API std::size_t n_vertices() const noexcept;
   FLO_API std::size_t n_faces() const noexcept;

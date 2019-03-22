@@ -2,45 +2,18 @@
 #include "flo/device/histogram.cuh"
 #include "flo/device/thread_util.cuh"
 #include <thrust/find.h>
+#include <cusp/iterator/strided_iterator.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
 namespace
 {
-__global__ void
-d_exhaustive_face_edges(const thrust::device_ptr<const int3> di_faces,
-                        const uint i_nfaces,
-                        thrust::device_ptr<int> do_I,
-                        thrust::device_ptr<int> do_J)
-{
-  const uint tid = blockIdx.x * blockDim.x + threadIdx.x;
-  // Check we're not out of range
-  if (tid >= i_nfaces)
-    return;
-
-  const int3 face = di_faces[tid];
-  do_I[tid * 6 + 0] = face.z;
-  do_J[tid * 6 + 0] = face.x;
-  do_I[tid * 6 + 1] = face.x;
-  do_J[tid * 6 + 1] = face.z;
-
-  do_I[tid * 6 + 2] = face.x;
-  do_J[tid * 6 + 2] = face.y;
-  do_I[tid * 6 + 3] = face.y;
-  do_J[tid * 6 + 3] = face.x;
-
-  do_I[tid * 6 + 4] = face.y;
-  do_J[tid * 6 + 4] = face.z;
-  do_I[tid * 6 + 5] = face.z;
-  do_J[tid * 6 + 5] = face.y;
-}
-
 __global__ void d_adjacency_matrix_offset(
-  const thrust::device_ptr<const int> di_faces,
-  const thrust::device_ptr<const int> di_vertex_adjacency,
-  const thrust::device_ptr<const int> di_cumulative_valence,
-  const uint i_nfaces,
-  thrust::device_ptr<int> do_offset)
+  const int* __restrict__ di_faces,
+  const int* __restrict__ di_vertex_adjacency,
+  const int* __restrict__ di_cumulative_valence,
+  const int i_nfaces,
+  int* __restrict__ do_offset)
 {
   const uint fid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -72,60 +45,107 @@ __global__ void d_adjacency_matrix_offset(
 
 }  // namespace
 
-thrust::device_vector<int>
-vertex_vertex_adjacency(const thrust::device_ptr<const int3> di_faces,
-                        const int i_nfaces,
-                        const int i_nvertices,
-                        thrust::device_ptr<int> do_valence,
-                        thrust::device_ptr<int> do_cumulative_valence)
+FLO_API int vertex_vertex_adjacency(
+  cusp::array1d<int3, cusp::device_memory>::const_view di_faces,
+  cusp::array1d<int, cusp::device_memory>::view do_adjacency,
+  cusp::array1d<int, cusp::device_memory>::view do_valence,
+  cusp::array1d<int, cusp::device_memory>::view do_cumulative_valence)
 {
-  thrust::device_vector<int> I(i_nfaces * 6);
-  thrust::device_vector<int> J(i_nfaces * 6);
+  const int max_edges = di_faces.size() * 6;
+  auto J = do_adjacency.subarray(0, max_edges);
+  auto I = do_adjacency.subarray(max_edges, max_edges);
 
-  int nthreads = 1024;
-  int nblocks = i_nfaces / nthreads + 1;
-  d_exhaustive_face_edges<<<nblocks, nthreads>>>(
-    di_faces, i_nfaces, I.data(), J.data());
+  // Create vector access to the edge indices
+  thrust::device_ptr<int3> I3{reinterpret_cast<int3*>(I.begin().base().get())};
+  thrust::device_ptr<int3> J3{reinterpret_cast<int3*>(J.begin().base().get())};
 
+  // Create an iterator that pairs diagonal triplets as they will share the
+  // same values
+  auto face_edge_iter = thrust::make_zip_iterator(thrust::make_tuple(
+    thrust::make_zip_iterator(thrust::make_tuple(I3, J3 + 1)),
+    thrust::make_zip_iterator(thrust::make_tuple(I3 + 1, J3))));
+
+  // Create a stride iterator, we will generate 6 edges per face, so need to
+  // move 2 triplets at a time
+  cusp::strided_iterator<decltype(face_edge_iter)> paired_face_edge_iter(
+    face_edge_iter, face_edge_iter + di_faces.size() * 2, 2);
+
+  // For each face output all half edges, e.g. the first pairs 6 should be:
+  // I:  0 1 2 1 2 0
+  // J:  1 2 0 0 1 2
+  // As we can see, the first three of I match the last three of J, and the
+  // first three of J match the last three of I, hence our iteration strategy
+  thrust::transform(di_faces.begin(),
+                    di_faces.end(),
+                    paired_face_edge_iter.begin(),
+                    [] __device__(int3 f) {
+                      auto original = thrust::make_tuple(f, f);
+                      auto shuffled = thrust::make_tuple(
+                        make_int3(f.y, f.z, f.x), make_int3(f.y, f.z, f.x));
+                      return thrust::make_tuple(original, shuffled);
+                    });
+
+  // Sort by column and then row to cluster all adjacency by the key vertex
   thrust::sort_by_key(J.begin(), J.end(), I.begin());
   thrust::stable_sort_by_key(I.begin(), I.end(), J.begin());
 
+  // Remove all duplicate edges
   auto coord_begin =
     thrust::make_zip_iterator(thrust::make_tuple(I.begin(), J.begin()));
-
   auto coord_end = thrust::unique_by_key(J.begin(), J.end(), coord_begin);
-  int total_valence = coord_end.first - J.begin();
-  J.resize(total_valence);
+  const int total_valence = coord_end.first - J.begin();
 
-  do_cumulative_valence[0] = 0;
-  flo::device::cumulative_dense_histogram_sorted(
-    I.data(), do_cumulative_valence + 1, total_valence, i_nvertices);
-  flo::device::dense_histogram_from_cumulative(
-    do_cumulative_valence + 1, do_valence, i_nvertices);
+  // Calculate a dense histogram to find the cumulative valence
+  // Create a counting iter to output the index values from the upper_bound
+  thrust::counting_iterator<int> search_begin(0);
+  thrust::upper_bound(I.begin(),
+                      I.begin() + total_valence,
+                      search_begin,
+                      search_begin + do_cumulative_valence.size(),
+                      do_cumulative_valence.begin());
 
-  return J;
+  // Calculate the non-cumulative valence by subtracting neighbouring elements
+  thrust::adjacent_difference(do_cumulative_valence.begin(),
+                              do_cumulative_valence.end(),
+                              do_valence.begin());
+
+  // Return the final size of the adjacency list
+  return total_valence;
 }
 
-thrust::device_vector<int2> adjacency_matrix_offset(
-  const thrust::device_ptr<const int3> di_faces,
-  const thrust::device_ptr<const int> di_vertex_adjacency,
-  const thrust::device_ptr<const int> di_cumulative_valence,
-  const int i_nfaces)
+FLO_API void adjacency_matrix_offset(
+  cusp::array1d<int3, cusp::device_memory>::const_view di_faces,
+  cusp::array1d<int, cusp::device_memory>::const_view di_adjacency,
+  cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_valence,
+  cusp::array1d<int2, cusp::device_memory>::view do_offsets)
 {
-  thrust::device_vector<int2> d_offsets(i_nfaces * 3);
+  //  thrust::device_vector<int2> d_offsets(i_nfaces * 3);
+  // Create a view over the faces with more granular access
+  cusp::array1d<int, cusp::device_memory>::const_view di_face_vertices{
+    thrust::device_ptr<const int>{
+      reinterpret_cast<const int*>(di_faces.begin().base().get())},
+    thrust::device_ptr<const int>{
+      reinterpret_cast<const int*>(di_faces.end().base().get())}};
+
+  // Create a view over the offsets with more granular access
+  cusp::array1d<int, cusp::device_memory>::view d_offsets{
+    thrust::device_ptr<int>{
+      reinterpret_cast<int*>(do_offsets.begin().base().get())},
+    thrust::device_ptr<int>{
+      reinterpret_cast<int*>(do_offsets.end().base().get())}};
 
   dim3 block_dim;
   block_dim.y = 6;
   block_dim.x = 170;
-  int nblocks = i_nfaces * 6 / (block_dim.x * block_dim.y * block_dim.z) + 1;
-  d_adjacency_matrix_offset<<<nblocks, block_dim>>>(
-    thrust::device_ptr<const int>{(const int*)di_faces.get()},
-    di_vertex_adjacency,
-    di_cumulative_valence,
-    i_nfaces,
-    thrust::device_ptr<int>{(int*)d_offsets.data().get()});
+  const int nblocks =
+    di_faces.size() * 6 / (block_dim.x * block_dim.y * block_dim.z) + 1;
 
-  return d_offsets;
+  d_adjacency_matrix_offset<<<nblocks, block_dim>>>(
+    di_face_vertices.begin().base().get(),
+    di_adjacency.begin().base().get(),
+    di_cumulative_valence.begin().base().get(),
+    di_faces.size(),
+    d_offsets.begin().base().get());
 }
 
 FLO_DEVICE_NAMESPACE_END

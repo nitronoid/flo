@@ -1,49 +1,56 @@
 #include "flo/device/vertex_triangle_adjacency.cuh"
-#include "flo/device/histogram.cuh"
-
 #include <type_traits>
+#include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/tuple.h>
-
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
 FLO_API void vertex_triangle_adjacency(
-    const thrust::device_ptr<int> dio_faces,
-    const uint i_nfaces,
-    const uint i_nverts,
-    thrust::device_ptr<int> do_adjacency,
-    thrust::device_ptr<int> do_valence,
-    thrust::device_ptr<int> do_cumulative_valence)
+  cusp::array1d<int3, cusp::device_memory>::const_view di_faces,
+  thrust::device_ptr<void> dio_temporary_storage,
+  cusp::array1d<int, cusp::device_memory>::view do_adjacency,
+  cusp::array1d<int, cusp::device_memory>::view do_valence,
+  cusp::array1d<int, cusp::device_memory>::view do_cumulative_valence)
 {
-  // Get the number of vertex indices, 3 per face
-  const auto nvert_idxs = i_nfaces * 3;
-  // The corresponding face index will be the same for all vertices in a face,
-  // so we store 0,0,0, 1,1,1, ..., n,n,n
-  thrust::tabulate(do_adjacency, do_adjacency + nvert_idxs, 
-      [] __device__ (int idx) { return idx / 3; });
+  // Create a view over the faces with more granular access
+  cusp::array1d<int, cusp::device_memory>::const_view di_face_vertices{
+    thrust::device_ptr<const int>{
+      reinterpret_cast<const int*>(di_faces.begin().base().get())},
+    thrust::device_ptr<const int>{
+      reinterpret_cast<const int*>(di_faces.end().base().get())}};
 
-  // First offset into our adjacency list should be zero
-  do_cumulative_valence[0] = 0;
   // We use atomics to calculate the histogram as the input need not be sorted
-  atomic_histogram(dio_faces, do_valence, nvert_idxs);
+  thrust::for_each(di_face_vertices.begin(),
+                   di_face_vertices.end(),
+                   [d_valence = do_valence.begin().base().get()] __device__(
+                     int x) { atomicAdd(d_valence + x, 1); });
+
   // Use a prefix scan to calculate offsets into our adjacency list per vertex
-  cumulative_histogram_from_dense(
-      do_valence, do_cumulative_valence + 1, i_nverts);
-  // The sort is based on the vertex indices, we only sort the adjacency list,
-  // as we don't require the sorted face vertices, sorting one array is faster
-  thrust::sort_by_key(dio_faces, dio_faces + nvert_idxs, do_adjacency);
-  
+  thrust::inclusive_scan(
+    do_valence.begin(), do_valence.end(), do_cumulative_valence.begin());
 
-  // Dead alternative that requires two sorts
-  // Simultaneously sort the two arrays using a zip iterator,
-  //auto ptr_tuple = thrust::make_tuple(dio_faces, do_adjacency);
-  //auto zip_begin = thrust::make_zip_iterator(ptr_tuple);
+  // Create a sequential list of indices mapping adjacency to face vertices
+  thrust::sequence(do_adjacency.begin(), do_adjacency.end());
 
-  //cumulative_dense_histogram_sorted(
-  //    dio_faces, do_cumulative_valence+1, nvert_idxs, i_nverts);
-  //dense_histogram_from_cumulative(
-  //    do_cumulative_valence+1, do_valence, i_nverts);
+  // View our temporary storage as an array of ints
+  cusp::array1d<int, cusp::device_memory>::view temp{
+    thrust::device_ptr<int>{static_cast<int*>(dio_temporary_storage.get())},
+    thrust::device_ptr<int>{static_cast<int*>(dio_temporary_storage.get()) +
+                            di_face_vertices.size()}};
+
+  // Make a copy of the temporary storage
+  thrust::copy(di_face_vertices.begin(), di_face_vertices.end(), temp.begin());
+
+  // We sort the indices by looking up their face vertex
+  thrust::sort_by_key(temp.begin(), temp.end(), do_adjacency.begin());
+
+  // Finally we simply divide the indices by three to retrieve the face index,
+  // as we know there are 3 vertices per face.
+  thrust::transform(do_adjacency.begin(),
+                    do_adjacency.end(),
+                    do_adjacency.begin(),
+                    [] __device__(int x) { return x / 3; });
 }
 
 FLO_DEVICE_NAMESPACE_END

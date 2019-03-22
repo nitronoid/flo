@@ -1,5 +1,6 @@
 #include "flo/device/cotangent_laplacian_atomic.cuh"
 #include "flo/device/thread_util.cuh"
+//#include <thrust/type_traits/is_contiguous_iterator.h>
 #include <thrust/sort.h>
 #include <thrust/reduce.h>
 #include <thrust/iterator/discard_iterator.h>
@@ -70,8 +71,7 @@ d_cotangent_laplacian_atomic(const real3* __restrict__ di_vertices,
   if (!threadIdx.y)
   {
     // Duplicate for each corner of the face to reduce bank conflicts
-    area[local_e0] = area[local_e1] = area[local_e2] =
-      di_face_area[fid] * 8.f;
+    area[local_e0] = area[local_e1] = area[local_e2] = di_face_area[fid] * 8.f;
   }
   // Write the vertex positions into shared memory
   if (major)
@@ -112,23 +112,24 @@ d_cotangent_laplacian_atomic(const real3* __restrict__ di_vertices,
 }  // namespace
 
 void cotangent_laplacian(
-  const thrust::device_ptr<const real3> di_vertices,
-  const thrust::device_ptr<const int3> di_faces,
-  const thrust::device_ptr<const real> di_face_area,
-  const thrust::device_ptr<const int> di_cumulative_valence,
-  const thrust::device_ptr<const int2> di_entry_offset,
-  const int i_nverts,
-  const int i_nfaces,
-  thrust::device_ptr<int> do_diagonals,
-  thrust::device_ptr<int> do_rows,
-  thrust::device_ptr<int> do_columns,
-  thrust::device_ptr<real> do_values)
+  cusp::array1d<real3, cusp::device_memory>::const_view di_vertices,
+  cusp::array1d<int3, cusp::device_memory>::const_view di_faces,
+  cusp::array1d<real, cusp::device_memory>::const_view di_face_area,
+  cusp::array1d<int2, cusp::device_memory>::const_view di_entry_offset,
+  cusp::array1d<int, cusp::device_memory>::view do_diagonals,
+  cusp::coo_matrix<int, real, cusp::device_memory>::view
+    do_cotangent_laplacian)
 {
+  static_assert(
+    thrust::detail::is_trivial_iterator<
+      cusp::array1d<int, cusp::device_memory>::const_view::iterator>::value,
+    "Array view data is not contiguous");
+
   dim3 block_dim;
   block_dim.y = 6;
   block_dim.x = 170;
   size_t nthreads_per_block = block_dim.x * block_dim.y * block_dim.z;
-  size_t nblocks = i_nfaces * 6 / nthreads_per_block + 1;
+  size_t nblocks = di_faces.size() * 6 / nthreads_per_block + 1;
   // face area | cot_alpha  =>  sizeof(real) * 3 * #F
   // vertex positions       =>  sizeof(real3) * 3 * #F ==  sizeof(real) * 9 * #F
   // edge squared lengths   =>  sizeof(real) * 3 * #F
@@ -142,41 +143,49 @@ void cotangent_laplacian(
   // The cast is inherently safe due to the alignment of cuda vector types,
   // and reinterpret casting guarantees no changes to the underlying values
   d_cotangent_laplacian_atomic<<<nblocks, block_dim, shared_memory_size>>>(
-    di_vertices.get(),
-    reinterpret_cast<const int*>(di_faces.get()),
-    di_face_area.get(),
-    reinterpret_cast<const int*>(di_entry_offset.get()),
-    i_nfaces,
-    do_rows.get(),
-    do_columns.get(),
-    do_values.get());
+    di_vertices.begin().base().get(),
+    reinterpret_cast<const int*>(di_faces.begin().base().get()),
+    di_face_area.begin().base().get(),
+    reinterpret_cast<const int*>(di_entry_offset.begin().base().get()),
+    di_faces.size(),
+    do_cotangent_laplacian.row_indices.begin().base().get(),
+    do_cotangent_laplacian.column_indices.begin().base().get(),
+    do_cotangent_laplacian.values.begin().base().get());
   cudaDeviceSynchronize();
 
-  const uint32_t n_values = di_cumulative_valence[i_nverts] + i_nverts;
   thrust::counting_iterator<int> counter(0);
   thrust::copy_if(
-    counter + di_cumulative_valence[1] + 1,
-    counter + n_values,
-    do_diagonals + 1,
-    [do_rows = do_rows.get()] __device__(int x) { return !do_rows[x]; });
+    counter,
+    counter + do_cotangent_laplacian.values.size(),
+    do_diagonals.begin(),
+    [d_rows = do_cotangent_laplacian.row_indices.begin().base().get(),
+     d_cols = do_cotangent_laplacian.column_indices.begin()
+                .base()
+                .get()] __device__(int x) {
+      return d_cols[x] + d_rows[x] == 0;
+    });
 
   // Iterator for diagonal matrix entries
   auto diag_begin = thrust::make_permutation_iterator(
-    thrust::make_zip_iterator(thrust::make_tuple(do_rows, do_columns)),
-    do_diagonals);
+    thrust::make_zip_iterator(
+      thrust::make_tuple(do_cotangent_laplacian.row_indices.begin(),
+                         do_cotangent_laplacian.column_indices.begin())),
+    do_diagonals.begin());
 
   // Generate the diagonal entry, row and column indices
   thrust::tabulate(
-    diag_begin, diag_begin + i_nverts, [] __device__(const int i) {
+    diag_begin, diag_begin + di_vertices.size(), [] __device__(const int i) {
       return thrust::make_tuple(i, i);
     });
 
   thrust::reduce_by_key(
-    do_rows,
-    do_rows + n_values,
-    thrust::make_transform_iterator(do_values, thrust::negate<flo::real>()),
+    do_cotangent_laplacian.row_indices.begin(),
+    do_cotangent_laplacian.row_indices.end(),
+    thrust::make_transform_iterator(do_cotangent_laplacian.values.begin(),
+                                    thrust::negate<flo::real>()),
     thrust::make_discard_iterator(),
-    thrust::make_permutation_iterator(do_values, do_diagonals));
+    thrust::make_permutation_iterator(do_cotangent_laplacian.values.begin(),
+                                      do_diagonals.begin()));
 }
 
 FLO_DEVICE_NAMESPACE_END

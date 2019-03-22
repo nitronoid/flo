@@ -112,7 +112,8 @@ d_to_real_quaternion_matrix(const int* __restrict__ di_rows,
   // Use a vector cast to write using a 16 byte instruction
   *reinterpret_cast<real4*>(do_values + offset) = quat;
   int32_t C = col_index[local_id] * 4;
-  *reinterpret_cast<int4*>(do_columns + offset) = make_int4(C, C + 1, C + 2, C + 3);
+  *reinterpret_cast<int4*>(do_columns + offset) =
+    make_int4(C, C + 1, C + 2, C + 3);
   *reinterpret_cast<int4*>(do_rows + offset) =
     make_int4(row_index[local_id] * 4 + threadIdx.y);
 }
@@ -199,7 +200,6 @@ d_intrinsic_dirac_atomic(const real3* __restrict__ di_vertices,
     di_faces[fid * 3 + nth_element(loop, 1 + !major)];
   __syncthreads();
 
-
   const uint32_t R = eid[local_e0 * 2 + !major];
   const uint32_t C = eid[local_e0 * 2 + major];
   const uint32_t address = di_entry_offset[fid * 6 + threadIdx.y] + R + (C > R);
@@ -264,21 +264,18 @@ struct dirac_diagonal
 }  // namespace
 
 FLO_API void to_real_quaternion_matrix(
-  const thrust::device_ptr<const int> di_rows,
-  const thrust::device_ptr<const int> di_columns,
-  const thrust::device_ptr<const real4> di_values,
-  const thrust::device_ptr<const int> di_cumulative_column_size,
-  const int i_nvalues,
-  thrust::device_ptr<int> do_rows,
-  thrust::device_ptr<int> do_columns,
-  thrust::device_ptr<real> do_values)
+  cusp::coo_matrix<int, real4, cusp::device_memory>::const_view
+    di_quaternion_matrix,
+  cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_column_size,
+  cusp::coo_matrix<int, real, cusp::device_memory>::view do_real_matrix)
 {
   dim3 block_dim;
   block_dim.z = 1;
   block_dim.y = 4;
   block_dim.x = 256;
   size_t nthreads_per_block = block_dim.x * block_dim.y * block_dim.z;
-  size_t nblocks = i_nvalues * 4 / nthreads_per_block + 1;
+  size_t nblocks =
+    di_quaternion_matrix.values.size() * 4 / nthreads_per_block + 1;
   // face area | cot_alpha  =>  sizeof(real) * 3 * #F
   // vertex positions       =>  sizeof(real3) * 3 * #F ==  sizeof(real) * 9 * #F
   // edge squared lengths   =>  sizeof(real) * 3 * #F
@@ -287,38 +284,35 @@ FLO_API void to_real_quaternion_matrix(
     (sizeof(flo::real4) + sizeof(uint32_t) * 2) * nthreads_per_block;
 
   d_to_real_quaternion_matrix<<<nblocks, block_dim, shared_memory_size>>>(
-    di_rows.get(),
-    di_columns.get(),
-    di_values.get(),
-    di_cumulative_column_size.get(),
-    i_nvalues,
-    do_rows.get(),
-    do_columns.get(),
-    do_values.get());
+    di_quaternion_matrix.row_indices.begin().base().get(),
+    di_quaternion_matrix.column_indices.begin().base().get(),
+    di_quaternion_matrix.values.begin().base().get(),
+    di_cumulative_column_size.begin().base().get(),
+    di_quaternion_matrix.values.size(),
+    do_real_matrix.row_indices.begin().base().get(),
+    do_real_matrix.column_indices.begin().base().get(),
+    do_real_matrix.values.begin().base().get());
   cudaDeviceSynchronize();
 }
 
 FLO_API void intrinsic_dirac(
-  const thrust::device_ptr<const real3> di_vertices,
-  const thrust::device_ptr<const int3> di_faces,
-  const thrust::device_ptr<const real> di_face_area,
-  const thrust::device_ptr<const real> di_rho,
-  const thrust::device_ptr<const int> di_cumulative_valence,
-  const thrust::device_ptr<const int2> di_entry_offset,
-  const thrust::device_ptr<const int> di_cumulative_triangle_valence,
-  const thrust::device_ptr<const int> di_vertex_triangle_adjacency,
-  const int i_nverts,
-  const int i_nfaces,
-  thrust::device_ptr<int> do_diagonals,
-  thrust::device_ptr<int> do_rows,
-  thrust::device_ptr<int> do_columns,
-  thrust::device_ptr<real4> do_values)
+  cusp::array1d<real3, cusp::device_memory>::const_view di_vertices,
+  cusp::array1d<int3, cusp::device_memory>::const_view di_faces,
+  cusp::array1d<real, cusp::device_memory>::const_view di_face_area,
+  cusp::array1d<real, cusp::device_memory>::const_view di_rho,
+  cusp::array1d<int2, cusp::device_memory>::const_view di_entry_offset,
+  cusp::array1d<int, cusp::device_memory>::const_view
+    di_cumulative_triangle_valence,
+  cusp::array1d<int, cusp::device_memory>::const_view
+    di_vertex_triangle_adjacency,
+  cusp::array1d<int, cusp::device_memory>::view do_diagonals,
+  cusp::coo_matrix<int, real4, cusp::device_memory>::view do_dirac_matrix)
 {
   dim3 block_dim;
   block_dim.y = 6;
   block_dim.x = 170;
   size_t nthreads_per_block = block_dim.x * block_dim.y * block_dim.z;
-  size_t nblocks = i_nfaces * 6 / nthreads_per_block + 1;
+  size_t nblocks = di_faces.size() * 6 / nthreads_per_block + 1;
   // face area | cot_alpha  =>  sizeof(real) * 3 * #F
   // vertex positions       =>  sizeof(real3) * 3 * #F ==  sizeof(real) * 9 * #F
   // edge squared lengths   =>  sizeof(real) * 3 * #F
@@ -332,61 +326,72 @@ FLO_API void intrinsic_dirac(
   // The cast is inherently safe due to the alignment of cuda vector types,
   // and reinterpret casting guarantees no changes to the underlying values
   d_intrinsic_dirac_atomic<<<nblocks, block_dim, shared_memory_size>>>(
-    di_vertices.get(),
-    reinterpret_cast<const int*>(di_faces.get()),
-    di_face_area.get(),
-    di_rho.get(),
-    reinterpret_cast<const int*>(di_entry_offset.get()),
-    i_nfaces,
-    do_rows.get(),
-    do_columns.get(),
-    do_values.get());
+    di_vertices.begin().base().get(),
+    reinterpret_cast<const int*>(di_faces.begin().base().get()),
+    di_face_area.begin().base().get(),
+    di_rho.begin().base().get(),
+    reinterpret_cast<const int*>(di_entry_offset.begin().base().get()),
+    di_faces.size(),
+    do_dirac_matrix.row_indices.begin().base().get(),
+    do_dirac_matrix.column_indices.begin().base().get(),
+    do_dirac_matrix.values.begin().base().get());
   cudaDeviceSynchronize();
 
   thrust::counting_iterator<int> counter(0);
   thrust::copy_if(
-    counter + di_cumulative_valence[1] + 1,
-    counter + di_cumulative_valence[i_nverts] + i_nverts,
-    do_diagonals + 1,
-    [do_rows = do_rows.get()] __device__(int x) { return !do_rows[x]; });
+    counter,
+    counter + do_dirac_matrix.values.size(),
+    do_diagonals.begin(),
+    [d_rows = do_dirac_matrix.row_indices.begin().base().get(),
+     d_cols =
+       do_dirac_matrix.column_indices.begin().base().get()] __device__(int x) {
+      return d_cols[x] + d_rows[x] == 0;
+    });
 
   // Iterator for diagonal matrix entries
   auto diag_begin = thrust::make_permutation_iterator(
-    thrust::make_zip_iterator(thrust::make_tuple(do_rows, do_columns)),
-    do_diagonals);
+    thrust::make_zip_iterator(
+      thrust::make_tuple(do_dirac_matrix.row_indices.begin(),
+                         do_dirac_matrix.column_indices.begin())),
+    do_diagonals.begin());
 
   // Generate the diagonal entry, row and column indices
-  thrust::transform(
-    counter, counter + i_nverts, diag_begin, [] __device__(const int i) {
+  thrust::tabulate(
+    diag_begin, diag_begin + di_vertices.size(), [] __device__(const int i) {
       return thrust::make_tuple(i, i);
     });
 
   // Generate the inverse mapping of vertex triangle adjacency
   // [3, 2, 4] will yield [0,0,0, 1,1, 2,2,2,2]
-  thrust::device_vector<int> vert_id(di_cumulative_triangle_valence[i_nverts]);
-  thrust::copy_n(thrust::constant_iterator<int>(1),
-                 i_nverts-1,
-                 thrust::make_permutation_iterator(
-                   vert_id.begin(), di_cumulative_triangle_valence + 1));
+  thrust::device_vector<int> vert_id(di_cumulative_triangle_valence.back());
+  thrust::copy_n(
+    thrust::constant_iterator<int>(1),
+    di_vertices.size() - 1,
+    thrust::make_permutation_iterator(
+      vert_id.begin(), di_cumulative_triangle_valence.begin() + 1));
   thrust::inclusive_scan(vert_id.begin(), vert_id.end(), vert_id.begin());
 
   // Iterate over adjacent faces and the corresponding vertex id
   auto face_vertex_iter = thrust::make_zip_iterator(
-    thrust::make_tuple(vert_id.data(), di_vertex_triangle_adjacency));
+    thrust::make_tuple(vert_id.begin(), di_vertex_triangle_adjacency.begin()));
 
   // Transform opposing edge's, found through the vertex triangle adjacency
   // information, into diagonal dirac contributions
   // Doing this through the iterator saves a memory allocation
-  auto dirac_iter = thrust::make_transform_iterator(
-    face_vertex_iter,
-    dirac_diagonal(di_vertices, di_faces, di_face_area, di_rho));
+  auto dirac_iter =
+    thrust::make_transform_iterator(face_vertex_iter,
+                                    dirac_diagonal(di_vertices.begin().base(),
+                                                   di_faces.begin().base(),
+                                                   di_face_area.begin().base(),
+                                                   di_rho.begin().base()));
 
   thrust::reduce_by_key(
     vert_id.begin(),
     vert_id.end(),
     dirac_iter,
     thrust::make_discard_iterator(),
-    thrust::make_permutation_iterator(do_values, do_diagonals));
+    thrust::make_permutation_iterator(do_dirac_matrix.values.begin(),
+                                      do_diagonals.begin()));
 }
 
 FLO_DEVICE_NAMESPACE_END
