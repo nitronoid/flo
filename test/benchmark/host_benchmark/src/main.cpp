@@ -2,6 +2,7 @@
 #include "test_cache.h"
 
 TestCache::SurfMap TestCache::m_cache;
+std::mutex TestCache::m_mutex;
 
 int main(int argc, char** argv) 
 {
