@@ -16,9 +16,5 @@
 HOST_BM_FA(HOST_face_area_cube, "cube.obj");
 HOST_BM_FA(HOST_face_area_spot, "spot.obj");
 HOST_BM_FA(HOST_face_area_sphere_400, "dense_sphere_400x400.obj");
-// HOST_BM_FA(HOST_face_area_sphere_1000,
-// "dense_sphere_1000x1000.obj");
-// HOST_BM_FA(HOST_face_area_sphere_1500,
-// "dense_sphere_1500x1500.obj"); HOST_BM_FA(HOST_face_area_cube_1000,
-// "cube_1k.obj");
+HOST_BM_FA(HOST_face_area_sphere_1000, "dense_sphere_1000x1000.obj");
 
