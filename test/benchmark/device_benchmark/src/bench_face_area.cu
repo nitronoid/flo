@@ -2,19 +2,32 @@
 #include "test_common.h"
 #include "flo/device/area.cuh"
 
-#define DEVICE_BM_FA(BM_NAME, FILE_NAME)                           \
-  static void BM_NAME(benchmark::State& state)                     \
-  {                                                                \
-    auto surf = TestCache::get_mesh<TestCache::DEVICE>(FILE_NAME); \
-    for (auto _ : state)                                           \
-    {                                                              \
-      benchmark::DoNotOptimize(flo::device::area(                  \
-        surf.vertices.data(), surf.faces.data(), surf.n_faces())); \
-    }                                                              \
-  }                                                                \
-  BENCHMARK(BM_NAME)
+namespace
+{
+void bench_impl(std::string name, benchmark::State& state)
+{
+  // Load our surface from the cache
+  auto surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 
-DEVICE_BM_FA(DEVICE_face_area_cube_1, "cube.obj");
-DEVICE_BM_FA(DEVICE_face_area_spot, "spot.obj");
-DEVICE_BM_FA(DEVICE_face_area_sphere_400, "dense_sphere_400x400.obj");
-DEVICE_BM_FA(DEVICE_face_area_sphere_1000, "dense_sphere_1000x1000.obj");
+  cusp::array1d<flo::real, cusp::device_memory> d_area(surf.n_faces());
+  for (auto _ : state)
+  {
+    flo::device::area(surf.vertices, surf.faces, d_area);
+  }
+}
+}  // namespace
+
+#define FLO_FACE_AREA_DEVICE_BENCHMARK(NAME)                   \
+  static void DEVICE_face_area_##NAME(benchmark::State& state) \
+  {                                                            \
+    bench_impl(#NAME, state);                                   \
+  }                                                            \
+  BENCHMARK(DEVICE_face_area_##NAME);
+
+FLO_FACE_AREA_DEVICE_BENCHMARK(cube)
+FLO_FACE_AREA_DEVICE_BENCHMARK(spot)
+FLO_FACE_AREA_DEVICE_BENCHMARK(dense_sphere_400x400)
+FLO_FACE_AREA_DEVICE_BENCHMARK(dense_sphere_1000x1000)
+
+#undef FLO_FACE_AREA_DEVICE_BENCHMARK
+

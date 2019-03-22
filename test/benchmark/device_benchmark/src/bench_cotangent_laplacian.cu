@@ -6,79 +6,55 @@
 #include "flo/device/vertex_vertex_adjacency.cuh"
 #include "flo/host/valence.hpp"
 
-#define DEVICE_BM_CLT(BM_NAME, FILE_NAME)                                   \
-  static void BM_NAME(benchmark::State& state)                              \
-  {                                                                         \
-    auto surf = TestCache::get_mesh<TestCache::DEVICE>(FILE_NAME);          \
-    auto d_area = flo::device::area(                                        \
-      surf.vertices.data(), surf.faces.data(), surf.faces.size());          \
-    thrust::device_vector<int> d_valence(surf.n_vertices());                \
-    thrust::device_vector<int> d_cumulative_valence(surf.n_vertices() + 1); \
-    auto d_adjacency =                                                      \
-      flo::device::vertex_vertex_adjacency(surf.faces.data(),               \
-                                           surf.n_faces(),                  \
-                                           surf.n_vertices(),               \
-                                           d_valence.data(),                \
-                                           d_cumulative_valence.data());    \
-    for (auto _ : state)                                                    \
-    {                                                                       \
-      benchmark::DoNotOptimize(                                             \
-        flo::device::cotangent_laplacian(surf.vertices.data(),              \
-                                         surf.faces.data(),                 \
-                                         d_area.data(),                     \
-                                         surf.n_vertices(),                 \
-                                         surf.n_faces(),                    \
-                                         d_cumulative_valence.back()));     \
-    }                                                                       \
-  }                                                                         \
-  BENCHMARK(BM_NAME)
+namespace
+{
+static void bench_impl(std::string name, benchmark::State& state)
+{
+  // Load our surface from the cache
+  auto surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
+  // Obtain the face areas
+  cusp::array1d<flo::real, cusp::device_memory> d_area(surf.n_faces());
+  flo::device::area(surf.vertices, surf.faces, d_area);
+  // Obtain the vertex vertex adjacency and valence
+  cusp::array1d<int, cusp::device_memory> d_adjacency(surf.n_faces() * 12);
+  cusp::array1d<int, cusp::device_memory> d_valence(surf.n_vertices());
+  cusp::array1d<int, cusp::device_memory> d_cumulative_valence(
+    surf.n_vertices() + 1);
+  int n_adjacency = flo::device::vertex_vertex_adjacency(
+    surf.faces,
+    d_adjacency,
+    d_valence,
+    {d_cumulative_valence.begin() + 1, d_cumulative_valence.end()});
+  d_adjacency.resize(n_adjacency);
 
-#define DEVICE_BM_CLA(BM_NAME, FILE_NAME)                                   \
-  static void BM_NAME(benchmark::State& state)                              \
-  {                                                                         \
-    auto surf = TestCache::get_mesh<TestCache::DEVICE>(FILE_NAME);          \
-    auto d_area = flo::device::area(                                        \
-      surf.vertices.data(), surf.faces.data(), surf.faces.size());          \
-    thrust::device_vector<int> d_valence(surf.n_vertices());                \
-    thrust::device_vector<int> d_cumulative_valence(surf.n_vertices() + 1); \
-    auto d_adjacency =                                                      \
-      flo::device::vertex_vertex_adjacency(surf.faces.data(),               \
-                                           surf.n_faces(),                  \
-                                           surf.n_vertices(),               \
-                                           d_valence.data(),                \
-                                           d_cumulative_valence.data());    \
-                                                                            \
-    auto d_offsets =                                                        \
-      flo::device::adjacency_matrix_offset(surf.faces.data(),               \
-                                           d_adjacency.data(),              \
-                                           d_cumulative_valence.data(),     \
-                                           surf.n_faces());                 \
-    using SparseMatrix =                                                    \
-      cusp::coo_matrix<int, flo::real, cusp::device_memory>;                \
-    SparseMatrix d_L(surf.n_vertices(),                                     \
-                     surf.n_vertices(),                                     \
-                     d_cumulative_valence.back() + surf.n_vertices());      \
-    thrust::device_vector<int> d_diagonals(surf.n_vertices());              \
-    for (auto _ : state)                                                    \
-    {                                                                       \
-      flo::device::cotangent_laplacian(surf.vertices.data(),                \
-                                       surf.faces.data(),                   \
-                                       d_area.data(),                       \
-                                       d_cumulative_valence.data(),         \
-                                       d_offsets.data(),                    \
-                                       surf.n_vertices(),                   \
-                                       surf.n_faces(),                      \
-                                       d_diagonals.data(),                  \
-                                       d_L.row_indices.data(),              \
-                                       d_L.column_indices.data(),           \
-                                       d_L.values.data());                  \
-    }                                                                       \
-  }                                                                         \
-  BENCHMARK(BM_NAME)
+  // Obtain the address offsets to write our matrix entries
+  cusp::array1d<int2, cusp::device_memory> d_offsets(surf.n_faces() * 3);
+  flo::device::adjacency_matrix_offset(
+    surf.faces, d_adjacency, d_cumulative_valence, d_offsets);
 
-DEVICE_BM_CLA(DEVICE_cotangent_laplacian_cube_1, "cube.obj");
-DEVICE_BM_CLA(DEVICE_cotangent_laplacian_spot, "spot.obj");
-DEVICE_BM_CLA(DEVICE_cotangent_laplacian_sphere_400, 
-    "dense_sphere_400x400.obj");
-DEVICE_BM_CLA(DEVICE_cotangent_laplacian_sphere_1000, 
-    "dense_sphere_1000x1000.obj");
+  using SparseMatrix = cusp::coo_matrix<int, flo::real, cusp::device_memory>;
+  SparseMatrix d_L(surf.n_vertices(),
+                   surf.n_vertices(),
+                   d_cumulative_valence.back() + surf.n_vertices());
+  cusp::array1d<int, cusp::device_memory> d_diagonals(surf.n_vertices());
+  for (auto _ : state)
+  {
+    flo::device::cotangent_laplacian(
+      surf.vertices, surf.faces, d_area, d_offsets, d_diagonals, d_L);
+  }
+}
+}  // namespace
+
+#define FLO_COTANGENT_LAPLACIAN_DEVICE_BENCHMARK(NAME)                   \
+  static void DEVICE_cotangent_laplacian_##NAME(benchmark::State& state) \
+  {                                                                      \
+    bench_impl(#NAME, state);                                             \
+  }                                                                      \
+  BENCHMARK(DEVICE_cotangent_laplacian_##NAME);
+
+FLO_COTANGENT_LAPLACIAN_DEVICE_BENCHMARK(cube)
+FLO_COTANGENT_LAPLACIAN_DEVICE_BENCHMARK(spot)
+FLO_COTANGENT_LAPLACIAN_DEVICE_BENCHMARK(dense_sphere_400x400)
+FLO_COTANGENT_LAPLACIAN_DEVICE_BENCHMARK(dense_sphere_1000x1000)
+
+#undef FLO_COTANGENT_LAPLACIAN_DEVICE_BENCHMARK
