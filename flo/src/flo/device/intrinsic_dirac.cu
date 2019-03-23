@@ -34,10 +34,14 @@ __device__ constexpr T reciprocal(T&& i_value) noexcept
   return T{1} / i_value;
 }
 
+template <
+  typename T,
+  typename = typename std::enable_if<std::is_same<T, real>::value ||
+                                     std::is_same<T, real4>::value>::type>
 __global__ void
 d_to_real_quaternion_matrix(const int* __restrict__ di_rows,
                             const int* __restrict__ di_columns,
-                            const real4* __restrict__ di_values,
+                            const T* __restrict__ di_values,
                             const int* __restrict__ di_cumulative_column_size,
                             const int i_nvalues,
                             int* __restrict__ do_rows,
@@ -66,7 +70,7 @@ d_to_real_quaternion_matrix(const int* __restrict__ di_rows,
   if (!threadIdx.y)
   {
     // Read the quaternion entry once
-    const real4 quat = di_values[global_id];
+    const real4 quat = make_float4(di_values[global_id]);
     // Copy the quaternion across shared memory so all threads have access
     quaternion_entry[threadIdx.x * 4 + 0] = quat;
     quaternion_entry[threadIdx.x * 4 + 1] = quat;
@@ -261,10 +265,12 @@ struct dirac_diagonal
   }
 };
 
-}  // namespace
-
-FLO_API void to_real_quaternion_matrix(
-  cusp::coo_matrix<int, real4, cusp::device_memory>::const_view
+template <
+  typename T,
+  typename = typename std::enable_if<std::is_same<T, real>::value ||
+                                     std::is_same<T, real4>::value>::type>
+void to_real_quaternion_matrix_impl(
+  typename cusp::coo_matrix<int, T, cusp::device_memory>::const_view
     di_quaternion_matrix,
   cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_column_size,
   cusp::coo_matrix<int, real, cusp::device_memory>::view do_real_matrix)
@@ -293,6 +299,28 @@ FLO_API void to_real_quaternion_matrix(
     do_real_matrix.column_indices.begin().base().get(),
     do_real_matrix.values.begin().base().get());
   cudaDeviceSynchronize();
+}
+
+}  // namespace
+
+FLO_API void to_real_quaternion_matrix(
+  cusp::coo_matrix<int, real4, cusp::device_memory>::const_view
+    di_quaternion_matrix,
+  cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_column_size,
+  cusp::coo_matrix<int, real, cusp::device_memory>::view do_real_matrix)
+{
+  to_real_quaternion_matrix_impl<real4>(
+    di_quaternion_matrix, di_cumulative_column_size, do_real_matrix);
+}
+
+FLO_API void to_real_quaternion_matrix(
+  cusp::coo_matrix<int, real, cusp::device_memory>::const_view
+    di_quaternion_matrix,
+  cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_column_size,
+  cusp::coo_matrix<int, real, cusp::device_memory>::view do_real_matrix)
+{
+  to_real_quaternion_matrix_impl<real>(
+    di_quaternion_matrix, di_cumulative_column_size, do_real_matrix);
 }
 
 FLO_API void intrinsic_dirac(
