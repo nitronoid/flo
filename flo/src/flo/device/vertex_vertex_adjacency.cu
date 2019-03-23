@@ -8,12 +8,12 @@ FLO_DEVICE_NAMESPACE_BEGIN
 
 namespace
 {
-__global__ void d_adjacency_matrix_offset(
-  const int* __restrict__ di_faces,
-  const int* __restrict__ di_vertex_adjacency,
-  const int* __restrict__ di_cumulative_valence,
-  const int i_nfaces,
-  int* __restrict__ do_offset)
+__global__ void
+d_adjacency_matrix_offset(const int* __restrict__ di_faces,
+                          const int* __restrict__ di_vertex_adjacency,
+                          const int* __restrict__ di_cumulative_valence,
+                          const int i_nfaces,
+                          int* __restrict__ do_offset)
 {
   const uint fid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -119,21 +119,6 @@ FLO_API void adjacency_matrix_offset(
   cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_valence,
   cusp::array1d<int2, cusp::device_memory>::view do_offsets)
 {
-  //  thrust::device_vector<int2> d_offsets(i_nfaces * 3);
-  // Create a view over the faces with more granular access
-  cusp::array1d<int, cusp::device_memory>::const_view di_face_vertices{
-    thrust::device_ptr<const int>{
-      reinterpret_cast<const int*>(di_faces.begin().base().get())},
-    thrust::device_ptr<const int>{
-      reinterpret_cast<const int*>(di_faces.end().base().get())}};
-
-  // Create a view over the offsets with more granular access
-  cusp::array1d<int, cusp::device_memory>::view d_offsets{
-    thrust::device_ptr<int>{
-      reinterpret_cast<int*>(do_offsets.begin().base().get())},
-    thrust::device_ptr<int>{
-      reinterpret_cast<int*>(do_offsets.end().base().get())}};
-
   dim3 block_dim;
   block_dim.y = 6;
   block_dim.x = 170;
@@ -141,11 +126,12 @@ FLO_API void adjacency_matrix_offset(
     di_faces.size() * 6 / (block_dim.x * block_dim.y * block_dim.z) + 1;
 
   d_adjacency_matrix_offset<<<nblocks, block_dim>>>(
-    di_face_vertices.begin().base().get(),
+    reinterpret_cast<const int*>(di_faces.begin().base().get()),
     di_adjacency.begin().base().get(),
     di_cumulative_valence.begin().base().get(),
     di_faces.size(),
-    d_offsets.begin().base().get());
+    reinterpret_cast<int*>(do_offsets.begin().base().get()));
+
 }
 
 FLO_DEVICE_NAMESPACE_END
