@@ -22,10 +22,10 @@ void test(std::string name)
     d_adjacency,
     d_valence,
     {d_cumulative_valence.begin() + 1, d_cumulative_valence.end()});
-  d_adjacency.resize(n_adjacency);
 
   // Copy the results back to the host side
-  cusp::array1d<int, cusp::host_memory> h_adjacency = d_adjacency;
+  cusp::array1d<int, cusp::host_memory> h_adjacency =
+    d_adjacency.subarray(0, n_adjacency);
   cusp::array1d<int, cusp::host_memory> h_valence = d_valence;
   cusp::array1d<int, cusp::host_memory> h_cumulative_valence =
     d_cumulative_valence;
@@ -55,7 +55,7 @@ void test(std::string name)
 }  // namespace
 
 #define FLO_VERTEX_VERTEX_ADJACENCY_TEST(NAME) \
-  TEST(VertexVertexAdjacency, NAME)          \
+  TEST(VertexVertexAdjacency, NAME)            \
   {                                            \
     test(#NAME);                               \
   }
