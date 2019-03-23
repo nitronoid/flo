@@ -33,12 +33,12 @@ void bench_impl(std::string name, benchmark::State& state)
     d_adjacency,
     d_valence,
     {d_cumulative_valence.begin() + 1, d_cumulative_valence.end()});
-  d_adjacency.resize(n_adjacency);
+  const auto& ad = d_adjacency;
 
   // Obtain the address offsets to write our matrix entries
   cusp::array1d<int2, cusp::device_memory> d_offsets(surf.n_faces() * 3);
   flo::device::adjacency_matrix_offset(
-    surf.faces, d_adjacency, d_cumulative_valence, d_offsets);
+    surf.faces, ad.subarray(0, n_adjacency), d_cumulative_valence, d_offsets);
 
   // Obtain the vertex triangle adjacency and valence
   cusp::array1d<int, cusp::device_memory> d_triangle_adjacency(surf.n_faces() *
