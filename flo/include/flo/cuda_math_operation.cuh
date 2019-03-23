@@ -213,6 +213,10 @@ inline __host__ __device__ float4 make_float4(float s)
 {
     return make_float4(s, s, s, s);
 }
+inline __host__ __device__ float4 make_float4(float4 a)
+{
+    return make_float4(a.x, a.y, a.z, a.w);
+}
 inline __host__ __device__ float4 make_float4(float3 a)
 {
     return make_float4(a.x, a.y, a.z, 0.0f);
