@@ -1,4 +1,5 @@
 #include "flo/device/similarity_xform.cuh"
+#include "flo/device/cu_raii.cuh"
 #include <thrust/tabulate.h>
 #include <cusp/monitor.h>
 #include <cusp/krylov/cg.h>
@@ -6,77 +7,76 @@
 #include <thrust/transform_reduce.h>
 #include <thrust/transform.h>
 #include <thrust/scatter.h>
-#include <chrono>
 #include <cusp/permutation_matrix.h>
-#include <cusp/graph/symmetric_rcm.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
 FLO_API void similarity_xform(
   cusp::coo_matrix<int, real, cusp::device_memory>::const_view di_dirac_matrix,
-  cusp::array1d<real, cusp::device_memory>::view do_xform)
+  cusp::array1d<real, cusp::device_memory>::view do_xform,
+  real tolerance)
 {
-  using namespace std::chrono;
+  // Convert the row indices to csr row offsets
+  cusp::array1d<int, cusp::device_memory> row_offsets(di_dirac_matrix.num_rows +
+                                                      1);
+  cusp::indices_to_offsets(di_dirac_matrix.row_indices, row_offsets);
+
+  // Fill our initial guess with the identity (quaternions)
   thrust::tabulate(do_xform.begin(), do_xform.end(), [] __device__(int x) {
     // When x is a multiple of 4, return one
     return !(x & 3);
   });
 
-  // Allocate permutation matrix P
-  cusp::permutation_matrix<int, cusp::device_memory> P(
-    di_dirac_matrix.num_rows);
-  // Construct symmetric RCM permutation matrix on the device
-  auto t1 = high_resolution_clock::now();
-  cusp::graph::symmetric_rcm(di_dirac_matrix, P);
-  cusp::coo_matrix<int, real, cusp::device_memory> PA(di_dirac_matrix.num_rows, di_dirac_matrix.num_rows, di_dirac_matrix.values.size()); 
-  PA = di_dirac_matrix;
-  //P.symmetric_permute(PA);
-  auto t2 = high_resolution_clock::now();
-  std::cout << "Permute execution time: "
-            << duration_cast<nanoseconds>(t2 - t1).count() << '\n';
-
-
-
-  cusp::precond::diagonal<real, cusp::device_memory> M(PA);
-
-  for (int i = 0; i < 3; ++i)
+  // b is filled with ones then normalized
+  cusp::array1d<real, cusp::device_memory> b(do_xform.size(), 1.f);
   {
-    // Set-up stopping criteria
-    cusp::monitor<real> monitor(do_xform, 8000, 1e-2);
-    auto t1 = high_resolution_clock::now();
-    // Conjugate gradient solve
-    cusp::krylov::cg(PA, do_xform, do_xform, monitor, M);
-    auto t2 = high_resolution_clock::now();
-    std::cout << "Solve execution time: "
-              << duration_cast<nanoseconds>(t2 - t1).count() << '\n';
-    // Normalize the result by first finding the norm of the result
-    auto norm =
-      thrust::transform_reduce(do_xform.begin(),
-                               do_xform.end(),
-                               [] __device__(real x) -> real { return x * x; },
-                               0.f,
-                               thrust::plus<real>());
-    // We then divide through by the sqrt of the norm
-    thrust::transform(do_xform.begin(),
-                      do_xform.end(),
-                      do_xform.begin(),
-                      [inv_len = 1.f / std::sqrt(norm)] __device__(real x) {
-                        return x * inv_len;
-                      });
-    // report solver results
-    if (monitor.converged())
-    {
-      std::cout << "Solver converged to " << monitor.relative_tolerance()
-                << " relative tolerance";
-      std::cout << " after " << monitor.iteration_count() << " iterations\n";
-    }
-    else
-    {
-      std::cout << "Solver reached iteration limit "
-                << monitor.iteration_limit() << " before converging";
-      std::cout << " to " << monitor.relative_tolerance()
-                << " relative tolerance\n";
-    }
+    const real norm = cusp::blas::nrm2(b);
+    cusp::blas::scal(b, 1.f / norm);
+  }
+
+  // Get a cuSolver and cuSparse handle
+  ScopedCuSolverSparse solver;
+  // solver.error_assert(__LINE__);
+  ScopedCuSparse cu_sparse;
+  // cu_sparse.error_assert(__LINE__);
+
+  // Create a matrix description
+  ScopedCuSparseMatrixDescription description_D(&cu_sparse.status);
+  // cu_sparse.error_assert(__LINE__);
+
+  // Tell cuSparse what matrix to expect
+  cusparseSetMatType(description_D, CUSPARSE_MATRIX_TYPE_GENERAL);
+  cusparseSetMatFillMode(description_D, CUSPARSE_FILL_MODE_LOWER);
+  cusparseSetMatDiagType(description_D, CUSPARSE_DIAG_TYPE_NON_UNIT);
+  cusparseSetMatIndexBase(description_D, CUSPARSE_INDEX_BASE_ZERO);
+
+  // Tell cusolver to use metis reordering
+  const int reorder = 3;
+  // cusolver will set this flag
+  int singularity = 0;
+  // Solve the system Dx = b
+  solver.status =
+    cusolverSpScsrlsvchol(solver,
+                          di_dirac_matrix.num_rows,
+                          di_dirac_matrix.num_entries,
+                          description_D,
+                          di_dirac_matrix.values.begin().base().get(),
+                          row_offsets.data().get(),
+                          di_dirac_matrix.column_indices.begin().base().get(),
+                          b.begin().base().get(),
+                          tolerance,
+                          reorder,
+                          do_xform.begin().base().get(),
+                          &singularity);
+
+  // solver.error_assert(__LINE__);
+  // cudaDeviceSynchronize();
+  // std::cout << singularity << '\n';
+
+  // Normalize the result
+  {
+    const real norm = cusp::blas::nrm2(do_xform);
+    cusp::blas::scal(do_xform, 1.f / norm);
   }
 
   // Re-arrange result to place W last

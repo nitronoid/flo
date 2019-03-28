@@ -1,5 +1,5 @@
 LIBS += -L${CUDA_PATH}/lib -L${CUDA_PATH}/lib64 -L${CUDA_PATH}/lib64/nvidia
-LIBS += -lcudart -lcurand -licudata -lcudart_static -lcudadevrt
+LIBS += -lcudart -lcurand -licudata -lcudart_static -lcudadevrt -lcusparse -lcusolver
 
 INCLUDEPATH += \
   ${HOME}/cusplibrary \
