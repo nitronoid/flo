@@ -28,12 +28,23 @@ void test(std::string name)
   cusp::array1d<flo::real, cusp::device_memory> d_xform(surf.n_vertices() * 4);
   flo::device::similarity_xform(d_D, d_xform);
 
-  flo::real4 q;
-  q.x = d_xform[0];
-  q.y = d_xform[1];
-  q.z = d_xform[2];
-  q.w = d_xform[3];
-  printf("Q: (%f, [%f, %f, %f])\n", q.w, q.x, q.y, q.z);
+  cusp::array1d<flo::real, cusp::host_memory> h_xform = d_xform;
+
+  // flo::real4 q;
+  // q.x = d_xform[0];
+  // q.y = d_xform[1];
+  // q.z = d_xform[2];
+  // q.w = d_xform[3];
+  // printf("Q: (%f, [%f, %f, %f])\n", q.w, q.x, q.y, q.z);
+
+  // Read expected results
+  cusp::array1d<flo::real, cusp::host_memory> expected_xform;
+  cusp::io::read_matrix_market_file(
+    expected_xform, matrix_prefix + "/similarity_xform/lambda.mtx");
+
+  // test our results
+  using namespace testing;
+  EXPECT_THAT(h_xform, Pointwise(FloatNear(0.0001), expected_xform));
 }
 }  // namespace
 
