@@ -24,7 +24,7 @@
 
 HOST_BM_ID(HOST_similarity_xform_cube, "cube.obj");
 HOST_BM_ID(HOST_similarity_xform_spot, "spot.obj");
-// HOST_BM_ID(HOST_similarity_xform_sphere_400, "dense_sphere_400x400.obj");
+HOST_BM_ID(HOST_similarity_xform_sphere_400, "dense_sphere_400x400.obj");
 // HOST_BM_ID(HOST_intrinsic_dirac_sphere_1000, "dense_sphere_1000x1000.obj");
 // HOST_BM_CL(HOST_cotangent_laplacian_sphere_1500,
 // "dense_sphere_1500x1500.obj");
