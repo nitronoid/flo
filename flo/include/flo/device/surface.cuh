@@ -9,8 +9,9 @@ FLO_DEVICE_NAMESPACE_BEGIN
 
 struct Surface
 {
-  cusp::array1d<real3, cusp::device_memory> vertices;
-  cusp::array1d<int3, cusp::device_memory> faces;
+  // COLUMN MAJOR!
+  cusp::array1d<real, cusp::device_memory> vertices;
+  cusp::array1d<int, cusp::device_memory> faces;
 
   FLO_API std::size_t n_vertices() const noexcept;
   FLO_API std::size_t n_faces() const noexcept;

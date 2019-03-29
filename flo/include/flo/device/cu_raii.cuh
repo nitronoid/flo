@@ -2,10 +2,25 @@
 #define FLO_DEVICE_INCLUDED_CU_RAII
 
 #include "flo/flo_internal.hpp"
+#include <cuda_runtime.h>
 #include <cusparse_v2.h>
 #include <cusolverSp.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
+
+struct ScopedCuStream
+{
+  cudaStream_t handle;
+  cudaError_t status;
+
+  ScopedCuStream();
+
+  ~ScopedCuStream();
+
+  operator cudaStream_t() const noexcept;
+
+  void join() noexcept;
+};
 
 struct ScopedCuSolverSparse
 {

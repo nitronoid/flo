@@ -1,6 +1,7 @@
 #include "test_common.h"
 #include "device_test_util.h"
 #include <cusp/io/matrix_market.h>
+#include <cusp/print.h>
 #include "flo/device/vertex_vertex_adjacency.cuh"
 
 namespace
@@ -10,8 +11,11 @@ void test(std::string name)
   const std::string matrix_prefix = "../matrices/" + name;
   const auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 
+  //cusp::print(surf.faces);
+
   // Declare device side arrays to dump our results
-  cusp::array1d<int, cusp::device_memory> d_adjacency(surf.n_faces() * 12);
+  cusp::array1d<int, cusp::device_memory> d_adjacency(surf.n_faces() * 6);
+  cusp::array1d<int, cusp::device_memory> d_adjacency_keys(surf.n_faces() * 6);
   cusp::array1d<int, cusp::device_memory> d_valence(surf.n_vertices());
   cusp::array1d<int, cusp::device_memory> d_cumulative_valence(
     surf.n_vertices() + 1);
@@ -19,6 +23,7 @@ void test(std::string name)
   // Run the function
   int n_adjacency = flo::device::vertex_vertex_adjacency(
     surf.faces,
+    d_adjacency_keys,
     d_adjacency,
     d_valence,
     {d_cumulative_valence.begin() + 1, d_cumulative_valence.end()});

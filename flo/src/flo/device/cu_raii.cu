@@ -4,6 +4,27 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
+ScopedCuStream::ScopedCuStream()
+{
+  status = cudaStreamCreate(&handle);
+}
+
+ScopedCuStream::~ScopedCuStream()
+{
+  join();
+  status  = cudaStreamDestroy(handle);
+}
+
+ScopedCuStream::operator cudaStream_t() const noexcept
+{
+  return handle;
+}
+
+void ScopedCuStream::join() noexcept
+{
+  status = cudaStreamSynchronize(handle);
+}
+
 ScopedCuSolverSparse::ScopedCuSolverSparse()
 {
   status = cusolverSpCreate(&handle);

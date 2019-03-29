@@ -46,44 +46,49 @@ d_adjacency_matrix_offset(const int* __restrict__ di_faces,
 }  // namespace
 
 FLO_API int vertex_vertex_adjacency(
-  cusp::array1d<int3, cusp::device_memory>::const_view di_faces,
+  cusp::array1d<int, cusp::device_memory>::const_view di_faces,
+  cusp::array1d<int, cusp::device_memory>::view do_adjacency_keys,
   cusp::array1d<int, cusp::device_memory>::view do_adjacency,
   cusp::array1d<int, cusp::device_memory>::view do_valence,
   cusp::array1d<int, cusp::device_memory>::view do_cumulative_valence)
 {
-  const int max_edges = di_faces.size() * 6;
-  auto J = do_adjacency.subarray(0, max_edges);
-  auto I = do_adjacency.subarray(max_edges, max_edges);
+  // Number of faces is equal to length of one column
+  const int nfaces = di_faces.size() / 3;
+  // 3 edges per face
+  const int nedges = nfaces * 3;
+  // 2 half edges per edge
+  const int nhalf_edges = nedges * 2;
 
-  // Create vector access to the edge indices
-  thrust::device_ptr<int3> I3{reinterpret_cast<int3*>(I.begin().base().get())};
-  thrust::device_ptr<int3> J3{reinterpret_cast<int3*>(J.begin().base().get())};
+  // Create views over the face vertex columns
+  auto face_vertex_0 = di_faces.subarray(nfaces * 0, nfaces);
+  auto face_vertex_1 = di_faces.subarray(nfaces * 1, nfaces);
+  auto face_vertex_2 = di_faces.subarray(nfaces * 2, nfaces);
 
-  // Create an iterator that pairs diagonal triplets as they will share the
-  // same values
-  auto face_edge_iter = thrust::make_zip_iterator(thrust::make_tuple(
-    thrust::make_zip_iterator(thrust::make_tuple(I3, J3 + 1)),
-    thrust::make_zip_iterator(thrust::make_tuple(I3 + 1, J3))));
+  // Reduce the verbosity
+  auto J = do_adjacency;
+  auto I = do_adjacency_keys;
 
-  // Create a stride iterator, we will generate 6 edges per face, so need to
-  // move 2 triplets at a time
-  cusp::strided_iterator<decltype(face_edge_iter)> paired_face_edge_iter(
-    face_edge_iter, face_edge_iter + di_faces.size() * 2, 2);
+  // TODO: Copy asynchronously
+  // Copy our columns
+  // Copies 0,1,2
+  thrust::copy(face_vertex_0.begin(), face_vertex_2.end(), I.begin());
+  // Copies 0,1,2,1,2
+  thrust::copy(face_vertex_1.begin(), face_vertex_2.end(), I.begin() + nedges);
+  // Copies 0,1,2,1,2,0
+  thrust::copy(
+    face_vertex_0.begin(), face_vertex_0.end(), I.begin() + nfaces * 5);
 
-  // For each face output all half edges, e.g. the first pairs 6 should be:
+  // Copies 1,2
+  thrust::copy(face_vertex_1.begin(), face_vertex_2.end(), J.begin());
+  // Copies 1,2,0
+  thrust::copy(
+    face_vertex_0.begin(), face_vertex_0.end(), J.begin() + nfaces * 2);
+  // Copies 1,2,0,0,1,2
+  thrust::copy(face_vertex_0.begin(), face_vertex_2.end(), J.begin() + nedges);
+
+  // We now have:
   // I:  0 1 2 1 2 0
   // J:  1 2 0 0 1 2
-  // As we can see, the first three of I match the last three of J, and the
-  // first three of J match the last three of I, hence our iteration strategy
-  thrust::transform(di_faces.begin(),
-                    di_faces.end(),
-                    paired_face_edge_iter.begin(),
-                    [] __device__(int3 f) {
-                      auto original = thrust::make_tuple(f, f);
-                      auto shuffled = thrust::make_tuple(
-                        make_int3(f.y, f.z, f.x), make_int3(f.y, f.z, f.x));
-                      return thrust::make_tuple(original, shuffled);
-                    });
 
   // Sort by column and then row to cluster all adjacency by the key vertex
   thrust::sort_by_key(J.begin(), J.end(), I.begin());
@@ -131,7 +136,6 @@ FLO_API void adjacency_matrix_offset(
     di_cumulative_valence.begin().base().get(),
     di_faces.size(),
     reinterpret_cast<int*>(do_offsets.begin().base().get()));
-
 }
 
 FLO_DEVICE_NAMESPACE_END
