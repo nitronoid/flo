@@ -10,7 +10,8 @@ FLO_DEVICE_NAMESPACE_BEGIN
 FLO_API void similarity_xform(
   cusp::coo_matrix<int, real, cusp::device_memory>::const_view di_dirac_matrix,
   cusp::array1d<real, cusp::device_memory>::view do_xform,
-  real tolerance = 1e-7);
+  const real i_tolerance = 1e-7,
+  const int i_back_substitution_iterations = 0);
 
 FLO_DEVICE_NAMESPACE_END
 

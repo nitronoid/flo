@@ -14,8 +14,10 @@ FLO_DEVICE_NAMESPACE_BEGIN
 FLO_API void similarity_xform(
   cusp::coo_matrix<int, real, cusp::device_memory>::const_view di_dirac_matrix,
   cusp::array1d<real, cusp::device_memory>::view do_xform,
-  real tolerance)
+  const real i_tolerance,
+  const int i_back_substitution_iterations)
 {
+  // TODO: FIX this and ammend the tests
   // Convert the row indices to csr row offsets
   cusp::array1d<int, cusp::device_memory> row_offsets(di_dirac_matrix.num_rows +
                                                       1);
@@ -28,11 +30,7 @@ FLO_API void similarity_xform(
   });
 
   // b is filled with ones then normalized
-  cusp::array1d<real, cusp::device_memory> b(do_xform.size(), 1.f);
-  {
-    const real norm = cusp::blas::nrm2(b);
-    cusp::blas::scal(b, 1.f / norm);
-  }
+  cusp::array1d<real, cusp::device_memory> b(do_xform.size());
 
   // Get a cuSolver and cuSparse handle
   ScopedCuSolverSparse solver;
@@ -54,24 +52,32 @@ FLO_API void similarity_xform(
   const int reorder = 3;
   // cusolver will set this flag
   int singularity = 0;
-  // Solve the system Dx = b
-  solver.status =
-    cusolverSpScsrlsvchol(solver,
-                          di_dirac_matrix.num_rows,
-                          di_dirac_matrix.num_entries,
-                          description_D,
-                          di_dirac_matrix.values.begin().base().get(),
-                          row_offsets.data().get(),
-                          di_dirac_matrix.column_indices.begin().base().get(),
-                          b.begin().base().get(),
-                          tolerance,
-                          reorder,
-                          do_xform.begin().base().get(),
-                          &singularity);
 
-  // solver.error_assert(__LINE__);
-  // cudaDeviceSynchronize();
-  // std::cout << singularity << '\n';
+  // Solve the system Dx = bx, using back substitution
+  for (int iter = 0; iter < i_back_substitution_iterations + 1; ++iter)
+  {
+    cusp::blas::copy(do_xform, b);
+    const real norm = cusp::blas::nrm2(b);
+    cusp::blas::scal(b, 1.f / norm);
+    solver.status =
+      cusolverSpScsrlsvchol(solver,
+                            di_dirac_matrix.num_rows,
+                            di_dirac_matrix.num_entries,
+                            description_D,
+                            di_dirac_matrix.values.begin().base().get(),
+                            row_offsets.data().get(),
+                            di_dirac_matrix.column_indices.begin().base().get(),
+                            b.begin().base().get(),
+                            i_tolerance,
+                            reorder,
+                            do_xform.begin().base().get(),
+                            &singularity);
+
+    // solver.error_assert(__LINE__);
+    // cudaDeviceSynchronize();
+  }
+  if (singularity != -1)
+  std::cout << "Singularity:"<< singularity << '\n';
 
   // Normalize the result
   {
