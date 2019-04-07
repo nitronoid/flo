@@ -3,15 +3,14 @@
 
 #include "flo/flo_internal.hpp"
 #include "flo/host/surface.hpp"
-#include <cusp/array1d.h>
+#include <cusp/array2d.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
 struct Surface
 {
-  // COLUMN MAJOR!
-  cusp::array1d<real, cusp::device_memory> vertices;
-  cusp::array1d<int, cusp::device_memory> faces;
+  cusp::array2d<real, cusp::device_memory> vertices;
+  cusp::array2d<int, cusp::device_memory> faces;
 
   FLO_API std::size_t n_vertices() const noexcept;
   FLO_API std::size_t n_faces() const noexcept;

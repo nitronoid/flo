@@ -8,7 +8,7 @@ namespace
 void test(std::string name)
 {
   const std::string matrix_prefix = "../matrices/" + name;
-  const auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
+  auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 
   // Declare device side arrays to dump our results
   cusp::array1d<int, cusp::device_memory> d_adjacency(surf.n_faces() * 3);

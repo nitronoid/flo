@@ -5,12 +5,12 @@ FLO_DEVICE_NAMESPACE_BEGIN
 
 FLO_API std::size_t Surface::n_vertices() const noexcept
 {
-  return vertices.size() / 3;
+  return vertices.num_cols;
 }
 
 FLO_API std::size_t Surface::n_faces() const noexcept
 {
-  return faces.size() / 3;
+  return faces.num_cols;
 }
 
 namespace
@@ -37,11 +37,11 @@ FLO_API Surface make_surface(const ::flo::host::Surface& i_host_surface)
 {
   const int nvertices = i_host_surface.n_vertices();
   // Device memory for vertices to return
-  cusp::array1d<real, cusp::device_memory> d_vertices(nvertices * 3);
+  cusp::array2d<real, cusp::device_memory> d_vertices(3, nvertices);
 
   const int nfaces = i_host_surface.n_faces();
   // Device memory for faces to return
-  cusp::array1d<int, cusp::device_memory> d_faces(nfaces * 3);
+  cusp::array2d<int, cusp::device_memory> d_faces(3, nfaces);
 
   // Scope for streams
   {
@@ -50,13 +50,13 @@ FLO_API Surface make_surface(const ::flo::host::Surface& i_host_surface)
     auto h_face_ptr = (int*)(&i_host_surface.faces[0][0]);
 
     // Strided pointers into the device arrays
-    auto d_vert_ptr_x = d_vertices.data().get() + nvertices * 0;
-    auto d_vert_ptr_y = d_vertices.data().get() + nvertices * 1;
-    auto d_vert_ptr_z = d_vertices.data().get() + nvertices * 2;
+    auto d_vert_ptr_x = d_vertices.values.data().get() + nvertices * 0;
+    auto d_vert_ptr_y = d_vertices.values.data().get() + nvertices * 1;
+    auto d_vert_ptr_z = d_vertices.values.data().get() + nvertices * 2;
 
-    auto d_face_ptr_0 = d_faces.data().get() + nfaces * 0;
-    auto d_face_ptr_1 = d_faces.data().get() + nfaces * 1;
-    auto d_face_ptr_2 = d_faces.data().get() + nfaces * 2;
+    auto d_face_ptr_0 = d_faces.values.data().get() + nfaces * 0;
+    auto d_face_ptr_1 = d_faces.values.data().get() + nfaces * 1;
+    auto d_face_ptr_2 = d_faces.values.data().get() + nfaces * 2;
 
     // Create a new stream for each copy we're going to make,
     // these are synchronized in the destructor

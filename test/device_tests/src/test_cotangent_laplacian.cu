@@ -6,7 +6,7 @@
 #include "flo/device/vertex_vertex_adjacency.cuh"
 #include "flo/device/vertex_triangle_adjacency.cuh"
 #include "flo/device/vertex_mass.cuh"
-#include "flo/device/area.cuh"
+#include "flo/device/face_area.cuh"
 
 #include "flo/host/cotangent_laplacian.hpp"
 
@@ -21,7 +21,7 @@ void test(std::string name)
   // Set-up matrix path
   const std::string matrix_prefix = "../matrices/" + name;
   // Load the surface from our mesh cache
-  const auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
+  auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 
   // Read all our dependencies from disk
   cusp::array1d<int, cusp::host_memory> int_temp;
@@ -39,10 +39,20 @@ void test(std::string name)
   cusp::io::read_matrix_market_file(
     int_temp, matrix_prefix + "/vertex_vertex_adjacency/adjacency.mtx");
   cusp::array1d<int, cusp::device_memory> d_adjacency = int_temp;
-  cusp::array1d<int2, cusp::device_memory> d_offsets(surf.n_faces() * 3);
-  cusp::io::read_matrix_market_file(
-    int_temp, matrix_prefix + "/adjacency_matrix_offset/offsets.mtx");
-  thrust::copy_n((int2*)int_temp.data(), int_temp.size() / 2, d_offsets.data());
+
+  cusp::array2d<int, cusp::device_memory> d_offsets(6, surf.n_faces());
+  // Run the function
+  flo::device::adjacency_matrix_offset(
+    surf.faces, d_adjacency, d_cumulative_valence, d_offsets);
+
+  cusp::array1d<int, cusp::device_memory> d_adjacency_keys(
+    d_cumulative_valence.back());
+  thrust::copy_n(thrust::constant_iterator<int>(1),
+                 surf.n_vertices() - 1,
+                 thrust::make_permutation_iterator(
+                   d_adjacency_keys.begin(), d_cumulative_valence.begin() + 1));
+  thrust::inclusive_scan(
+    d_adjacency_keys.begin(), d_adjacency_keys.end(), d_adjacency_keys.begin());
 
   // Allocate a sparse matrix to store our result
   SparseDeviceMatrix d_L(surf.n_vertices(),
@@ -52,8 +62,15 @@ void test(std::string name)
   // Allocate a dense 1 dimensional array to receive diagonal element indices
   cusp::array1d<int, cusp::device_memory> d_diagonals(surf.n_vertices());
   // Run our function
-  flo::device::cotangent_laplacian(
-    surf.vertices, surf.faces, d_area, d_offsets, d_diagonals, d_L);
+  flo::device::cotangent_laplacian(surf.vertices,
+                                   surf.faces,
+                                   d_area,
+                                   d_offsets,
+                                   d_adjacency_keys,
+                                   d_adjacency,
+                                   d_cumulative_valence,
+                                   d_diagonals,
+                                   d_L);
 
   // Copy our results back to the host side
   SparseHostMatrix h_L;

@@ -18,10 +18,10 @@ FLO_API int vertex_vertex_adjacency(
 
 
 FLO_API void adjacency_matrix_offset(
-  cusp::array1d<int3, cusp::device_memory>::const_view di_faces,
+  cusp::array2d<int, cusp::device_memory>::const_view di_faces,
   cusp::array1d<int, cusp::device_memory>::const_view di_adjacency,
   cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_valence,
-  cusp::array1d<int2, cusp::device_memory>::view do_offsets);
+  cusp::array2d<int, cusp::device_memory>::view do_offsets);
 
 FLO_DEVICE_NAMESPACE_END
 

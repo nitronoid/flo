@@ -9,7 +9,7 @@ namespace
 void test(std::string name)
 {
   const std::string matrix_prefix = "../matrices/" + name;
-  const auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
+  auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 
   //cusp::print(surf.faces);
 

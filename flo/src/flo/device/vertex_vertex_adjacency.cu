@@ -15,7 +15,7 @@ d_adjacency_matrix_offset(const int* __restrict__ di_faces,
                           const int i_nfaces,
                           int* __restrict__ do_offset)
 {
-  const uint fid = blockIdx.x * blockDim.x + threadIdx.x;
+  const int fid = blockIdx.x * blockDim.x + threadIdx.x;
 
   // Check we're not out of range
   if (fid >= i_nfaces)
@@ -23,46 +23,44 @@ d_adjacency_matrix_offset(const int* __restrict__ di_faces,
 
   // Determine whether we are calculating a column or row major offset
   // even threads are col major while odd ones are row major
-  uint8_t major = threadIdx.y & 1;
+  const uint8_t major = threadIdx.y >= 3;
 
-  // Get the vertex order, need to half the tid as we have two threads per edge
-  const uint32_t edge_idx = threadIdx.y >> 1;
-  const uchar3 loop = tri_edge_loop(edge_idx);
-  // Compute local edge indices rotated by the offset major
-  const int2 ep = make_int2(fid * 3 + nth_element(loop, 1 + major),
-                            fid * 3 + nth_element(loop, 1 + !major));
+  const uchar3 loop = tri_edge_loop(threadIdx.y - 3 * major);
 
-  int2 edge = make_int2(di_faces[ep.x], di_faces[ep.y]);
+  // Global vertex indices that make this edge
+  const int2 edge =
+    make_int2(di_faces[i_nfaces * nth_element(loop, major) + fid],
+              di_faces[i_nfaces * nth_element(loop, !major) + fid]);
 
   int begin = di_cumulative_valence[edge.x];
   int end = di_cumulative_valence[edge.x + 1] - 1;
+
   auto iter = thrust::lower_bound(thrust::seq,
                                   di_vertex_adjacency + begin,
                                   di_vertex_adjacency + end,
                                   edge.y);
-  do_offset[fid * 6 + loop.x * 2 + major] = iter - di_vertex_adjacency;
+  const int offset = (iter - di_vertex_adjacency) + edge.x + (edge.y > edge.x);
+  do_offset[i_nfaces * threadIdx.y + fid] = offset;
 }
 
 }  // namespace
 
 FLO_API int vertex_vertex_adjacency(
-  cusp::array1d<int, cusp::device_memory>::const_view di_faces,
+  cusp::array2d<int, cusp::device_memory>::const_view di_faces,
   cusp::array1d<int, cusp::device_memory>::view do_adjacency_keys,
   cusp::array1d<int, cusp::device_memory>::view do_adjacency,
   cusp::array1d<int, cusp::device_memory>::view do_valence,
   cusp::array1d<int, cusp::device_memory>::view do_cumulative_valence)
 {
   // Number of faces is equal to length of one column
-  const int nfaces = di_faces.size() / 3;
+  const int nfaces = di_faces.num_cols;
   // 3 edges per face
   const int nedges = nfaces * 3;
-  // 2 half edges per edge
-  const int nhalf_edges = nedges * 2;
 
   // Create views over the face vertex columns
-  auto face_vertex_0 = di_faces.subarray(nfaces * 0, nfaces);
-  auto face_vertex_1 = di_faces.subarray(nfaces * 1, nfaces);
-  auto face_vertex_2 = di_faces.subarray(nfaces * 2, nfaces);
+  auto face_vertex_0 = di_faces.row(0);
+  auto face_vertex_1 = di_faces.row(1);
+  auto face_vertex_2 = di_faces.row(2);
 
   // Reduce the verbosity
   auto J = do_adjacency;
@@ -119,23 +117,23 @@ FLO_API int vertex_vertex_adjacency(
 }
 
 FLO_API void adjacency_matrix_offset(
-  cusp::array1d<int3, cusp::device_memory>::const_view di_faces,
+  cusp::array2d<int, cusp::device_memory>::const_view di_faces,
   cusp::array1d<int, cusp::device_memory>::const_view di_adjacency,
   cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_valence,
-  cusp::array1d<int2, cusp::device_memory>::view do_offsets)
+  cusp::array2d<int, cusp::device_memory>::view do_offsets)
 {
   dim3 block_dim;
   block_dim.y = 6;
   block_dim.x = 170;
   const int nblocks =
-    di_faces.size() * 6 / (block_dim.x * block_dim.y * block_dim.z) + 1;
+    di_faces.num_cols * 6 / (block_dim.x * block_dim.y * block_dim.z) + 1;
 
   d_adjacency_matrix_offset<<<nblocks, block_dim>>>(
-    reinterpret_cast<const int*>(di_faces.begin().base().get()),
+    di_faces.values.begin().base().get(),
     di_adjacency.begin().base().get(),
     di_cumulative_valence.begin().base().get(),
-    di_faces.size(),
-    reinterpret_cast<int*>(do_offsets.begin().base().get()));
+    di_faces.num_cols,
+    do_offsets.values.begin().base().get());
 }
 
 FLO_DEVICE_NAMESPACE_END
