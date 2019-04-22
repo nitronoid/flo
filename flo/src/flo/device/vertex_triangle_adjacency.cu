@@ -3,57 +3,71 @@
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/tuple.h>
-#include "flo/device/cu_raii.cuh"
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
+namespace
+{
+struct transpose_index : public thrust::unary_function<int, int>
+{
+  const int width;
+  const int height;
+
+  transpose_index(int width, int height) : width(width), height(height)
+  {
+  }
+
+  __host__ __device__ int operator()(int i) const
+  {
+    const int x = i % height;
+    const int y = i / height;
+    return x * width + y;
+  }
+};
+}  // namespace
+
 FLO_API void vertex_triangle_adjacency(
   cusp::array2d<int, cusp::device_memory>::const_view di_faces,
-  thrust::device_ptr<int> dio_temporary_storage,
+  cusp::array1d<int, cusp::device_memory>::view do_adjacency_keys,
   cusp::array1d<int, cusp::device_memory>::view do_adjacency,
   cusp::array1d<int, cusp::device_memory>::view do_valence,
   cusp::array1d<int, cusp::device_memory>::view do_cumulative_valence)
 {
-  // View our temporary storage as an array of ints
-  cusp::array1d<int, cusp::device_memory>::view temp{
-    dio_temporary_storage, dio_temporary_storage + di_faces.values.size()};
-
-  // Copy the face data asynchronously while we compute the histogram
-  ScopedCuStream mem_cpy_stream;
-  cudaMemcpyAsync(dio_temporary_storage.get(),
-                  di_faces.values.begin().base().get(),
-                  sizeof(int) * di_faces.values.size(),
-                  cudaMemcpyHostToDevice,
-                  mem_cpy_stream);
-
-  // We use atomics to calculate the histogram as the input need not be sorted
-  thrust::for_each(di_faces.values.begin(),
-                   di_faces.values.end(),
-                   [d_valence = do_valence.begin().base().get()] __device__(
-                     int x) { atomicAdd(d_valence + x, 1); });
-
-  // Use a prefix scan to calculate offsets into our adjacency list per vertex
-  thrust::inclusive_scan(
-    do_valence.begin(), do_valence.end(), do_cumulative_valence.begin());
-
-  // Iterate over 0th, 1st, 2nd face indices at once
+  // Store the number of vertices
+  const int nvertices = do_valence.size();
+  // Store the number of faces
   const int nfaces = di_faces.num_cols;
-  auto adjit = thrust::make_zip_iterator(
-    thrust::make_tuple(do_adjacency.begin() + nfaces * 0,
-                       do_adjacency.begin() + nfaces * 1,
-                       do_adjacency.begin() + nfaces * 2));
+
+  // Map is a transposed view of the adjacency keys
+  auto map_it = thrust::make_transform_iterator(
+    thrust::make_counting_iterator(0), transpose_index(3, nfaces));
+  auto transposed_it =
+    thrust::make_permutation_iterator(do_adjacency_keys.begin(), map_it);
+  // Copy the face vertices as the adjacency keys, using transposed layout
+  thrust::copy_n(di_faces.values.begin(), nfaces * 3, transposed_it);
 
   // Create a sequential list of indices mapping adjacency to face vertices
-  thrust::tabulate(adjit, adjit + nfaces, [] __device__(int i) {
-    return thrust::make_tuple(i, i, i);
-  });
+  thrust::tabulate(do_adjacency.begin(),
+                   do_adjacency.end(),
+                   [] __device__(int i) { return i / 3; });
 
-  // Make sure the memcpy has finished
-  mem_cpy_stream.join();
+  // We sort the adjacency using our adjacency keys.
+  thrust::stable_sort_by_key(
+    do_adjacency_keys.begin(), do_adjacency_keys.end(), do_adjacency.begin());
 
-  // We sort the indices by looking up their face vertex
-  thrust::sort_by_key(do_adjacency.begin(), do_adjacency.end(), temp.begin());
-  thrust::stable_sort_by_key(temp.begin(), temp.end(), do_adjacency.begin());
+  // Calculate a dense histogram to find the cumulative valence
+  // Create a counting iter to output the index values from the upper_bound
+  auto search_begin = thrust::make_counting_iterator(0);
+  thrust::upper_bound(do_adjacency_keys.begin(),
+                      do_adjacency_keys.end(),
+                      search_begin,
+                      search_begin + nvertices + 1,
+                      do_cumulative_valence.begin());
+
+  // Calculate the non-cumulative valence by subtracting neighboring elements
+  thrust::adjacent_difference(do_cumulative_valence.begin(),
+                              do_cumulative_valence.end(),
+                              do_valence.begin());
 }
 
 FLO_DEVICE_NAMESPACE_END

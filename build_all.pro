@@ -1,6 +1,6 @@
 TEMPLATE = subdirs
-SUBDIRS = flo demo test
+SUBDIRS = flo samples test
 
-demo.depends = flo
+samples.depends = flo
 test.depends = flo
 
