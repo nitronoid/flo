@@ -8,6 +8,15 @@ FLO_DEVICE_NAMESPACE_BEGIN
 
 namespace
 {
+struct TupleEqual
+{
+  __host__ __device__ bool operator()(const thrust::tuple<int, int>& lhs,
+                                      const thrust::tuple<int, int>& rhs)
+  {
+    return (lhs.get<0>() == rhs.get<0>()) && (lhs.get<1>() == rhs.get<1>());
+  }
+};
+
 __global__ void
 d_adjacency_matrix_offset(const int* __restrict__ di_faces,
                           const int* __restrict__ di_vertex_adjacency,
@@ -93,10 +102,11 @@ FLO_API int vertex_vertex_adjacency(
   thrust::stable_sort_by_key(I.begin(), I.end(), J.begin());
 
   // Remove all duplicate edges
-  auto coord_begin =
+  auto entry_begin =
     thrust::make_zip_iterator(thrust::make_tuple(I.begin(), J.begin()));
-  auto coord_end = thrust::unique_by_key(J.begin(), J.end(), coord_begin);
-  const int total_valence = coord_end.first - J.begin();
+  auto entry_end = thrust::unique_by_key(
+    entry_begin, entry_begin + nedges * 2, entry_begin, TupleEqual{});
+  const int total_valence = entry_end.first - entry_begin;
 
   // Calculate a dense histogram to find the cumulative valence
   // Create a counting iter to output the index values from the upper_bound

@@ -1,10 +1,9 @@
 #include "flo/device/cotangent_laplacian_atomic.cuh"
 #include "flo/device/thread_util.cuh"
-//#include <thrust/type_traits/is_contiguous_iterator.h>
-#include <thrust/sort.h>
+#include "flo/device/matrix_operation.cuh"
 #include <thrust/reduce.h>
 #include <thrust/iterator/discard_iterator.h>
-#include <cusp/print.h>
+#include <thrust/iterator/transform_output_iterator.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
@@ -45,120 +44,141 @@ d_cotangent_laplacian_values(const real* __restrict__ di_vertices,
   // Declare one shared memory block
   extern __shared__ uint8_t shared_memory[];
   // Create pointers into the block dividing it for the different uses
-  // Area is duplicated for each thread, 6 per face
+  // Area is duplicated for each thread, 3 per face
   real* __restrict__ area = (real*)shared_memory;
-  // Each thread produces a resulting value, 6 per face
+  // Each thread produces a resulting value, 3 per face
   real* __restrict__ result = (real*)(area + blockDim.x * 3);
-  // Each thread reads an X,Y,Z point, 6 per face
+  // Each thread reads an X,Y,Z point, 3 per face
   real* __restrict__ points_x = (real*)(result + blockDim.x * 3);
   real* __restrict__ points_y = (real*)(points_x + blockDim.x * 3);
   real* __restrict__ points_z = (real*)(points_y + blockDim.x * 3);
 
   // Calculate which face this thread is acting on
   const int32_t fid = blockIdx.x * blockDim.x + threadIdx.x;
+  const bool in_range = fid < i_nfaces;
 
-  // Check we're not out of range
+  // Need these outside the if-scope
+  int16_t v0, v1, v2;
+  // Guard against out of bounds memory writing
+  if (in_range)
+  {
+    // Only write once per face
+    if (!threadIdx.y)
+    {
+      // Duplicate for each thread to reduce bank conflicts
+      const real face_area = 1.f / (di_face_area[fid] * 4.f);
+      area[blockDim.x * 0 + threadIdx.x] = face_area;
+      area[blockDim.x * 1 + threadIdx.x] = face_area;
+      area[blockDim.x * 2 + threadIdx.x] = face_area;
+    }
+
+    // Get the vertex order, need to half the tid as we have two threads per
+    // edge
+    const uchar3 loop = tri_edge_loop(threadIdx.y);
+    // Compute local indices rotated by the corner this thread corresponds to
+    v0 = blockDim.x * loop.x + threadIdx.x;
+    v1 = blockDim.x * loop.y + threadIdx.x;
+    v2 = blockDim.x * loop.z + threadIdx.x;
+
+    // Write the vertex positions into shared memory
+    // We offset using nverts and the threadIdx Y value to pick which column of
+    // the point and face matrices to read from.
+    {
+      const int32_t pid = di_faces[i_nfaces * threadIdx.y + fid];
+      points_x[v0] = di_vertices[0 * i_nverts + pid];
+      points_y[v0] = di_vertices[1 * i_nverts + pid];
+      points_z[v0] = di_vertices[2 * i_nverts + pid];
+    }
+  }
+  // Ensure all writes to shared memory are complete
+  __syncthreads();
+  // Guard against out of bounds memory writing
+  if (in_range)
+  {
+    // Compute the final result, (e0*e1) / (area*4)
+    result[v0] =
+      ((points_x[v1] - points_x[v2]) * (points_x[v0] - points_x[v2]) +
+       (points_y[v1] - points_y[v2]) * (points_y[v0] - points_y[v2]) +
+       (points_z[v1] - points_z[v2]) * (points_z[v0] - points_z[v2])) *
+      area[v0];
+
+    const int32_t address_lower = di_entry[i_nfaces * threadIdx.y + fid];
+    const int32_t address_upper = di_entry[i_nfaces * (threadIdx.y + 3) + fid];
+
+    // Write the row and column indices
+    atomicAdd(do_values + address_lower, -result[v0]);
+    atomicAdd(do_values + address_upper, -result[v0]);
+  }
+}
+
+enum MASK { FULL_MASK = 0xffffffff };
+__global__ void
+d_cotangent_laplacian_valuees(const real* __restrict__ di_vertices,
+                              const int* __restrict__ di_faces,
+                              const int* __restrict__ di_entry,
+                              const int32_t i_nverts,
+                              const int32_t i_nfaces,
+                              real* __restrict__ do_values)
+{
+  // Calculate our global thread index
+  const int32_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+  // The face index is the thread index / 4
+  const int32_t fid = tid >> 2;
+  // Calculate which lane our thread is in: [0,1,2,3]
+  const int8_t lane = tid - fid * 4;
+
+  // Guard against threads that would read/write out of bounds
   if (fid >= i_nfaces)
     return;
 
-  // Only write once per face
-  if (!threadIdx.y)
+  // Load vertex points into registers
+  real edge_x, edge_y, edge_z;
+  // First three threads read from global memory
+  if (lane < 3)
   {
-    // Duplicate for each thread to reduce bank conflicts
-    const real face_area = 1.f / (di_face_area[fid] * 4.f);
-    area[blockDim.x * 0 + threadIdx.x] = face_area;
-    area[blockDim.x * 1 + threadIdx.x] = face_area;
-    area[blockDim.x * 2 + threadIdx.x] = face_area;
+    const int32_t pid = di_faces[i_nfaces * lane + fid];
+    edge_x = di_vertices[0 * i_nverts + pid];
+    edge_y = di_vertices[1 * i_nverts + pid];
+    edge_z = di_vertices[2 * i_nverts + pid];
+  }
+  // Convert our 0,1,2 reads into the 1,2,0,1 layout over four threads
+  {
+    const int8_t source_lane = (lane + 1) - 3 * (lane > 1);
+    edge_x = __shfl_sync(FULL_MASK, edge_x, source_lane, 4);
+    edge_y = __shfl_sync(FULL_MASK, edge_y, source_lane, 4);
+    edge_z = __shfl_sync(FULL_MASK, edge_z, source_lane, 4);
+  }
+  // Compute edge vectors from neighbor threads
+  // 1-2, 2-0, 0-1, 1-2
+  {
+    const int8_t source_lane = (lane + 1) - 3 * (lane == 3);
+    edge_x -= __shfl_sync(FULL_MASK, edge_x, source_lane, 4);
+    edge_y -= __shfl_sync(FULL_MASK, edge_y, source_lane, 4);
+    edge_z -= __shfl_sync(FULL_MASK, edge_z, source_lane, 4);
   }
 
-  // Get the vertex order, need to half the tid as we have two threads per edge
-  const uchar3 loop = tri_edge_loop(threadIdx.y);
-  // Compute local indices rotated by the corner this thread corresponds to
-  const int16_t v0 = blockDim.x * loop.x + threadIdx.x;
-  const int16_t v1 = blockDim.x * loop.y + threadIdx.x;
-  const int16_t v2 = blockDim.x * loop.z + threadIdx.x;
+  // Get the components of the neighboring edge
+  const real b_x = __shfl_down_sync(FULL_MASK, edge_x, 1, 4);
+  const real b_y = __shfl_down_sync(FULL_MASK, edge_y, 1, 4);
+  const real b_z = __shfl_down_sync(FULL_MASK, edge_z, 1, 4);
 
-  // Write the vertex positions into shared memory
-  // We offset using nverts and the threadIdx Y value to pick which column of
-  // the point and face matrices to read from.
+  // Compute the inverse area (1/4A == 1/(4*0.5*x^1/2) == 0.5 * 1/(x^1/2))
+  const real inv_area = 0.5f * rsqrtf(sqr(edge_y * b_z - edge_z * b_y) +
+                                      sqr(edge_z * b_x - edge_x * b_z) +
+                                      sqr(edge_x * b_y - edge_y * b_x));
+
+  // Dot product with neighbor
+  edge_x = (edge_x * b_x + edge_y * b_y + edge_z * b_z) * inv_area;
+
+  if (lane < 3)
   {
-    const int32_t pid = di_faces[i_nfaces * threadIdx.y + fid];
-    points_x[v0] = di_vertices[0 * i_nverts + pid];
-    points_y[v0] = di_vertices[1 * i_nverts + pid];
-    points_z[v0] = di_vertices[2 * i_nverts + pid];
+    const int32_t address_lower = di_entry[i_nfaces * lane + fid];
+    const int32_t address_upper = di_entry[i_nfaces * (lane + 3) + fid];
+
+    // Write the row and column indices
+    atomicAdd(do_values + address_lower, edge_x);
+    atomicAdd(do_values + address_upper, edge_x);
   }
-  __syncthreads();
-
-  // Compute the final result, (e0*e1) / (area*4)
-  result[v0] = ((points_x[v1] - points_x[v2]) * (points_x[v0] - points_x[v2]) +
-                (points_y[v1] - points_y[v2]) * (points_y[v0] - points_y[v2]) +
-                (points_z[v1] - points_z[v2]) * (points_z[v0] - points_z[v2])) *
-               area[v0];
-
-  const int32_t address_lower = di_entry[i_nfaces * threadIdx.y + fid];
-  const int32_t address_upper = di_entry[i_nfaces * (threadIdx.y + 3) + fid];
-
-  // Write the row and column indices
-  atomicAdd(do_values + address_lower, -result[v0]);
-  atomicAdd(do_values + address_upper, -result[v0]);
-}
-
-void find_diagonal_indices(
-  cusp::array1d<int, cusp::device_memory>::const_view di_row_offsets,
-  cusp::array1d<int, cusp::device_memory>::const_view di_row_indices,
-  cusp::array1d<int, cusp::device_memory>::const_view di_column_indices,
-  cusp::array1d<int, cusp::device_memory>::view do_diagonals)
-{
-  // Iterates over the matrix entry coordinates, and returns whether the row is
-  // less than the column, which would mean this is in the upper triangle.
-  const auto cmp_less_it = thrust::make_transform_iterator(
-    thrust::make_zip_iterator(
-      thrust::make_tuple(di_row_indices.begin(), di_column_indices.begin())),
-    [] __host__ __device__(const thrust::tuple<int, int>& coord) -> int {
-      return coord.get<0>() > coord.get<1>();
-    });
-  // Then reduce using the keys to find how many in each column are before
-  // the diagonal entry
-  thrust::reduce_by_key(di_row_indices.begin(),
-                        di_row_indices.end(),
-                        cmp_less_it,
-                        thrust::make_discard_iterator(),
-                        do_diagonals.begin());
-  // Sum in the cumulative valence and a count to finalize the diagonal indices
-  cusp::blas::axpbypcz(do_diagonals,
-                       di_row_offsets.subarray(0, do_diagonals.size()),
-                       cusp::counting_array<int>(do_diagonals.size()),
-                       do_diagonals,
-                       1,
-                       1,
-                       1);
-}
-
-void make_skip_indices(
-  cusp::array1d<int, cusp::device_memory>::const_view di_skip_keys,
-  cusp::array1d<int, cusp::device_memory>::view do_iterator_indices)
-{
-  // Start with zeros
-  cusp::blas::fill(do_iterator_indices, 0);
-  // Add ones in locations where a diagonal exists
-  thrust::for_each_n(
-    thrust::counting_iterator<int>(0),
-    di_skip_keys.size(),
-    [skip_keys = di_skip_keys.begin().base().get(),
-     out = do_iterator_indices.begin().base().get()] __device__(int x) {
-      const int skip = skip_keys[x] - x;
-      atomicAdd(out + skip, 1);
-    });
-  // Scan the diagonal markers to produce an offset
-  thrust::inclusive_scan(do_iterator_indices.begin(),
-                         do_iterator_indices.end(),
-                         do_iterator_indices.begin());
-  // Add the original entry indices to our offset array
-  thrust::transform(do_iterator_indices.begin(),
-                    do_iterator_indices.end(),
-                    thrust::counting_iterator<int>(0),
-                    do_iterator_indices.begin(),
-                    thrust::plus<int>());
 }
 
 }  // namespace
@@ -209,20 +229,15 @@ FLO_API void cotangent_laplacian(
       return thrust::make_tuple(i, i);
     });
 
-  dim3 block_dim;
-  block_dim.y = 3;
-  block_dim.x = 341;
-  size_t nthreads_per_block = block_dim.x * block_dim.y * block_dim.z;
-  size_t nblocks = di_faces.num_cols * 3 / nthreads_per_block + 1;
-  // face area | cot_alpha  =>  sizeof(real) * 3 * #F
-  // vertex positions       =>  sizeof(real3) * 3 * #F ==  sizeof(real) * 9 * #F
-  // edge squared lengths   =>  sizeof(real) * 3 * #F
-  // === (3 + 9 + 3) * #F * sizeof(real)
-  size_t shared_memory_size = sizeof(flo::real) * block_dim.x * 15;
-  d_cotangent_laplacian_values<<<nblocks, block_dim, shared_memory_size>>>(
+  const size_t block_width = 1024;
+  const size_t nblocks = di_faces.num_cols * 4 / block_width + 1;
+  // const dim3 block_dim{341, 3, 1};
+  // const size_t nthreads_per_block = block_dim.x * block_dim.y * block_dim.z;
+  // const size_t nblocks = di_faces.num_cols * 3 / nthreads_per_block + 1;
+  // const size_t shared_memory_size = sizeof(flo::real) * block_dim.x * 15;
+  d_cotangent_laplacian_valuees<<<nblocks, block_width>>>(
     di_vertices.values.begin().base().get(),
     di_faces.values.begin().base().get(),
-    di_face_area.begin().base().get(),
     di_entry_offset.values.begin().base().get(),
     di_vertices.num_cols,
     di_faces.num_cols,
@@ -232,11 +247,12 @@ FLO_API void cotangent_laplacian(
   thrust::reduce_by_key(
     do_cotangent_laplacian.row_indices.begin(),
     do_cotangent_laplacian.row_indices.end(),
-    thrust::make_transform_iterator(do_cotangent_laplacian.values.begin(),
-                                    thrust::negate<flo::real>()),
+    do_cotangent_laplacian.values.begin(),
     thrust::make_discard_iterator(),
-    thrust::make_permutation_iterator(do_cotangent_laplacian.values.begin(),
-                                      do_diagonals.begin()));
+    thrust::make_transform_output_iterator(
+      thrust::make_permutation_iterator(do_cotangent_laplacian.values.begin(),
+                                        do_diagonals.begin()),
+      thrust::negate<real>()));
 }
 
 FLO_DEVICE_NAMESPACE_END

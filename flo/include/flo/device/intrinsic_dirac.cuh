@@ -8,13 +8,16 @@
 FLO_DEVICE_NAMESPACE_BEGIN
 
 FLO_API void intrinsic_dirac(
-  cusp::array1d<real3, cusp::device_memory>::const_view di_vertices,
-  cusp::array1d<int3, cusp::device_memory>::const_view di_faces,
+  cusp::array2d<real, cusp::device_memory>::const_view di_vertices,
+  cusp::array2d<int, cusp::device_memory>::const_view di_faces,
   cusp::array1d<real, cusp::device_memory>::const_view di_face_area,
   cusp::array1d<real, cusp::device_memory>::const_view di_rho,
-  cusp::array1d<int2, cusp::device_memory>::const_view di_entry_offset,
+  cusp::array2d<int, cusp::device_memory>::const_view di_entry_offset,
+  cusp::array1d<int, cusp::device_memory>::const_view di_adjacency_keys,
+  cusp::array1d<int, cusp::device_memory>::const_view di_adjacency,
+  cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_valence,
   cusp::array1d<int, cusp::device_memory>::const_view
-    di_cumulative_triangle_valence,
+    di_vertex_triangle_adjacency_keys,
   cusp::array1d<int, cusp::device_memory>::const_view
     di_vertex_triangle_adjacency,
   cusp::array1d<int, cusp::device_memory>::view do_diagonals,
