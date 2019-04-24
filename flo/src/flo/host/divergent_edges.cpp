@@ -5,23 +5,25 @@ using namespace Eigen;
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<Matrix<real, 4, 1>> divergent_edges(
-    const gsl::span<const Matrix<real, 3, 1>> i_vertices,
-    const gsl::span<const Vector3i> i_faces,
-    const gsl::span<const Matrix<real, 4, 1>> i_lambda,
-    const SparseMatrix<real> i_cotangent_laplacian)
+FLO_API std::vector<Matrix<real, 4, 1>>
+divergent_edges(const gsl::span<const Matrix<real, 3, 1>> i_vertices,
+                const gsl::span<const Vector3i> i_faces,
+                const gsl::span<const Matrix<real, 4, 1>> i_lambda,
+                const SparseMatrix<real> i_cotangent_laplacian)
 {
-  std::vector<Matrix<real, 4, 1>> new_edges(i_lambda.size(), {0.f, 0.f, 0.f, 0.f});
+  std::vector<Matrix<real, 4, 1>> new_edges(i_lambda.size(),
+                                            {0.f, 0.f, 0.f, 0.f});
 
   // For every face
   for (const auto& f : i_faces)
   {
     // For each edge in the face
-    for (uint i = 0u; i < 3u; ++i)
+    for (int i = 0; i < 3; ++i)
     {
-      uint a = f[(i+1u) % 3u];
-      uint b = f[(i+2u) % 3u];
-      if (a > b) std::swap(a, b);
+      int a = f[(i + 1) % 3];
+      int b = f[(i + 2) % 3];
+      if (a > b)
+        std::swap(a, b);
 
       const auto& l1 = i_lambda[a];
       const auto& l2 = i_lambda[b];
@@ -32,10 +34,11 @@ FLO_API std::vector<Matrix<real, 4, 1>> divergent_edges(
       constexpr auto third = 1.f / 3.f;
       constexpr auto sixth = 1.f / 6.f;
 
-      auto et = hammilton_product(hammilton_product(third*conjugate(l1),e),l1) +
-                hammilton_product(hammilton_product(sixth*conjugate(l1),e),l2) +
-                hammilton_product(hammilton_product(sixth*conjugate(l2),e),l1) +
-                hammilton_product(hammilton_product(third*conjugate(l2),e),l2) ;
+      auto et =
+        hammilton_product(hammilton_product(third * conjugate(l1), e), l1) +
+        hammilton_product(hammilton_product(sixth * conjugate(l1), e), l2) +
+        hammilton_product(hammilton_product(sixth * conjugate(l2), e), l1) +
+        hammilton_product(hammilton_product(third * conjugate(l2), e), l2);
 
       auto cot_alpha = i_cotangent_laplacian.coeff(a, b) * 0.5f;
       new_edges[a] -= et * cot_alpha;
@@ -43,7 +46,7 @@ FLO_API std::vector<Matrix<real, 4, 1>> divergent_edges(
     }
   }
 
-  //removeMean(omega);
+  // removeMean(omega);
   return new_edges;
 }
 
