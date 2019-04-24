@@ -5,10 +5,6 @@
 
 namespace
 {
-using SparseDeviceMatrix =
-  cusp::coo_matrix<int, flo::real, cusp::device_memory>;
-using SparseHostMatrix = cusp::coo_matrix<int, flo::real, cusp::host_memory>;
-
 void test(std::string name)
 {
   const std::string mp = "../matrices/" + name;
