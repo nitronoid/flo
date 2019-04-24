@@ -202,9 +202,9 @@ __global__ void d_intrinsic_dirac_atomic(const real* __restrict__ di_vertices,
   const real b_rho = __shfl_down_sync(FULL_MASK, rho, 1, 4);
 
   // Compute the inverse area (1/-4A == 1/(-4*0.5*x^1/2) == -0.5 * 1/(x^1/2))
-  const real inv_area = -0.5f * rsqrtf(sqr(edge_y * b_z - edge_z * b_y) +
-                                       sqr(edge_z * b_x - edge_x * b_z) +
-                                       sqr(edge_x * b_y - edge_y * b_x));
+  const real inv_area = -0.5f * __frsqrt_rn(sqr(edge_y * b_z - edge_z * b_y) +
+                                            sqr(edge_z * b_x - edge_x * b_z) +
+                                            sqr(edge_x * b_y - edge_y * b_x));
 
   const real c = rho * b_rho * reciprocal(9.f) / (inv_area * -4.f);
   const real4 img = make_float4(reciprocal(6.f) * (rho * b_x - b_rho * edge_x),

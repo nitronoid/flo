@@ -9,6 +9,14 @@ FLO_DEVICE_NAMESPACE_BEGIN
 
 namespace
 {
+__device__ float fast_inv_sqrt(float x) noexcept
+{
+  const float x2 = x * 0.5f;
+  x = __uint_as_float(0x5f3759df - (__float_as_uint(x) >> 1));
+  x *= (1.5f - (x2 * x * x));
+  return x;
+}
+
 #ifdef FLO_USE_DOUBLE_PRECISION
 __device__ double atomicAdd(double* __restrict__ i_address, const double i_val)
 {
@@ -163,9 +171,9 @@ d_cotangent_laplacian_valuees(const real* __restrict__ di_vertices,
   const real b_z = __shfl_down_sync(FULL_MASK, edge_z, 1, 4);
 
   // Compute the inverse area (1/4A == 1/(4*0.5*x^1/2) == 0.5 * 1/(x^1/2))
-  const real inv_area = 0.5f * rsqrtf(sqr(edge_y * b_z - edge_z * b_y) +
-                                      sqr(edge_z * b_x - edge_x * b_z) +
-                                      sqr(edge_x * b_y - edge_y * b_x));
+  const real inv_area = 0.5f * __frsqrt_rn(sqr(edge_y * b_z - edge_z * b_y) +
+                                           sqr(edge_z * b_x - edge_x * b_z) +
+                                           sqr(edge_x * b_y - edge_y * b_x));
 
   // Dot product with neighbor
   edge_x = (edge_x * b_x + edge_y * b_y + edge_z * b_z) * inv_area;
@@ -186,7 +194,6 @@ d_cotangent_laplacian_valuees(const real* __restrict__ di_vertices,
 FLO_API void cotangent_laplacian(
   cusp::array2d<real, cusp::device_memory>::const_view di_vertices,
   cusp::array2d<int, cusp::device_memory>::const_view di_faces,
-  cusp::array1d<real, cusp::device_memory>::const_view di_face_area,
   cusp::array2d<int, cusp::device_memory>::const_view di_entry_offset,
   cusp::array1d<int, cusp::device_memory>::const_view di_adjacency_keys,
   cusp::array1d<int, cusp::device_memory>::const_view di_adjacency,

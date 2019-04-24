@@ -10,7 +10,6 @@ FLO_DEVICE_NAMESPACE_BEGIN
 FLO_API void cotangent_laplacian(
   cusp::array2d<real, cusp::device_memory>::const_view di_vertices,
   cusp::array2d<int, cusp::device_memory>::const_view di_faces,
-  cusp::array1d<real, cusp::device_memory>::const_view di_face_area,
   cusp::array2d<int, cusp::device_memory>::const_view di_entry_offset,
   cusp::array1d<int, cusp::device_memory>::const_view di_adjacency_keys,
   cusp::array1d<int, cusp::device_memory>::const_view di_adjacency,
