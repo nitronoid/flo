@@ -7,15 +7,16 @@ namespace
 {
 void test(std::string name)
 {
-  const std::string matrix_prefix = "../matrices/" + name;
+  const std::string mp = "../matrices/" + name;
   auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 
-  cusp::array1d<flo::real, cusp::device_memory> d_area(surf.n_faces());
+  DeviceVectorR d_area(surf.n_faces());
   flo::device::face_area(surf.vertices, surf.faces, d_area);
-  cusp::array1d<flo::real, cusp::device_memory> h_area = d_area;
-  cusp::array1d<flo::real, cusp::host_memory> expected_area;
-  cusp::io::read_matrix_market_file(expected_area,
-                                    matrix_prefix + "/area/area.mtx");
+  HostVectorR h_area = d_area;
+
+  auto expected_area =
+    read_host_vector<flo::real>(mp + "/face_area/face_area.mtx");
+
   using namespace testing;
   EXPECT_THAT(h_area, Pointwise(FloatNear(FLOAT_SOFT_EPSILON), expected_area));
 }

@@ -11,40 +11,24 @@ using SparseHostMatrix = cusp::coo_matrix<int, flo::real, cusp::host_memory>;
 
 void test(std::string name)
 {
-  const std::string matrix_prefix = "../matrices/" + name;
-  const auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
-
-  // Read intrinsic dirac matrix
-  SparseHostMatrix h_D;
-  cusp::io::read_matrix_market_file(
-    h_D, matrix_prefix + "/intrinsic_dirac/intrinsic_dirac.mtx");
+  const std::string mp = "../matrices/" + name;
+  auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 
   // Copy to device
-  SparseDeviceMatrix d_D(h_D.num_rows, h_D.num_cols, h_D.values.size());
-  d_D.row_indices = h_D.row_indices;
-  d_D.column_indices = h_D.column_indices;
-  d_D.values = h_D.values;
+  auto d_D = read_device_sparse_matrix<flo::real>(
+    mp + "/intrinsic_dirac/intrinsic_dirac.mtx");
 
-  cusp::array1d<flo::real, cusp::device_memory> d_xform(surf.n_vertices() * 4);
+  DeviceVectorR d_xform(surf.n_vertices() * 4);
   flo::device::similarity_xform(d_D, d_xform, 1e-8, 3);
-
-  cusp::array1d<flo::real, cusp::host_memory> h_xform = d_xform;
-
-  // flo::real4 q;
-  // q.x = d_xform[0];
-  // q.y = d_xform[1];
-  // q.z = d_xform[2];
-  // q.w = d_xform[3];
-  // printf("Q: (%f, [%f, %f, %f])\n", q.w, q.x, q.y, q.z);
+  HostVectorR h_xform = d_xform;
 
   // Read expected results
-  cusp::array1d<flo::real, cusp::host_memory> expected_xform;
-  cusp::io::read_matrix_market_file(
-    expected_xform, matrix_prefix + "/similarity_xform/lambda.mtx");
+  auto expected_xform =
+    read_host_dense_matrix<flo::real>(mp + "/similarity_xform/lambda.mtx");
 
   // test our results
   using namespace testing;
-  EXPECT_THAT(h_xform, Pointwise(FloatNear(0.001), expected_xform));
+  EXPECT_THAT(h_xform, Pointwise(FloatNear(0.001), expected_xform.values));
 }
 }  // namespace
 

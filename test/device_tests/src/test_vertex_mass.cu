@@ -7,38 +7,27 @@ namespace
 {
 void test(std::string name)
 {
-  const std::string matrix_prefix = "../matrices/" + name;
+  const std::string mp = "../matrices/" + name;
   const auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 
-  cusp::array1d<int, cusp::host_memory> int_temp;
-  cusp::array1d<flo::real, cusp::host_memory> real_temp;
-  cusp::io::read_matrix_market_file(real_temp,
-                                    matrix_prefix + "/area/area.mtx");
-  cusp::array1d<flo::real, cusp::device_memory> d_area = real_temp;
-  cusp::io::read_matrix_market_file(
-    int_temp, matrix_prefix + "/vertex_triangle_adjacency/valence.mtx");
-  cusp::array1d<int, cusp::device_memory> d_valence = int_temp;
-  cusp::io::read_matrix_market_file(
-    int_temp,
-    matrix_prefix + "/vertex_triangle_adjacency/cumulative_valence.mtx");
-  cusp::array1d<int, cusp::device_memory> d_cumulative_valence = int_temp;
-  cusp::io::read_matrix_market_file(
-    int_temp, matrix_prefix + "/vertex_triangle_adjacency/adjacency.mtx");
-  cusp::array1d<int, cusp::device_memory> d_adjacency = int_temp;
+  auto d_area = read_device_vector<flo::real>(mp + "/face_area/face_area.mtx");
+  auto d_triangle_cumulative_valence = read_device_vector<int>(
+    mp + "/vertex_triangle_adjacency/cumulative_valence.mtx");
+  auto d_triangle_adjacency =
+    read_device_vector<int>(mp + "/vertex_triangle_adjacency/adjacency.mtx");
 
-  cusp::array1d<flo::real, cusp::device_memory> d_vertex_mass(
-    surf.n_vertices());
-  flo::device::vertex_mass(
-    d_area,
-    d_adjacency,
-    {d_cumulative_valence.begin() + 1, d_cumulative_valence.end()},
-    d_vertex_mass);
+  DeviceVectorR d_vertex_mass(surf.n_vertices());
 
-  cusp::array1d<flo::real, cusp::host_memory> h_vertex_mass = d_vertex_mass;
+  flo::device::vertex_mass(d_area,
+                           d_triangle_adjacency,
+                           {d_triangle_cumulative_valence.begin() + 1,
+                            d_triangle_cumulative_valence.end()},
+                           d_vertex_mass);
 
-  cusp::array1d<flo::real, cusp::host_memory> expected_mass;
-  cusp::io::read_matrix_market_file(
-    expected_mass, matrix_prefix + "/vertex_mass/vertex_mass.mtx");
+  HostVectorR h_vertex_mass = d_vertex_mass;
+
+  auto expected_mass =
+    read_device_vector<flo::real>(mp + "/vertex_mass/vertex_mass.mtx");
 
   using namespace testing;
   EXPECT_THAT(h_vertex_mass,
