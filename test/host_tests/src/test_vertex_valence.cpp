@@ -1,19 +1,31 @@
 #include "test_common.h"
-
 #include "flo/host/valence.hpp"
 
-TEST(VertexValence, cube)
+namespace
 {
-  auto cube = make_cube();
+void test(std::string name)
+{
+  const std::string mp = "../matrices/" + name;
+  auto& surf = TestCache::get_mesh<TestCache::HOST>(name + ".obj");
 
-  auto valence = flo::host::valence(cube.faces);
+  auto valence = flo::host::valence(surf.faces);
 
-  int expected_valence[] = {5, 4, 4, 5, 5, 4, 4, 5};
-  
+  auto expected_valence =
+    read_vector<int>(mp + "/vertex_vertex_adjacency/valence.mtx");
+
   using namespace testing;
-  // Check that all vertices have valence 8
   EXPECT_THAT(valence, Pointwise(Eq(), expected_valence));
-  //EXPECT_THAT(valence, Each(AllOf(Eq(8))));
 }
+}  // namespace
 
+#define FLO_VERTEX_VERTEX_ADJACENCY_TEST(NAME) \
+  TEST(VertexVertexAdjacency, NAME)            \
+  {                                            \
+    test(#NAME);                               \
+  }
+
+FLO_VERTEX_VERTEX_ADJACENCY_TEST(cube)
+FLO_VERTEX_VERTEX_ADJACENCY_TEST(spot)
+
+#undef FLO_VERTEX_VERTEX_ADJACENCY_TEST
 

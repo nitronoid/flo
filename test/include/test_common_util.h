@@ -2,6 +2,8 @@
 #define FLO_INCLUDED_TEST_COMMON_UTIL
 
 #include "flo/host/surface.hpp"
+#include "flo/host/flo_matrix_operation.hpp"
+#include <unsupported/Eigen/SparseExtra>
 #if defined(__CUDACC__)
 #include <cusp/io/matrix_market.h>
 #include <cusp/print.h>
@@ -66,6 +68,34 @@ cusp::coo_matrix<int, T, cusp::device_memory>
 read_device_sparse_matrix(std::string path)
 {
   return read_host_sparse_matrix<T>(path);
+}
+
+#else
+
+template <typename T>
+std::vector<T> read_vector(std::string path)
+{
+  Eigen::Matrix<T, Eigen::Dynamic, 1> ret;
+  Eigen::loadMarketVector(ret, path);
+  return flo::host::matrix_to_array(ret);
+}
+
+template <typename T, int DIM = Eigen::Dynamic>
+std::vector<Eigen::Matrix<T, DIM, 1>>
+read_dense_matrix(std::string path)
+{
+  Eigen::SparseMatrix<T> temp;
+  Eigen::loadMarket(temp, path);
+  Eigen::Matrix<T, Eigen::Dynamic, DIM> ret = temp;
+  return flo::host::matrix_to_array(ret);
+}
+
+template <typename T>
+Eigen::SparseMatrix<T> read_sparse_matrix(std::string path)
+{
+  Eigen::SparseMatrix<T> ret;
+  Eigen::loadMarket(ret, path);
+  return ret;
 }
 
 #endif

@@ -2,25 +2,29 @@
 #include "flo/host/flo_matrix_operation.hpp"
 #include "flo/host/area.hpp"
 
-#define FACE_AREA_TEST(NAME)                                                 \
-  TEST(FaceArea, NAME)                                                       \
-  {                                                                          \
-    const std::string name = #NAME;                                          \
-    const std::string matrix_prefix = "../matrices/" + name;                 \
-    const auto& surf =                                                       \
-      TestCache::get_mesh<TestCache::HOST>(name + ".obj");                   \
-    auto A = flo::host::area(surf.vertices, surf.faces);                     \
-    Eigen::Matrix<flo::real, 1, Eigen::Dynamic> dense_A;                     \
-    Eigen::loadMarketVector(dense_A, matrix_prefix + "/area/area.mtx");      \
-    gsl::span<flo::real> expected_A{dense_A.data(), (size_t)dense_A.size()}; \
-    using namespace testing;                                                 \
-    EXPECT_THAT(A, Pointwise(FloatNear(FLOAT_SOFT_EPSILON), expected_A));    \
+namespace
+{
+void test(std::string name)
+{
+  const std::string mp = "../matrices/" + name;
+  auto& surf = TestCache::get_mesh<TestCache::HOST>(name + ".obj");
+
+  auto A = flo::host::area(surf.vertices, surf.faces);
+
+  auto expected_A = read_vector<flo::real>(mp + "/face_area/face_area.mtx");
+
+  using namespace testing;
+  EXPECT_THAT(A, Pointwise(FloatNear(FLOAT_SOFT_EPSILON), expected_A));
+}
+}  // namespace
+
+#define FLO_FACE_AREA_TEST(NAME) \
+  TEST(FaceArea, NAME)           \
+  {                              \
+    test(#NAME);                 \
   }
 
-FACE_AREA_TEST(cube)
-FACE_AREA_TEST(spot)
-// FACE_AREA_TEST(dense_sphere_400x400)
-// FACE_AREA_TEST(dense_sphere_1000x1000)
-// FACE_AREA_TEST(dense_sphere_1500x1500)
+FLO_FACE_AREA_TEST(cube)
+FLO_FACE_AREA_TEST(spot)
 
-#undef FACE_AREA_TEST
+#undef FLO_FACE_AREA_TEST

@@ -7,6 +7,5 @@
 #include "test_common_matchers.h"
 #include "test_common_util.h"
 #include "test_cache.h"
-#include <unsupported/Eigen/SparseExtra>
 
 #endif  // FLO_INCLUDED_TEST_COMMON
