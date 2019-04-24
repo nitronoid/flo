@@ -68,6 +68,7 @@ std::vector<T> flatten(const std::vector<std::vector<T>>& array2d)
   array1d.reserve(N);
   for (const auto& row : array2d)
   {
+
     std::copy(row.begin(), row.end(), std::back_inserter(array1d));
   }
   return array1d;
@@ -115,6 +116,8 @@ Adjacency vertex_vertex_adjacency(const gsl::span<Eigen::Vector3i> i_faces)
 
   std::vector<std::vector<int>> A;
   igl::adjacency_list(F, A, false);
+  std::copy(A[0].begin(), A[0].end(), std::ostream_iterator<int>(std::cout, " "));
+  std::cout<<"\n";
   ret.adjacency = flatten(A);
 
   ret.valence.reserve(nverts);
@@ -145,7 +148,7 @@ Adjacency vertex_vertex_adjacency(const gsl::span<Eigen::Vector3i> i_faces)
 
 int main()
 {
-  const std::string name = "cube";
+  const std::string name = "spot";
   const std::string matrix_prefix = "matrices/" + name + "/";
   // We'll only write results from the host API in the application
   using namespace flo;
@@ -223,7 +226,7 @@ int main()
   const auto lambda = similarity_xform(D);
   const auto LAM = array_to_matrix(gsl::make_span(lambda));
   Eigen::saveMarket(LAM,
-                    matrix_prefix + "similarity_xform/intrinsic_dirac.mtx");
+                    matrix_prefix + "similarity_xform/lambda.mtx");
 
   // Calculate our transformed edges
   auto new_edges = divergent_edges(surf.vertices, surf.faces, lambda, L);
