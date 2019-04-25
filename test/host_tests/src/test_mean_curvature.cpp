@@ -12,19 +12,8 @@ void test(std::string name)
   auto L = read_sparse_matrix<flo::real>(
     mp + "/cotangent_laplacian/cotangent_laplacian.mtx");
   auto M = read_vector<flo::real>(mp + "/vertex_mass/vertex_mass.mtx");
-
-  Eigen::Matrix<flo::real, Eigen::Dynamic, 3> N(8,3);
-  // clang-format off
-  N <<
-    -0.57735, -0.57735,  0.57735,
-     0.57735, -0.57735,  0.57735,
-    -0.57735,  0.57735,  0.57735,
-     0.57735,  0.57735,  0.57735,
-    -0.57735,  0.57735, -0.57735,
-     0.57735,  0.57735, -0.57735,
-    -0.57735, -0.57735, -0.57735,
-     0.57735, -0.57735, -0.57735;
-  // clang-format on
+  auto N =
+    read_dense_matrix<flo::real, 3>(mp + "/vertex_normals/vertex_normals.mtx");
 
   Eigen::Matrix<flo::real, Eigen::Dynamic, 3> HN;
   flo::host::mean_curvature_normal(surf.vertices, L, M, HN);
@@ -35,32 +24,18 @@ void test(std::string name)
   Eigen::Matrix<flo::real, Eigen::Dynamic, 1> SH;
   flo::host::signed_mean_curvature(surf.vertices, L, M, N, SH);
 
-  //-------------------------------------------------------------------------
-  // RESULTS
-  //-------------------------------------------------------------------------
-  Eigen::Matrix<flo::real, Eigen::Dynamic, 3> expected_HN(8,3);
-  // clang-format off
-  expected_HN << 
-     0.20,  0.20, -0.20,
-    -0.25,  0.25, -0.25,
-     0.25, -0.25, -0.25,
-    -0.20, -0.20, -0.20,
-     0.20, -0.20,  0.20,
-    -0.25, -0.25,  0.25,
-     0.25,  0.25,  0.25,
-    -0.20,  0.20,  0.20;
-  // clang-format on
-  Eigen::Matrix<flo::real, Eigen::Dynamic, 1> expected_H(8,1);
-  // clang-format off
-  expected_H << 
-    0.34641, 0.43301, 0.43301, 0.34641, 0.34641, 0.43301, 0.43301, 0.34641;
-  // clang-format on
+  auto expected_HN = read_dense_matrix<flo::real, 3>(
+    mp + "/mean_curvature/mean_curvature_normal.mtx");
+  auto expected_H =
+    read_vector<flo::real>(mp + "/mean_curvature/mean_curvature.mtx");
+  auto expected_SH =
+    read_vector<flo::real>(mp + "/mean_curvature/signed_mean_curvature.mtx");
 
   EXPECT_MAT_NEAR(HN, expected_HN);
   EXPECT_MAT_NEAR(H, expected_H);
-  EXPECT_MAT_NEAR(SH, expected_H);
+  EXPECT_MAT_NEAR(SH, expected_SH);
 }
-}
+}  // namespace
 
 #define FLO_MEAN_CURVATURE_TEST(NAME) \
   TEST(MeanCurvature, NAME)           \
@@ -69,6 +44,6 @@ void test(std::string name)
   }
 
 FLO_MEAN_CURVATURE_TEST(cube)
-// FLO_MEAN_CURVATURE_TEST(spot)
+FLO_MEAN_CURVATURE_TEST(spot)
 
 #undef FLO_MEAN_CURVATURE_TEST

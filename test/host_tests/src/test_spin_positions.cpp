@@ -30,7 +30,6 @@ void test(std::string name)
 
   Eigen::Matrix<flo::real, Eigen::Dynamic, 4> V;
   flo::host::spin_positions(QL, E, V);
-  std::cout<<"pass\n";
 
   Eigen::Matrix<flo::real, Eigen::Dynamic, 4> expected_V(8, 4);
   // clang-format off
