@@ -11,13 +11,13 @@ void test(std::string name)
   auto D =
     read_sparse_matrix<flo::real>(mp + "/intrinsic_dirac/intrinsic_dirac.mtx");
 
-  auto lambda = flo::host::similarity_xform(D);
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 4> X;
+  flo::host::similarity_xform(D, X);
 
-  auto expected_lambda =
+  auto expected_X =
     read_dense_matrix<flo::real, 4>(mp + "/similarity_xform/lambda.mtx");
 
-  using namespace testing;
-  EXPECT_THAT(lambda, Pointwise(EigenNear(), expected_lambda));
+  EXPECT_MAT_NEAR(X, expected_X);
 }
 }  // namespace
 

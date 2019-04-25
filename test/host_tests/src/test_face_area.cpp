@@ -1,6 +1,5 @@
 #include "test_common.h"
-#include "flo/host/flo_matrix_operation.hpp"
-#include "flo/host/area.hpp"
+#include <igl/doublearea.h>
 
 namespace
 {
@@ -9,12 +8,12 @@ void test(std::string name)
   const std::string mp = "../matrices/" + name;
   auto& surf = TestCache::get_mesh<TestCache::HOST>(name + ".obj");
 
-  auto A = flo::host::area(surf.vertices, surf.faces);
-
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 1> A;
+  igl::doublearea(surf.vertices, surf.faces, A);
+  A *= 0.5f;
   auto expected_A = read_vector<flo::real>(mp + "/face_area/face_area.mtx");
 
-  using namespace testing;
-  EXPECT_THAT(A, Pointwise(FloatNear(FLOAT_SOFT_EPSILON), expected_A));
+  EXPECT_MAT_NEAR(A, expected_A);
 }
 }  // namespace
 

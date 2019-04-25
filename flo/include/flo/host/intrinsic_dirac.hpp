@@ -5,17 +5,25 @@
 
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
-#include <vector>
+#include "flo/host/flo_matrix_operation.hpp"
+#include "flo/host/flo_quaternion_operation.hpp"
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API Eigen::SparseMatrix<real> intrinsic_dirac(
-    const gsl::span<const Eigen::Matrix<real, 3, 1>> i_vertices, 
-    const gsl::span<const Eigen::Vector3i> i_faces,
-    const gsl::span<const int> i_valence,
-    const gsl::span<const real> i_face_area,
-    const gsl::span<const real> i_rho);
+template <typename DerivedV,
+          typename DerivedF,
+          typename DerivedVV,
+          typename DerivedA,
+          typename DerivedP>
+FLO_API void intrinsic_dirac(const Eigen::MatrixBase<DerivedV>& V,
+                             const Eigen::MatrixBase<DerivedF>& F,
+                             const Eigen::MatrixBase<DerivedVV>& VV,
+                             const Eigen::MatrixBase<DerivedA>& A,
+                             const Eigen::MatrixBase<DerivedP>& P,
+                             Eigen::SparseMatrix<real>& D);
+
+#include "intrinsic_dirac.cpp"
 
 FLO_HOST_NAMESPACE_END
 
-#endif//FLO_HOST_INCLUDED_INTRINSIC_DIRAC
+#endif  // FLO_HOST_INCLUDED_INTRINSIC_DIRAC

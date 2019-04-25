@@ -6,13 +6,13 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<real> project_basis(
-      const gsl::span<const real> i_vectors,
-      const gsl::span<const real> i_basis, 
-      const uint i_basis_cols, 
-      nonstd::function_ref<
-      real(const Eigen::Matrix<real, Eigen::Dynamic, 1>&, const Eigen::Matrix<real, Eigen::Dynamic, 1>&)> i_inner_product);
+template <typename DerivedV, typename DerivedU, typename BinaryOp>
+FLO_API void project_basis(Eigen::MatrixBase<DerivedV>& V,
+                           const Eigen::MatrixBase<DerivedU>& U,
+                           BinaryOp inner_product);
+
+#include "project_basis.cpp"
 
 FLO_HOST_NAMESPACE_END
 
-#endif//FLO_HOST_INCLUDED_PROJECT_BASIS
+#endif  // FLO_HOST_INCLUDED_PROJECT_BASIS

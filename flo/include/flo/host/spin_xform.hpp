@@ -4,21 +4,25 @@
 #include "flo/flo_internal.hpp"
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
-#include <vector>
+#include "flo/host/spin_xform.hpp"
+#include "flo/host/flo_matrix_operation.hpp"
+#include "flo/host/intrinsic_dirac.hpp"
+#include "flo/host/valence.hpp"
+#include "flo/host/similarity_xform.hpp"
+#include "flo/host/divergent_edges.hpp"
+#include "flo/host/spin_positions.hpp"
+#include <igl/face_areas.h>
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<Eigen::Matrix<real, 3, 1>> spin_xform(
-    const gsl::span<const Eigen::Matrix<real, 3, 1>> i_vertices,
-    const gsl::span<const Eigen::Vector3i> i_faces,
-    const gsl::span<const real> i_rho,
-    const Eigen::SparseMatrix<real> i_cotangent_laplacian);
+template <typename DerivedV, typename DerivedF, typename DerivedP>
+FLO_API void spin_xform(Eigen::MatrixBase<DerivedV>& V,
+                        const Eigen::MatrixBase<DerivedF>& F,
+                        const Eigen::MatrixBase<DerivedP>& P,
+                        const Eigen::SparseMatrix<real> L);
 
-FLO_API std::vector<Eigen::Matrix<real, 3, 1>> spin_xform(
-    const gsl::span<const Eigen::Matrix<real, 3, 1>> i_vertices,
-    const gsl::span<const Eigen::Vector3i> i_faces,
-    const gsl::span<const real> i_rho);
+#include "spin_xform.cpp"
 
 FLO_HOST_NAMESPACE_END
 
-#endif//FLO_HOST_INCLUDED_SPIN_XFORM
+#endif  // FLO_HOST_INCLUDED_SPIN_XFORM

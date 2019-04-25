@@ -1,8 +1,5 @@
 #include "test_common.h"
-
 #include "flo/host/intrinsic_dirac.hpp"
-#include "flo/host/area.hpp"
-#include "flo/host/valence.hpp"
 
 namespace
 {
@@ -11,13 +8,16 @@ void test(std::string name)
   const std::string mp = "../matrices/" + name;
   auto& surf = TestCache::get_mesh<TestCache::HOST>(name + ".obj");
 
-  std::vector<flo::real> rho(surf.n_vertices(), 3.0f);
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 1> rho(surf.n_vertices(), 1);
+  rho.setConstant(3.0f);
+
   auto vertex_valence =
     read_vector<int>(mp + "/vertex_vertex_adjacency/valence.mtx");
   auto face_area = read_vector<flo::real>(mp + "/face_area/face_area.mtx");
 
-  auto D = flo::host::intrinsic_dirac(
-    surf.vertices, surf.faces, vertex_valence, face_area, rho);
+  Eigen::SparseMatrix<flo::real> D;
+  flo::host::intrinsic_dirac(
+    surf.vertices, surf.faces, vertex_valence, face_area, rho, D);
 
   auto expected_D =
     read_sparse_matrix<flo::real>(mp + "/intrinsic_dirac/intrinsic_dirac.mtx");

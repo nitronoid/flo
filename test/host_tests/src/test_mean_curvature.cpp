@@ -2,59 +2,73 @@
 
 #include "flo/host/mean_curvature.hpp"
 
-TEST(MeanCurvature, cube)
+namespace
 {
-  auto cube = make_cube();
+void test(std::string name)
+{
+  const std::string mp = "../matrices/" + name;
+  auto& surf = TestCache::get_mesh<TestCache::HOST>(name + ".obj");
 
-  Eigen::Matrix<flo::real, 8, 8> dense_L(8,8);
-  dense_L <<
-     3, -1, -1,  0, -0,  0, -1, -0, 
-    -1,  3, -0, -1,  0,  0,  0, -1, 
-    -1, -0,  3, -1, -1,  0,  0,  0, 
-     0, -1, -1,  3, -0, -1,  0, -0, 
-    -0,  0, -1, -0,  3, -1, -1,  0, 
-     0,  0,  0, -1, -1,  3, -0, -1, 
-    -1,  0,  0,  0, -1, -0,  3, -1, 
-    -0, -1,  0, -0,  0, -1, -1,  3;
-  Eigen::SparseMatrix<flo::real> L = dense_L.sparseView();
+  auto L = read_sparse_matrix<flo::real>(
+    mp + "/cotangent_laplacian/cotangent_laplacian.mtx");
+  auto M = read_vector<flo::real>(mp + "/vertex_mass/vertex_mass.mtx");
 
-  using normal_t = Eigen::Matrix<flo::real, 3, 1>;
-  std::vector<normal_t> normals {
-    {-0.57735, -0.57735,  0.57735},
-    { 0.57735, -0.57735,  0.57735},
-    {-0.57735,  0.57735,  0.57735},
-    { 0.57735,  0.57735,  0.57735},
-    {-0.57735,  0.57735, -0.57735},
-    { 0.57735,  0.57735, -0.57735},
-    {-0.57735, -0.57735, -0.57735},
-    { 0.57735, -0.57735, -0.57735}};
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 3> N(8,3);
+  // clang-format off
+  N <<
+    -0.57735, -0.57735,  0.57735,
+     0.57735, -0.57735,  0.57735,
+    -0.57735,  0.57735,  0.57735,
+     0.57735,  0.57735,  0.57735,
+    -0.57735,  0.57735, -0.57735,
+     0.57735,  0.57735, -0.57735,
+    -0.57735, -0.57735, -0.57735,
+     0.57735, -0.57735, -0.57735;
+  // clang-format on
 
-  std::vector<flo::real> mass {
-    0.833333, 0.666667, 0.666667, 0.833333, 0.833333, 0.666667, 0.666667, 0.833333};
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 3> HN;
+  flo::host::mean_curvature_normal(surf.vertices, L, M, HN);
 
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 1> H;
+  flo::host::mean_curvature(surf.vertices, L, M, H);
 
-  auto HN = flo::host::mean_curvature_normal(cube.vertices, L, mass);
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 1> SH;
+  flo::host::signed_mean_curvature(surf.vertices, L, M, N, SH);
 
-  std::vector<normal_t> expected_HN {
-    { 0.20,  0.20, -0.20},
-    {-0.25,  0.25, -0.25},
-    { 0.25, -0.25, -0.25},
-    {-0.20, -0.20, -0.20},
-    { 0.20, -0.20,  0.20},
-    {-0.25, -0.25,  0.25},
-    { 0.25,  0.25,  0.25},
-    {-0.20,  0.20,  0.20}};
+  //-------------------------------------------------------------------------
+  // RESULTS
+  //-------------------------------------------------------------------------
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 3> expected_HN(8,3);
+  // clang-format off
+  expected_HN << 
+     0.20,  0.20, -0.20,
+    -0.25,  0.25, -0.25,
+     0.25, -0.25, -0.25,
+    -0.20, -0.20, -0.20,
+     0.20, -0.20,  0.20,
+    -0.25, -0.25,  0.25,
+     0.25,  0.25,  0.25,
+    -0.20,  0.20,  0.20;
+  // clang-format on
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 1> expected_H(8,1);
+  // clang-format off
+  expected_H << 
+    0.34641, 0.43301, 0.43301, 0.34641, 0.34641, 0.43301, 0.43301, 0.34641;
+  // clang-format on
 
-  auto H  = flo::host::mean_curvature(cube.vertices, L, mass);
-  std::vector<flo::real> expected_H {
-    0.34641, 0.43301, 0.43301, 0.34641, 0.34641, 0.43301, 0.43301, 0.34641};
-
-  // Should be all positive like H
-  auto SH = flo::host::signed_mean_curvature(cube.vertices, L, mass, normals);
-
-  using namespace testing;
-  EXPECT_THAT(expected_HN, Pointwise(EigenNear(), HN));
-  EXPECT_THAT(expected_H,  Pointwise(FloatNear(FLOAT_SOFT_EPSILON), H));
-  EXPECT_THAT(expected_H,  Pointwise(FloatNear(FLOAT_SOFT_EPSILON), SH));
+  EXPECT_MAT_NEAR(HN, expected_HN);
+  EXPECT_MAT_NEAR(H, expected_H);
+  EXPECT_MAT_NEAR(SH, expected_H);
+}
 }
 
+#define FLO_MEAN_CURVATURE_TEST(NAME) \
+  TEST(MeanCurvature, NAME)           \
+  {                                   \
+    test(#NAME);                      \
+  }
+
+FLO_MEAN_CURVATURE_TEST(cube)
+// FLO_MEAN_CURVATURE_TEST(spot)
+
+#undef FLO_MEAN_CURVATURE_TEST

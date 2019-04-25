@@ -1,28 +1,41 @@
 #include "test_common.h"
+#include <igl/per_vertex_normals.h>
 
-#include "flo/host/vertex_normals.hpp"
-
-TEST(VertexNormals, cube)
+namespace
 {
-  auto cube = make_cube();
+void test(std::string name)
+{
+  const std::string mp = "../matrices/" + name;
+  auto& surf = TestCache::get_mesh<TestCache::HOST>(name + ".obj");
 
-  auto normals = flo::host::vertex_normals(cube.vertices, cube.faces);
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 3> N;
+  igl::per_vertex_normals(
+    surf.vertices, surf.faces, igl::PER_VERTEX_NORMALS_WEIGHTING_TYPE_ANGLE, N);
 
-  using normal_t = Eigen::Matrix<flo::real, 3, 1>;
-  std::vector<normal_t> expected_normals {
-    {-0.57735, -0.57735,  0.57735},
-    { 0.57735, -0.57735,  0.57735},
-    {-0.57735,  0.57735,  0.57735},
-    { 0.57735,  0.57735,  0.57735},
-    {-0.57735,  0.57735, -0.57735},
-    { 0.57735,  0.57735, -0.57735},
-    {-0.57735, -0.57735, -0.57735},
-    { 0.57735, -0.57735, -0.57735}};
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 3> expected_N(8, 3);
+  // clang-format off
+  expected_N <<
+    -0.57735, -0.57735,  0.57735,
+     0.57735, -0.57735,  0.57735,
+    -0.57735,  0.57735,  0.57735,
+     0.57735,  0.57735,  0.57735,
+    -0.57735,  0.57735, -0.57735,
+     0.57735,  0.57735, -0.57735,
+    -0.57735, -0.57735, -0.57735,
+     0.57735, -0.57735, -0.57735;
+  // clang-format on
 
-  using namespace testing;
-  EXPECT_THAT(normals, Pointwise(EigenNear(), expected_normals));
-
+  EXPECT_MAT_NEAR(N, expected_N);
 }
+}  // namespace
 
+#define FLO_VERTEX_NORMALS_TEST(NAME) \
+  TEST(VertexNormals, NAME)           \
+  {                                   \
+    test(#NAME);                      \
+  }
 
+FLO_VERTEX_NORMALS_TEST(cube)
+// FLO_VERTEX_NORMALS_TEST(spot)
 
+#undef FLO_VERTEX_NORMALS_TEST

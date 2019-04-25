@@ -3,16 +3,26 @@
 
 #include "flo/flo_internal.hpp"
 #include <Eigen/Dense>
+#include "flo/host/willmore_flow.hpp"
+#include "flo/host/mean_curvature.hpp"
+#include "flo/host/flo_matrix_operation.hpp"
+#include "flo/host/spin_xform.hpp"
+#include "flo/host/vertex_mass.hpp"
+#include "flo/host/orthonormalize.hpp"
+#include "flo/host/project_basis.hpp"
+#include <igl/cotmatrix.h>
+#include <igl/per_vertex_normals.h>
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<Eigen::Matrix<real, 3, 1>> willmore_flow(
-    const gsl::span<const Eigen::Matrix<real, 3, 1>> i_vertices,
-    const gsl::span<const Eigen::Vector3i> i_faces,
-    nonstd::function_ref<
-    void(gsl::span<real> x, const gsl::span<const real> dx)> i_integrator);
+template <typename DerivedV, typename DerivedF, typename BinaryOp>
+FLO_API void willmore_flow(Eigen::MatrixBase<DerivedV>& V,
+                           const Eigen::MatrixBase<DerivedF>& F,
+                           BinaryOp integrator);
+
+#include "willmore_flow.cpp"
 
 FLO_HOST_NAMESPACE_END
 
-#endif//FLO_INCLUDED_WILLMORE_FLOW
+#endif  // FLO_INCLUDED_WILLMORE_FLOW
 

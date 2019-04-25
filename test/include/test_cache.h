@@ -6,11 +6,11 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <igl/readOBJ.h>
 #include "flo/host/surface.hpp"
 #ifdef __CUDACC__
 #include "flo/device/surface.cuh"
 #endif
-#include "flo/host/load_mesh.hpp"
 #include "test_common_macros.h"
 
 struct TestCache
@@ -56,7 +56,7 @@ public:
     {
       std::cout << "Loading mesh from file: " << file_path << '\n';
       std::unique_ptr<flo::host::Surface> h_mesh(new flo::host::Surface);
-      *h_mesh = flo::host::load_mesh(file_path.c_str());
+      igl::readOBJ(file_path.c_str(), h_mesh->vertices, h_mesh->faces);
 #ifdef __CUDACC__
       std::cout << "Performing device copy\n";
       std::unique_ptr<flo::device::Surface> d_mesh(new flo::device::Surface);

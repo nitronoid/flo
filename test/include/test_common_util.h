@@ -73,21 +73,21 @@ read_device_sparse_matrix(std::string path)
 #else
 
 template <typename T>
-std::vector<T> read_vector(std::string path)
+Eigen::Matrix<T, Eigen::Dynamic, 1> read_vector(std::string path)
 {
   Eigen::Matrix<T, Eigen::Dynamic, 1> ret;
   Eigen::loadMarketVector(ret, path);
-  return flo::host::matrix_to_array(ret);
+  return ret;
 }
 
 template <typename T, int DIM = Eigen::Dynamic>
-std::vector<Eigen::Matrix<T, DIM, 1>>
+Eigen::Matrix<T, Eigen::Dynamic, DIM>
 read_dense_matrix(std::string path)
 {
   Eigen::SparseMatrix<T> temp;
   Eigen::loadMarket(temp, path);
   Eigen::Matrix<T, Eigen::Dynamic, DIM> ret = temp;
-  return flo::host::matrix_to_array(ret);
+  return ret;
 }
 
 template <typename T>
@@ -99,30 +99,5 @@ Eigen::SparseMatrix<T> read_sparse_matrix(std::string path)
 }
 
 #endif
-
-inline flo::host::Surface make_cube()
-{
-  std::vector<Eigen::Matrix<flo::real, 3, 1>> vertices{{-0.5, -0.5, 0.5},
-                                                       {0.5, -0.5, 0.5},
-                                                       {-0.5, 0.5, 0.5},
-                                                       {0.5, 0.5, 0.5},
-                                                       {-0.5, 0.5, -0.5},
-                                                       {0.5, 0.5, -0.5},
-                                                       {-0.5, -0.5, -0.5},
-                                                       {0.5, -0.5, -0.5}};
-  std::vector<Eigen::Vector3i> faces{{0, 1, 2},
-                                     {2, 1, 3},
-                                     {2, 3, 4},
-                                     {4, 3, 5},
-                                     {4, 5, 6},
-                                     {6, 5, 7},
-                                     {6, 7, 0},
-                                     {0, 7, 1},
-                                     {1, 7, 3},
-                                     {3, 7, 5},
-                                     {6, 0, 4},
-                                     {4, 0, 2}};
-  return {vertices, faces};
-}
 
 #endif  // FLO_INCLUDED_TEST_COMMON_UTIL

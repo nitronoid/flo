@@ -8,13 +8,13 @@ void test(std::string name)
   const std::string mp = "../matrices/" + name;
   auto& surf = TestCache::get_mesh<TestCache::HOST>(name + ".obj");
 
-  auto mass = flo::host::vertex_mass(surf.vertices, surf.faces);
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 1> M;
+  flo::host::vertex_mass(surf.vertices, surf.faces, M);
 
-  auto expected_mass =
+  auto expected_M =
     read_vector<flo::real>(mp + "/vertex_mass/vertex_mass.mtx");
 
-  using namespace testing;
-  EXPECT_THAT(mass, Pointwise(FloatNear(FLOAT_SOFT_EPSILON), expected_mass));
+  EXPECT_MAT_NEAR(M, expected_M);
 }
 }  // namespace
 

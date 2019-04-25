@@ -7,8 +7,7 @@ DESTDIR = lib
 OBJECTS_DIR = obj
 CUDA_OBJECTS_DIR = cudaobj
 
-HEADERS += $$files(include/flo/*(.hpp | .inl | cuh), true)
-SOURCES += $$files(src/*.cpp, true)
+HEADERS += $$files(include/flo/*(.hpp | cuh), true)
 CUDA_SOURCES += $$files(src/*.cu, true) 
 
 

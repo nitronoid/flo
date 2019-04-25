@@ -9,26 +9,27 @@ void test(std::string name)
   auto& surf = TestCache::get_mesh<TestCache::HOST>(name + ".obj");
 
   // Declare arrays to dump our results
-  std::vector<int> adjacency(surf.n_faces() * 3);
-  std::vector<int> valence(surf.n_vertices());
-  std::vector<int> cumulative_valence(surf.n_vertices() + 1);
+  Eigen::Matrix<int, Eigen::Dynamic, 1> VTAK;
+  Eigen::Matrix<int, Eigen::Dynamic, 1> VTA;
+  Eigen::Matrix<int, Eigen::Dynamic, 1> VTV;
+  Eigen::Matrix<int, Eigen::Dynamic, 1> VTCV;
 
   // Run the function
-  flo::host::vertex_triangle_adjacency(
-    surf.faces, surf.n_vertices(), adjacency, valence, cumulative_valence);
+  flo::host::vertex_triangle_adjacency(surf.faces, VTAK, VTA, VTV, VTCV);
 
-  auto expected_valence =
-    read_vector<int>(mp + "/vertex_triangle_adjacency/valence.mtx");
-  auto expected_cumulative_valence =
-    read_vector<int>(mp + "/vertex_triangle_adjacency/cumulative_valence.mtx");
-  auto expected_adjacency =
+  auto expected_VTAK =
+    read_vector<int>(mp + "/vertex_triangle_adjacency/adjacency_keys.mtx");
+  auto expected_VTA =
     read_vector<int>(mp + "/vertex_triangle_adjacency/adjacency.mtx");
+  auto expected_VTV =
+    read_vector<int>(mp + "/vertex_triangle_adjacency/valence.mtx");
+  auto expected_VTCV =
+    read_vector<int>(mp + "/vertex_triangle_adjacency/cumulative_valence.mtx");
 
-  using namespace testing;
-  EXPECT_THAT(adjacency, ElementsAreArray(expected_adjacency));
-  EXPECT_THAT(valence, ElementsAreArray(expected_valence));
-  EXPECT_THAT(cumulative_valence,
-              ElementsAreArray(expected_cumulative_valence));
+  EXPECT_MAT_NEAR(VTAK, expected_VTAK);
+  EXPECT_MAT_NEAR(VTA, expected_VTA);
+  EXPECT_MAT_NEAR(VTV, expected_VTV);
+  EXPECT_MAT_NEAR(VTCV, expected_VTCV);
 }
 }  // namespace
 

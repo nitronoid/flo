@@ -1,54 +1,64 @@
 #include "test_common.h"
-
 #include "flo/host/spin_positions.hpp"
 #include "flo/host/flo_matrix_operation.hpp"
 
-TEST(SpinPositions, cube)
+namespace
 {
-  auto cube = make_cube();
+void test(std::string name)
+{
+  const std::string mp = "../matrices/" + name;
+  auto& surf = TestCache::get_mesh<TestCache::HOST>(name + ".obj");
 
-  Eigen::Matrix<flo::real, 8, 8> dense_L(8,8);
-  dense_L <<
-     3, -1, -1,  0, -0,  0, -1, -0, 
-    -1,  3, -0, -1,  0,  0,  0, -1, 
-    -1, -0,  3, -1, -1,  0,  0,  0, 
-     0, -1, -1,  3, -0, -1,  0, -0, 
-    -0,  0, -1, -0,  3, -1, -1,  0, 
-     0,  0,  0, -1, -1,  3, -0, -1, 
-    -1,  0,  0,  0, -1, -0,  3, -1, 
-    -0, -1,  0, -0,  0, -1, -1,  3;
-  Eigen::SparseMatrix<flo::real> L = dense_L.sparseView();
-  auto ql = flo::host::to_real_quaternion_matrix(L);
-
+  auto L = read_sparse_matrix<flo::real>(
+    mp + "/cotangent_laplacian/cotangent_laplacian.mtx");
+  auto QL = flo::host::to_real_quaternion_matrix(L);
   // Make this positive semi-definite by removing last row and col
-  ql.conservativeResize(ql.rows() - 4, ql.cols() - 4);
+  QL.conservativeResize(QL.rows() - 4, QL.cols() - 4);
 
   // Make this positive semi-definite by removing last edge
-  using quat_t = Eigen::Matrix<flo::real, 4, 1>;
-  std::vector<quat_t> edges(7);
-  edges[0] = quat_t{-0.021560, -0.021560, -0.184704,  0.000000};
-  edges[1] = quat_t{-0.032538,  0.032539,  0.044884, -0.000000};
-  edges[2] = quat_t{ 0.032538, -0.032539,  0.044884, -0.000000};
-  edges[3] = quat_t{ 0.021560,  0.021560, -0.184704,  0.000000};
-  edges[4] = quat_t{-0.021560,  0.021560,  0.184704,  0.000000};
-  edges[5] = quat_t{-0.032538, -0.032539, -0.044884, -0.000000};
-  edges[6] = quat_t{ 0.032538,  0.032539, -0.044884, -0.000000};
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 4> E(7, 4);
+  // clang-format off
+  E <<
+    -0.021560, -0.021560, -0.184704,  0.000000,
+    -0.032538,  0.032539,  0.044884, -0.000000,
+     0.032538, -0.032539,  0.044884, -0.000000,
+     0.021560,  0.021560, -0.184704,  0.000000,
+    -0.021560,  0.021560,  0.184704,  0.000000,
+    -0.032538, -0.032539, -0.044884, -0.000000,
+     0.032538,  0.032539, -0.044884, -0.000000;
+  // clang-format on
 
-  auto positions = flo::host::spin_positions(ql, edges);
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 4> V;
+  flo::host::spin_positions(QL, E, V);
+  std::cout<<"pass\n";
 
-  std::vector<Eigen::Matrix<flo::real, 3, 1>> expected_positions {
-    {-0.062869, -0.062867, -0.996040},
-    {-0.148760,  0.148766, -0.097901},
-    { 0.148760, -0.148766, -0.097901},
-    { 0.062869,  0.062867, -0.996040},
-    {-0.062869,  0.062867,  0.996040},
-    {-0.148760, -0.148766,  0.097901},
-    { 0.148760,  0.148766,  0.097901},
-    { 0.062869, -0.062867,  0.996040}};
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 4> expected_V(8, 4);
+  // clang-format off
+  expected_V <<
+    -0.062869, -0.062867, -0.996040,  0.000000,
+    -0.148760,  0.148766, -0.097901,  0.000000,
+     0.148760, -0.148766, -0.097901,  0.000000,
+     0.062869,  0.062867, -0.996040,  0.000000,
+    -0.062869,  0.062867,  0.996040,  0.000000,
+    -0.148760, -0.148766,  0.097901,  0.000000,
+     0.148760,  0.148766,  0.097901,  0.000000,
+     0.062869, -0.062867,  0.996040,  0.000000;
+  // clang-format on
 
-  using namespace testing;
-  EXPECT_THAT(positions, Pointwise(EigenNear(), expected_positions));
+  EXPECT_MAT_NEAR(V, expected_V);
 }
+}
+
+#define FLO_SPIN_POSITIONS_TEST(NAME) \
+  TEST(SpinPositions, NAME)           \
+  {                                   \
+    test(#NAME);                      \
+  }
+
+//FLO_SPIN_POSITIONS_TEST(cube)
+// FLO_SPIN_POSITIONS_TEST(spot)
+
+#undef FLO_SPIN_POSITIONS_TEST
 
 
 

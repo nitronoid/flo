@@ -4,17 +4,23 @@
 #include "flo/flo_internal.hpp"
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
-#include <vector>
+#include "flo/host/flo_quaternion_operation.hpp"
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<Eigen::Matrix<real, 4, 1>> divergent_edges(
-    const gsl::span<const Eigen::Matrix<real, 3, 1>> i_vertices,
-    const gsl::span<const Eigen::Vector3i> i_faces,
-    const gsl::span<const Eigen::Matrix<real, 4, 1>> i_lambda,
-    const Eigen::SparseMatrix<real> i_cotangent_laplacian);
+template <typename DerivedV,
+          typename DerivedF,
+          typename DerivedH,
+          typename DerivedE>
+FLO_API void divergent_edges(const Eigen::MatrixBase<DerivedV>& V,
+                             const Eigen::MatrixBase<DerivedF>& F,
+                             const Eigen::MatrixBase<DerivedH>& h,
+                             const Eigen::SparseMatrix<real>& L,
+                             Eigen::PlainObjectBase<DerivedE>& E);
+
+#include "divergent_edges.cpp"
 
 FLO_HOST_NAMESPACE_END
 
-#endif//FLO_HOST_INCLUDED_DIVERGENT_EDGES
+#endif  // FLO_HOST_INCLUDED_DIVERGENT_EDGES
 

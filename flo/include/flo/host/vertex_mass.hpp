@@ -3,14 +3,18 @@
 
 #include "flo/flo_internal.hpp"
 #include <Eigen/Dense>
+#include <igl/doublearea.h>
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<real> vertex_mass(
-    const gsl::span<const Eigen::Matrix<real, 3, 1>> i_vertices,
-    const gsl::span<const Eigen::Vector3i> i_faces);
+template <typename DerivedV, typename DerivedF, typename DerivedM>
+FLO_API void vertex_mass(const Eigen::MatrixBase<DerivedV>& V,
+                         const Eigen::MatrixBase<DerivedF>& F,
+                         Eigen::PlainObjectBase<DerivedM>& M);
+
+#include "vertex_mass.cpp"
 
 FLO_HOST_NAMESPACE_END
 
-#endif//FLO_HOST_INCLUDED_VERTEX_MASS
+#endif  // FLO_HOST_INCLUDED_VERTEX_MASS
 

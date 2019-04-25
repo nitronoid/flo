@@ -4,12 +4,19 @@
 #include "flo/flo_internal.hpp"
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
+#include "flo/host/similarity_xform.hpp"
+#include <Eigen/CholmodSupport>
+#include <Eigen/SparseCholesky>
+
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<Eigen::Matrix<real, 4, 1>> similarity_xform(
-    const Eigen::SparseMatrix<real>& i_dirac_matrix);
+template <typename DerivedX>
+FLO_API void similarity_xform(const Eigen::SparseMatrix<real>& D,
+                              Eigen::PlainObjectBase<DerivedX>& X);
+
+#include "similarity_xform.cpp"
 
 FLO_HOST_NAMESPACE_END
 
-#endif//FLO_HOST_INCLUDED_SIMILARITY_XFORM
+#endif  // FLO_HOST_INCLUDED_SIMILARITY_XFORM

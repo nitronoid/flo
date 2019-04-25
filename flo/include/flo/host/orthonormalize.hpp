@@ -6,13 +6,14 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
-FLO_API std::vector<real> orthonormalize(
-    const gsl::span<const real> i_vectors, 
-    const uint i_num_vectors, 
-    nonstd::function_ref<
-    real(const Eigen::Matrix<real, Eigen::Dynamic, 1>&, const Eigen::Matrix<real, Eigen::Dynamic, 1>&)> i_inner_product);
+template <typename DerivedV, typename BinaryOp, typename DerivedU>
+FLO_API void orthonormalize(const Eigen::MatrixBase<DerivedV>& V,
+                            BinaryOp inner_product,
+                            Eigen::PlainObjectBase<DerivedU>& U);
+
+#include "orthonormalize.cpp"
 
 FLO_HOST_NAMESPACE_END
 
-#endif//FLO_HOST_INCLUDED_ORTHONORMALIZE
+#endif  // FLO_HOST_INCLUDED_ORTHONORMALIZE
 
