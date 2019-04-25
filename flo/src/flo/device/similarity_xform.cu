@@ -77,7 +77,7 @@ FLO_API void similarity_xform(
     // cudaDeviceSynchronize();
   }
   if (singularity != -1)
-  std::cout << "Singularity:"<< singularity << '\n';
+    std::cout << "Singularity: " << singularity << '\n';
 
   // Normalize the result
   {

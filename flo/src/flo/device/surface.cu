@@ -16,11 +16,8 @@ FLO_API std::size_t Surface::n_faces() const noexcept
 namespace
 {
 template <typename T>
-void strided_copy_async(const T* i_src,
-                        T* i_dest,
-                        int stride,
-                        int n,
-                        cudaStream_t stream)
+void strided_copy_async(
+  const T* i_src, T* i_dest, int stride, int n, cudaStream_t stream)
 {
   cudaMemcpy2DAsync(i_dest,
                     sizeof(T),
@@ -43,40 +40,15 @@ FLO_API Surface make_surface(const ::flo::host::Surface& i_host_surface)
   // Device memory for faces to return
   cusp::array2d<int, cusp::device_memory> d_faces(3, nfaces);
 
-  // Scope for streams
-  {
-    // Get raw pointers to the vertex and face data
-    auto h_vert_ptr = (flo::real*)(&i_host_surface.vertices[0][0]);
-    auto h_face_ptr = (int*)(&i_host_surface.faces[0][0]);
-
-    // Strided pointers into the device arrays
-    auto d_vert_ptr_x = d_vertices.values.data().get() + nvertices * 0;
-    auto d_vert_ptr_y = d_vertices.values.data().get() + nvertices * 1;
-    auto d_vert_ptr_z = d_vertices.values.data().get() + nvertices * 2;
-
-    auto d_face_ptr_0 = d_faces.values.data().get() + nfaces * 0;
-    auto d_face_ptr_1 = d_faces.values.data().get() + nfaces * 1;
-    auto d_face_ptr_2 = d_faces.values.data().get() + nfaces * 2;
-
-    // Create a new stream for each copy we're going to make,
-    // these are synchronized in the destructor
-    ScopedCuStream s0, s1, s2, s3, s4, s5;
-
-    // Copy the vertex information from row major to column major
-    strided_copy_async(h_vert_ptr + 0, d_vert_ptr_x, 3, nvertices, s0);
-    strided_copy_async(h_vert_ptr + 1, d_vert_ptr_y, 3, nvertices, s1);
-    strided_copy_async(h_vert_ptr + 2, d_vert_ptr_z, 3, nvertices, s2);
-
-    // Copy the face information from row major to column major
-    strided_copy_async(h_face_ptr + 0, d_face_ptr_0, 3, nfaces, s3);
-    strided_copy_async(h_face_ptr + 1, d_face_ptr_1, 3, nfaces, s4);
-    strided_copy_async(h_face_ptr + 2, d_face_ptr_2, 3, nfaces, s5);
-  }
+  auto h_vert_ptr = i_host_surface.vertices.data();
+  thrust::copy(
+    h_vert_ptr, h_vert_ptr + nvertices * 3, d_vertices.values.begin());
+  auto h_face_ptr = i_host_surface.faces.data();
+  thrust::copy(h_face_ptr, h_face_ptr + nfaces * 3, d_faces.values.begin());
 
   // Move all of our data into a surface struct, NOTE: this is not preventing
   // copy elision, as the surface struct itself is not being moved.
-  return flo::device::Surface{std::move(d_vertices),
-                              std::move(d_faces)};
+  return flo::device::Surface{std::move(d_vertices), std::move(d_faces)};
 }
 
 FLO_DEVICE_NAMESPACE_END
