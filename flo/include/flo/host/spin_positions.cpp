@@ -13,7 +13,6 @@ FLO_API void spin_positions(const Eigen::SparseMatrix<real>& QL,
   SimplicialLDLT<SparseMatrix<real>, Lower> cg;
 #endif
   cg.compute(QL);
-  printf("pass\n");
 
   Eigen::Matrix<real, Dynamic, 4, RowMajor> QEr = QE;
 
