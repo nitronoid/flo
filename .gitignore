@@ -4,5 +4,6 @@
 *.obj
 *Makefile
 *.qmake*
+*.pro.user*
 *.swp
 *.mtx
