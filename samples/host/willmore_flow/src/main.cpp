@@ -1,44 +1,57 @@
 #include <iostream>
 #include <numeric>
 #include <igl/writeOBJ.h>
-#include "flo/host/load_mesh.hpp"
+#include <igl/readOBJ.h>
+#include <igl/readPLY.h>
 #include "flo/host/flo_matrix_operation.hpp"
 #include "flo/host/willmore_flow.hpp"
+#include "flo/host/surface.hpp"
 
 using namespace Eigen;
 
+// flo::host::Surface load_ply_mesh(gsl::czstring i_path)
+//{
+//  Eigen::Matrix<flo::real, Eigen::Dynamic, 3> V;
+//  Eigen::Matrix<int, Eigen::Dynamic, 3> F;
+//  igl::readPLY(i_path, V, F);
+//
+//  // Convert our eigen matrices to std vectors
+//  auto vertices = flo::host::matrix_to_array(V);
+//  auto faces = flo::host::matrix_to_array(F);
+//
+//  // Return our arrays, with matrix masks
+//  return flo::host::Surface{std::move(vertices), std::move(faces)};
+//}
 template <typename T>
-void forward_euler(gsl::span<T> i_x,
-                   const gsl::span<const T> i_dx,
-                   const double i_t)
+struct ForwardEuler
 {
-  std::transform(
-    i_x.begin(), i_x.end(), i_dx.begin(), i_x.begin(), [i_t](T x, T dx) {
-      return x + dx * i_t;
-    });
-}
+  T tao = 0.95f;
+
+  ForwardEuler(T i_tao) : tao(std::move(i_tao))
+  {
+  }
+
+  void operator()(Eigen::Matrix<T, Eigen::Dynamic, 1>& i_x,
+                  const Eigen::Matrix<T, Eigen::Dynamic, 1>& i_dx) const
+  {
+    i_x += i_dx * tao;
+  }
+};
 
 int main()
 {
-  auto surf = flo::host::load_mesh("foo.obj");
+  flo::host::Surface surf;
+  igl::readOBJ("foo.obj", surf.vertices, surf.faces);
 
-  flo::real tao = 0.95f;
-  const auto integrator = [tao](gsl::span<flo::real> x,
-                                const gsl::span<const flo::real> dx) {
-    return forward_euler(x, dx, tao);
-  };
+  ForwardEuler<flo::real> integrator(0.95f);
 
-  for (int iter = 0; iter < 3; ++iter)
+  for (int iter = 0; iter < 1; ++iter)
   {
     std::cout << "Iteration: " << iter << '\n';
-    surf.vertices =
-      flo::host::willmore_flow(surf.vertices, surf.faces, integrator);
+    flo::host::willmore_flow(surf.vertices, surf.faces, integrator);
   }
 
-  auto V = flo::host::array_to_matrix(gsl::make_span(surf.vertices));
-  auto F = flo::host::array_to_matrix(gsl::make_span(surf.faces));
-
-  igl::writeOBJ("bar.obj", V, F);
+  igl::writeOBJ("bar.obj", surf.vertices, surf.faces);
 
   return 0;
 }

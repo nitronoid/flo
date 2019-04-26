@@ -40,8 +40,8 @@ FLO_API void spin_positions(const Eigen::SparseMatrix<real>& QL,
   V.row(V.rows() - 1) = Matrix<real, 1, 4>(0.f, 0.f, 0.f, 0.f);
 
   // Remove the mean to center the positions
-  const Eigen::Matrix<flo::real, 1, 4> average =
-    V.colwise().sum().array() / V.cols();
+  const Eigen::Matrix<flo::real, 1, 4, Eigen::RowMajor> average =
+    V.colwise().sum().array() / V.rows();
   V.rowwise() -= average;
   // Normalize positions
   const real max_dist = std::sqrt(V.rowwise().squaredNorm().maxCoeff());

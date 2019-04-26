@@ -7,11 +7,11 @@
 #include "flo/host/spin_xform.hpp"
 #include "flo/host/flo_matrix_operation.hpp"
 #include "flo/host/intrinsic_dirac.hpp"
-#include "flo/host/valence.hpp"
+#include "flo/host/vertex_vertex_adjacency.hpp"
 #include "flo/host/similarity_xform.hpp"
 #include "flo/host/divergent_edges.hpp"
 #include "flo/host/spin_positions.hpp"
-#include <igl/face_areas.h>
+#include <igl/doublearea.h>
 
 FLO_HOST_NAMESPACE_BEGIN
 

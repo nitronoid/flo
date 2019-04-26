@@ -12,11 +12,12 @@ FLO_API void spin_xform(Eigen::MatrixBase<DerivedV>& V,
 
   // Calculate all face areas
   Matrix<real, Dynamic, 1> A;
-  igl::face_areas(V, F, A);
+  igl::doublearea(V, F, A);
+  A *= 0.5f;
 
   // Calculate the valence of every vertex to allocate sparse matrices
-  Matrix<int, Dynamic, 1> VV;
-  valence(F, VV);
+  Matrix<int, Dynamic, 1> VV, VA, VAK, VCV;
+  vertex_vertex_adjacency(F, VAK, VA, VV, VCV);
 
   // Calculate the intrinsic dirac operator matrix
   SparseMatrix<real> D;
@@ -30,7 +31,7 @@ FLO_API void spin_xform(Eigen::MatrixBase<DerivedV>& V,
   Matrix<real, Dynamic, 4> E;
   divergent_edges(V, F, X, L, E);
   // Remove the final edge to ensure we are compatible with the sliced laplacian
-  E.conservativeResize(E.rows() - 1, E.cols() - 1);
+  E.conservativeResize(E.rows() - 1, Eigen::NoChange);
 
   // Solve the final vertex positions
   Matrix<real, Dynamic, Dynamic> NV;
