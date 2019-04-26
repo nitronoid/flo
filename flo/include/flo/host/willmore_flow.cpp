@@ -41,9 +41,9 @@ FLO_API void willmore_flow(Eigen::MatrixBase<DerivedV>& V,
   // Calculate the signed mean curvature based on our vertex normals
   Matrix<real, Dynamic, 1> H;
   signed_mean_curvature(V, L, M, N, H);
+  // Apply our flow direction to the mean curvature half density
   H *= -1.f;
 
-  // Apply our flow direction to the mean curvature half density
   Matrix<real, Dynamic, 1> HP = H;
   //// project the constraints on to our mean curvature
   project_basis(HP, U, ip);
