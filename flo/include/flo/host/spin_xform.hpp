@@ -19,7 +19,7 @@ template <typename DerivedV, typename DerivedF, typename DerivedP>
 FLO_API void spin_xform(Eigen::MatrixBase<DerivedV>& V,
                         const Eigen::MatrixBase<DerivedF>& F,
                         const Eigen::MatrixBase<DerivedP>& P,
-                        const Eigen::SparseMatrix<real> L);
+                        const Eigen::SparseMatrix<real>& L);
 
 #include "spin_xform.cpp"
 
