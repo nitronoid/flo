@@ -45,6 +45,7 @@ void test(std::string name)
 
 FLO_DIVERGENT_EDGES_TEST(cube)
 FLO_DIVERGENT_EDGES_TEST(spot)
+FLO_DIVERGENT_EDGES_TEST(bunny)
 
 #undef FLO_DIVERGENT_EDGES_TEST
 

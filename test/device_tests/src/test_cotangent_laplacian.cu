@@ -7,8 +7,6 @@
 #include "flo/device/vertex_triangle_adjacency.cuh"
 #include "flo/device/vertex_mass.cuh"
 
-#include "flo/host/cotangent_laplacian.hpp"
-
 namespace
 {
 void test(std::string name)
@@ -75,5 +73,6 @@ void test(std::string name)
 
 FLO_COTANGENT_LAPLACIAN_TEST(cube)
 FLO_COTANGENT_LAPLACIAN_TEST(spot)
+FLO_COTANGENT_LAPLACIAN_TEST(bunny)
 
 #undef FLO_COTANGENT_LAPLACIAN_TEST

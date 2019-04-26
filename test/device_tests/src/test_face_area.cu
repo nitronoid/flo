@@ -30,5 +30,6 @@ void test(std::string name)
 
 FLO_FACE_AREA_TEST(cube)
 FLO_FACE_AREA_TEST(spot)
+FLO_FACE_AREA_TEST(bunny)
 
 #undef FLO_FACE_AREA_TEST

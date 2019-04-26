@@ -33,7 +33,6 @@ void test(std::string name)
   DeviceSparseMatrixQ d_Dq(surf.n_vertices(),
                            surf.n_vertices(),
                            d_cumulative_valence.back() + surf.n_vertices());
-
   // Allocate a dense 1 dimensional array to receive diagonal element indices
   DeviceVectorI d_diagonals(surf.n_vertices());
 
@@ -71,10 +70,10 @@ void test(std::string name)
   HostVectorI h_diagonals = d_diagonals;
 
   // Load our expected results from disk
-  auto expected_D = read_device_sparse_matrix<flo::real>(
+  auto expected_D = read_host_sparse_matrix<flo::real>(
     mp + "/intrinsic_dirac/intrinsic_dirac.mtx");
   auto expected_diagonals =
-    read_device_vector<int>(mp + "/cotangent_laplacian/diagonals.mtx");
+    read_host_vector<int>(mp + "/cotangent_laplacian/diagonals.mtx");
 
   // test our results
   using namespace testing;
@@ -94,6 +93,7 @@ void test(std::string name)
 
 FLO_INTRINSIC_DIRAC_TEST(cube)
 FLO_INTRINSIC_DIRAC_TEST(spot)
+FLO_INTRINSIC_DIRAC_TEST(bunny)
 
 #undef FLO_INTRINSIC_DIRAC_TEST
 

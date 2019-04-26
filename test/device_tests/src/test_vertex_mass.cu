@@ -43,5 +43,6 @@ void test(std::string name)
 
 FLO_VERTEX_MASS_TEST(cube)
 FLO_VERTEX_MASS_TEST(spot)
+FLO_VERTEX_MASS_TEST(bunny)
 
 #undef FLO_VERTEX_MASS_TEST
