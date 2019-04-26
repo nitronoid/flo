@@ -1,27 +1,13 @@
 #include <iostream>
 #include <numeric>
-#include <igl/writeOBJ.h>
-#include <igl/readOBJ.h>
-#include <igl/readPLY.h>
+#include <igl/write_triangle_mesh.h>
+#include <igl/read_triangle_mesh.h>
 #include "flo/host/flo_matrix_operation.hpp"
 #include "flo/host/willmore_flow.hpp"
 #include "flo/host/surface.hpp"
 
 using namespace Eigen;
 
-// flo::host::Surface load_ply_mesh(gsl::czstring i_path)
-//{
-//  Eigen::Matrix<flo::real, Eigen::Dynamic, 3> V;
-//  Eigen::Matrix<int, Eigen::Dynamic, 3> F;
-//  igl::readPLY(i_path, V, F);
-//
-//  // Convert our eigen matrices to std vectors
-//  auto vertices = flo::host::matrix_to_array(V);
-//  auto faces = flo::host::matrix_to_array(F);
-//
-//  // Return our arrays, with matrix masks
-//  return flo::host::Surface{std::move(vertices), std::move(faces)};
-//}
 template <typename T>
 struct ForwardEuler
 {
@@ -38,20 +24,26 @@ struct ForwardEuler
   }
 };
 
-int main()
+int main(int argc, char* argv[])
 {
+  // Command line arguments
+  const std::string in_name = argv[1];
+  const std::string out_name = argv[2];
+  const int max_iter = std::stoi(argv[3]);
+  const flo::real tao = std::stof(argv[4]);
+
   flo::host::Surface surf;
-  igl::readOBJ("foo.obj", surf.vertices, surf.faces);
+  igl::read_triangle_mesh(in_name, surf.vertices, surf.faces);
 
-  ForwardEuler<flo::real> integrator(0.95f);
+  ForwardEuler<flo::real> integrator(tao);
 
-  for (int iter = 0; iter < 1; ++iter)
+  for (int iter = 0; iter < max_iter; ++iter)
   {
     std::cout << "Iteration: " << iter << '\n';
     flo::host::willmore_flow(surf.vertices, surf.faces, integrator);
   }
 
-  igl::writeOBJ("bar.obj", surf.vertices, surf.faces);
+  igl::write_triangle_mesh(out_name, surf.vertices, surf.faces);
 
   return 0;
 }
