@@ -17,6 +17,8 @@
 #include "flo/host/similarity_xform.hpp"
 #include "flo/host/spin_positions.hpp"
 #include "flo/host/divergent_edges.hpp"
+#include "flo/host/orthonormalize.hpp"
+#include "flo/host/project_basis.hpp"
 
 namespace
 {
@@ -59,12 +61,12 @@ matrix_offsets(const Eigen::MatrixXi& F,
 
 }  // namespace
 
-int main()
+int main(int argc, char* argv[])
 {
   using namespace flo;
   using namespace flo::host;
 
-  const std::string name = "spot";
+  const std::string name = argv[1];
   const std::string matrix_prefix = "matrices/" + name + "/";
   // We'll only write results from the host API in the application
   flo::host::Surface surf;
@@ -121,6 +123,27 @@ int main()
   flo::host::vertex_mass(surf.vertices, surf.faces, M);
   Eigen::saveMarketVector(M, matrix_prefix + "vertex_mass/vertex_mass.mtx");
 
+  // Build our constraints {1, N.x, N.y, N.z}
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 4> constraints(N.rows(), 4);
+  constraints.col(0) =
+    Eigen::Matrix<flo::real, Eigen::Dynamic, 1>::Ones(N.rows());
+  constraints.col(1) = N.col(0);
+  constraints.col(2) = N.col(1);
+  constraints.col(3) = N.col(2);
+
+  // Declare an immersed inner-product using the mass matrix
+  const auto ip =
+    [&M](const Eigen::Matrix<flo::real, Eigen::Dynamic, 1>& x,
+         const Eigen::Matrix<flo::real, Eigen::Dynamic, 1>& y) -> flo::real {
+    auto single_mat = (x.transpose() * M.asDiagonal() * y).eval();
+    return single_mat(0, 0);
+  };
+
+  // Build a constraint basis using the Gram–Schmidt process
+  Eigen::Matrix<flo::real, Eigen::Dynamic, Eigen::Dynamic> U;
+  orthonormalize(constraints, ip, U);
+  Eigen::saveMarket(U, matrix_prefix + "orthonormalize/basis.mtx");
+
   // Calculate the signed mean curvature based on our vertex normals
   Eigen::Matrix<flo::real, Eigen::Dynamic, 3> HN;
   flo::host::mean_curvature_normal(surf.vertices, L, M, HN);
@@ -128,12 +151,18 @@ int main()
   flo::host::mean_curvature(surf.vertices, L, M, H);
   Eigen::Matrix<flo::real, Eigen::Dynamic, 1> SH;
   flo::host::signed_mean_curvature(surf.vertices, L, M, N, SH);
-  Eigen::saveMarket(
-    HN, matrix_prefix + "mean_curvature/mean_curvature_normal.mtx");
+  Eigen::saveMarket(HN,
+                    matrix_prefix + "mean_curvature/mean_curvature_normal.mtx");
   Eigen::saveMarketVector(H,
                           matrix_prefix + "mean_curvature/mean_curvature.mtx");
   Eigen::saveMarketVector(
     SH, matrix_prefix + "mean_curvature/signed_mean_curvature.mtx");
+
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 1> HP = SH;
+  //// project the constraints on to our mean curvature
+  project_basis(HP, U, ip);
+  Eigen::saveMarketVector(
+    HP, matrix_prefix + "project_basis/projected_mean_curvature.mtx");
 
   // Calculate all face areas
   Eigen::Matrix<flo::real, Eigen::Dynamic, 1> FA;
