@@ -32,9 +32,6 @@
 #define gsl_api 
 
 #include "flo/function_ref.hpp"
-#include <gsl/gsl-lite.hpp>
-#include <Eigen/StdVector>
-EIGEN_DEFINE_STL_VECTOR_SPECIALIZATION(Eigen::Vector4d)
 
 FLO_NAMESPACE_BEGIN
 #ifndef FLO_USE_DOUBLE_PRECISION
