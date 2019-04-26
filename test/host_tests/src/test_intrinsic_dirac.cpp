@@ -34,6 +34,7 @@ void test(std::string name)
 
 FLO_INTRINSIC_DIRAC_TEST(cube)
 FLO_INTRINSIC_DIRAC_TEST(spot)
+FLO_INTRINSIC_DIRAC_TEST(bunny)
 
 #undef FLO_INTRINSIC_DIRAC_TEST
 

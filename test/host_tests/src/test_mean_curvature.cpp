@@ -45,5 +45,6 @@ void test(std::string name)
 
 FLO_MEAN_CURVATURE_TEST(cube)
 FLO_MEAN_CURVATURE_TEST(spot)
+FLO_MEAN_CURVATURE_TEST(bunny)
 
 #undef FLO_MEAN_CURVATURE_TEST
