@@ -2,32 +2,33 @@
 #include "test_common.h"
 #include "flo/host/vertex_triangle_adjacency.hpp"
 
-#define HOST_BM_VTA(BM_NAME, FILE_NAME)                          \
-  static void BM_NAME(benchmark::State& state)                   \
-  {                                                              \
-    auto surf = TestCache::get_mesh<TestCache::HOST>(FILE_NAME); \
-    std::vector<int> adjacency(surf.n_faces() * 3);              \
-    std::vector<int> valence(surf.n_vertices());                 \
-    std::vector<int> cumulative_valence(surf.n_vertices() + 1);  \
-    for (auto _ : state)                                         \
-    {                                                            \
-      flo::host::vertex_triangle_adjacency(surf.faces,           \
-                                           surf.n_vertices(),    \
-                                           adjacency,            \
-                                           valence,              \
-                                           cumulative_valence);  \
-    }                                                            \
-  }                                                              \
-  BENCHMARK(BM_NAME)
+namespace
+{
+static void bench_impl(std::string name, benchmark::State& state)
+{
+  const std::string mp = "../../matrices/" + name;
+  auto surf = TestCache::get_mesh<TestCache::HOST>(name + ".obj");
+  // Declare arrays to dump our results
+  Eigen::Matrix<int, Eigen::Dynamic, 1> VTAK;
+  Eigen::Matrix<int, Eigen::Dynamic, 1> VTA;
+  Eigen::Matrix<int, Eigen::Dynamic, 1> VTV;
+  Eigen::Matrix<int, Eigen::Dynamic, 1> VTCV;
+  for (auto _ : state)
+  {
+    flo::host::vertex_triangle_adjacency(surf.faces, VTAK, VTA, VTV, VTCV);
+  }
+}
+}  // namespace
 
-HOST_BM_VTA(HOST_vertex_triangle_adjacency_cube, "cube.obj");
-HOST_BM_VTA(HOST_vertex_triangle_adjacency_spot, "spot.obj");
-HOST_BM_VTA(HOST_vertex_triangle_adjacency_sphere_400,
-            "dense_sphere_400x400.obj");
-HOST_BM_VTA(HOST_vertex_triangle_adjacency_sphere_1000,
-            "dense_sphere_1000x1000.obj");
-// HOST_BM_VTA(HOST_vertex_triangle_adjacency_sphere_1500,
-// "dense_sphere_1500x1500.obj");
-// HOST_BM_VTA(HOST_vertex_triangle_adjacency_cube_1000,
-// "cube_1k.obj");
+#define FLO_VERTEX_TRIANGLE_ADJACENCY_HOST_BENCHMARK(NAME)                   \
+  static void HOST_vertex_triangle_adjacency_##NAME(benchmark::State& state) \
+  {                                                                          \
+    bench_impl(#NAME, state);                                                \
+  }                                                                          \
+  BENCHMARK(HOST_vertex_triangle_adjacency_##NAME);
 
+FLO_VERTEX_TRIANGLE_ADJACENCY_HOST_BENCHMARK(cube)
+FLO_VERTEX_TRIANGLE_ADJACENCY_HOST_BENCHMARK(spot)
+FLO_VERTEX_TRIANGLE_ADJACENCY_HOST_BENCHMARK(bunny)
+
+#undef FLO_VERTEX_TRIANGLE_ADJACENCY_HOST_BENCHMARK

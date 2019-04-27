@@ -1,20 +1,31 @@
 #include <benchmark/benchmark.h>
 #include "test_common.h"
-#include "flo/host/area.hpp"
+#include <igl/doublearea.h>
 
-#define HOST_BM_FA(BM_NAME, FILE_NAME)                                      \
-  static void BM_NAME(benchmark::State& state)                              \
-  {                                                                         \
-    auto surf = TestCache::get_mesh<TestCache::HOST>(FILE_NAME);            \
-    for (auto _ : state)                                                    \
-    {                                                                       \
-      benchmark::DoNotOptimize(flo::host::area(surf.vertices, surf.faces)); \
-    }                                                                       \
-  }                                                                         \
-  BENCHMARK(BM_NAME)
+namespace
+{
+static void bench_impl(std::string name, benchmark::State& state)
+{
+  const std::string mp = "../../matrices/" + name;
+  auto surf = TestCache::get_mesh<TestCache::HOST>(name + ".obj");
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 1> A;
+  for (auto _ : state)
+  {
+    igl::doublearea(surf.vertices, surf.faces, A);
+    A *= 0.5f;
+  }
+}
+}  // namespace
 
-HOST_BM_FA(HOST_face_area_cube, "cube.obj");
-HOST_BM_FA(HOST_face_area_spot, "spot.obj");
-HOST_BM_FA(HOST_face_area_sphere_400, "dense_sphere_400x400.obj");
-HOST_BM_FA(HOST_face_area_sphere_1000, "dense_sphere_1000x1000.obj");
+#define FLO_FACE_AREA_HOST_BENCHMARK(NAME)                   \
+  static void HOST_face_area_##NAME(benchmark::State& state) \
+  {                                                          \
+    bench_impl(#NAME, state);                                \
+  }                                                          \
+  BENCHMARK(HOST_face_area_##NAME);
 
+FLO_FACE_AREA_HOST_BENCHMARK(cube)
+FLO_FACE_AREA_HOST_BENCHMARK(spot)
+FLO_FACE_AREA_HOST_BENCHMARK(bunny)
+
+#undef FLO_FACE_AREA_HOST_BENCHMARK

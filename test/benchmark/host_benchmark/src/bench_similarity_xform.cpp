@@ -1,32 +1,33 @@
 #include <benchmark/benchmark.h>
 #include <numeric>
 #include "test_common.h"
-#include "flo/host/intrinsic_dirac.hpp"
 #include "flo/host/similarity_xform.hpp"
-#include "flo/host/valence.hpp"
-#include "flo/host/area.hpp"
 
-#define HOST_BM_ID(BM_NAME, FILE_NAME)                           \
-  static void BM_NAME(benchmark::State& state)                   \
-  {                                                              \
-    auto surf = TestCache::get_mesh<TestCache::HOST>(FILE_NAME); \
-    std::vector<flo::real> rho(surf.n_vertices(), 3.0f);         \
-    auto face_area = flo::host::area(surf.vertices, surf.faces); \
-    auto valence = flo::host::valence(surf.faces);               \
-    auto D = flo::host::intrinsic_dirac(                         \
-      surf.vertices, surf.faces, valence, face_area, rho);       \
-    for (auto _ : state)                                         \
-    {                                                            \
-      benchmark::DoNotOptimize(flo::host::similarity_xform(D));  \
-    }                                                            \
-  }                                                              \
-  BENCHMARK(BM_NAME)
+namespace
+{
+static void bench_impl(std::string name, benchmark::State& state)
+{
+  const std::string mp = "../../matrices/" + name;
+  auto surf = TestCache::get_mesh<TestCache::HOST>(name + ".obj");
+  auto D =
+    read_sparse_matrix<flo::real>(mp + "/intrinsic_dirac/intrinsic_dirac.mtx");
+  Eigen::Matrix<flo::real, Eigen::Dynamic, 4> X;
+  for (auto _ : state)
+  {
+    flo::host::similarity_xform(D, X);
+  }
+}
+}  // namespace
 
-HOST_BM_ID(HOST_similarity_xform_cube, "cube.obj");
-HOST_BM_ID(HOST_similarity_xform_spot, "spot.obj");
-HOST_BM_ID(HOST_similarity_xform_sphere_400, "dense_sphere_400x400.obj");
-// HOST_BM_ID(HOST_intrinsic_dirac_sphere_1000, "dense_sphere_1000x1000.obj");
-// HOST_BM_CL(HOST_cotangent_laplacian_sphere_1500,
-// "dense_sphere_1500x1500.obj");
-// HOST_BM_CL(HOST_cotangent_laplacian_cube_1000, "cube_1k.obj");
+#define FLO_SIMILARITY_XFORM_HOST_BENCHMARK(NAME)                   \
+  static void HOST_similarity_xform_##NAME(benchmark::State& state) \
+  {                                                                 \
+    bench_impl(#NAME, state);                                       \
+  }                                                                 \
+  BENCHMARK(HOST_similarity_xform_##NAME);
 
+FLO_SIMILARITY_XFORM_HOST_BENCHMARK(cube)
+FLO_SIMILARITY_XFORM_HOST_BENCHMARK(spot)
+FLO_SIMILARITY_XFORM_HOST_BENCHMARK(bunny)
+
+#undef FLO_SIMILARITY_XFORM_HOST_BENCHMARK
