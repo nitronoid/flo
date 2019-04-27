@@ -33,9 +33,10 @@ FLO_API void similarity_xform(const Eigen::SparseMatrix<real>& D,
   // Usually converges in 3 iterations or less
   for (int i = 0; i < 3; ++i)
   {
-    lambda = cg.solve(lambda.eval());
     lambda.normalize();
+    lambda = cg.solve(lambda.eval());
   }
+  lambda.normalize();
 
   X.resize(qlen, 4);
   for (int i = 0; i < qlen; ++i)
