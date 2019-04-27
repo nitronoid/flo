@@ -43,52 +43,43 @@ void test(std::string name)
   auto count = thrust::make_counting_iterator(1);
   thrust::transform(
     d_cv.begin() + 1, d_cv.end(), count, d_cv.begin() + 1, thrust::plus<int>());
-  printf("CWidth done\n");
 
-  //// Convert to a quaternion matrix
-  //DeviceSparseMatrixR d_LQ(
-  //  surf.n_vertices() * 4, surf.n_vertices() * 4, d_L.num_entries * 16);
-  //flo::device::to_real_quaternion_matrix(d_L, d_cv, d_LQ);
-  //cusp::print(d_L);
-  //printf("LQ done\n");
-  //cusp::print(d_LQ);
+  // Convert to a quaternion matrix
+  DeviceSparseMatrixR d_LQ(
+    surf.n_vertices() * 4, surf.n_vertices() * 4, d_L.num_entries * 16);
+  flo::device::to_real_quaternion_matrix(d_L, d_cv, d_LQ);
+  printf("LQ done\n");
 
-  //auto entry_it =
-  //  thrust::make_zip_iterator(thrust::make_tuple(d_LQ.column_indices.begin(),
-  //                                               d_LQ.row_indices.begin(),
-  //                                               d_LQ.values.begin()));
+  auto entry_it =
+    thrust::make_zip_iterator(thrust::make_tuple(d_LQ.column_indices.begin(),
+                                                 d_LQ.row_indices.begin(),
+                                                 d_LQ.values.begin()));
 
-  //// Set final 4 rows and columns to zero
-  //thrust::transform(entry_it,
-  //                  entry_it + d_LQ.values.size(),
-  //                  d_LQ.values.begin(),
-  //                  LQZ(d_LQ.num_cols));
-  //printf("LQ zero done\n");
+  // Set final 4 rows and columns to zero
+  thrust::transform(entry_it,
+                    entry_it + d_LQ.values.size(),
+                    d_LQ.values.begin(),
+                    LQZ(d_LQ.num_cols));
 
-  //// Set final xform to zero
-  //thrust::copy_n(thrust::make_constant_iterator(0),
-  //               4,
-  //               thrust::make_permutation_iterator(
-  //                 d_X.values.begin(),
-  //                 thrust::make_transform_iterator(
-  //                   thrust::make_counting_iterator(0),
-  //                   [N = d_X.num_cols] __device__(int i) { return i * N; })));
-  //printf("X zero done\n");
+  // Set final xform to zero
+  thrust::copy_n(thrust::make_constant_iterator(0),
+                 4,
+                 thrust::make_permutation_iterator(
+                   d_X.values.begin(),
+                   thrust::make_transform_iterator(
+                     thrust::make_counting_iterator(0),
+                     [N = d_X.num_cols] __device__(int i) { return i * N; })));
 
-  //DeviceDenseMatrixR d_vertices(4, surf.n_vertices(), 0.f);
-  //printf("Alloc V done\n");
-  //flo::device::spin_positions(d_LQ, d_X, d_vertices);
-  //printf("Spin done\n");
-  //HostDenseMatrixR h_vertices = d_vertices;
-  //printf("Host copy done\n");
+  DeviceDenseMatrixR d_vertices(4, surf.n_vertices(), 0.f);
+  flo::device::spin_positions(d_LQ, d_X, d_vertices);
+  HostDenseMatrixR h_vertices = d_vertices;
 
-  //auto expected_vertices =
-  //  read_host_dense_matrix<flo::real>(mp + "/spin_positions/positions.mtx");
-  //printf("Read done\n");
-  //// test our results
-  //using namespace testing;
-  //EXPECT_THAT(h_vertices.values,
-  //            Pointwise(FloatNear(0.001), expected_vertices.values));
+  auto expected_vertices =
+    read_host_dense_matrix<flo::real>(mp + "/spin_positions/positions.mtx");
+  // test our results
+  using namespace testing;
+  EXPECT_THAT(h_vertices.values,
+              Pointwise(FloatNear(0.001), expected_vertices.values));
 }
 }  // namespace
 

@@ -16,7 +16,7 @@ void test(std::string name)
 
   DeviceDenseMatrixR d_xform(4, surf.n_vertices());
   flo::device::similarity_xform(d_D, d_xform, 1e-12, 3);
-  HostDenseMatrixR h_xform;
+  HostDenseMatrixR h_xform(d_xform.num_cols, d_xform.num_rows);
   cusp::transpose(d_xform, h_xform);
 
   // Read expected results

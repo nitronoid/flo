@@ -55,7 +55,8 @@ spin_positions(cusp::coo_matrix<int, real, cusp::device_memory>::const_view
   auto io_sparse_handle = &sparse_handle;
 
   // Transpose our transforms in preparation for matrix solve
-  cusp::array2d<real, cusp::device_memory> b;
+  cusp::array2d<real, cusp::device_memory> b(di_xform.num_cols,
+                                             di_xform.num_rows);
   cusp::transpose(di_xform, b);
 
   // Convert the row indices to csr row offsets
