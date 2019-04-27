@@ -12,7 +12,7 @@ void test(std::string name)
   // Load the surface from our mesh cache
   auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
   // Arbitrary constant rho
-  cusp::array1d<flo::real, cusp::device_memory> d_rho(surf.n_vertices(), 3.f);
+  DeviceVectorR d_rho(surf.n_vertices(), 3.f);
 
   // Read all our dependencies from disk
   auto d_area = read_device_vector<flo::real>(mp + "/face_area/face_area.mtx");
@@ -62,7 +62,7 @@ void test(std::string name)
   DeviceSparseMatrixR d_Dr(
     surf.n_vertices() * 4, surf.n_vertices() * 4, d_Dq.values.size() * 16);
   // Transform our quaternion matrix to a real matrix
-  flo::device::to_real_quaternion_matrix(
+  flo::device::to_quaternion_matrix(
     d_Dq, {d_cumulative_valence.begin() + 1, d_cumulative_valence.end()}, d_Dr);
 
   // Copy our results back to the host side

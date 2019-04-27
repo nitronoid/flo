@@ -56,6 +56,21 @@ __device__ constexpr T reciprocal(T&& i_value) noexcept
   return T{1} / i_value;
 }
 
+__device__ real4 make_quat(real4 i_value) noexcept
+{
+  return i_value;
+}
+
+__device__ real4 make_quat(real i_value) noexcept
+{
+  real4 q;
+  q.x = 0.f;
+  q.y = 0.f;
+  q.z = 0.f;
+  q.w = i_value;
+  return q;
+}
+
 template <
   typename T,
   typename = typename std::enable_if<std::is_same<T, real>::value ||
@@ -92,7 +107,7 @@ d_to_real_quaternion_matrix(const int* __restrict__ di_rows,
   if (!threadIdx.y)
   {
     // Read the quaternion entry once
-    const real4 quat = make_float4(di_values[global_id]);
+    const real4 quat = make_quat(di_values[global_id]);
     // Copy the quaternion across shared memory so all threads have access
     quaternion_entry[threadIdx.x * 4 + 0] = quat;
     quaternion_entry[threadIdx.x * 4 + 1] = quat;
@@ -341,7 +356,7 @@ void to_real_quaternion_matrix_impl(
 
 }  // namespace
 
-FLO_API void to_real_quaternion_matrix(
+FLO_API void to_quaternion_matrix(
   cusp::coo_matrix<int, real4, cusp::device_memory>::const_view
     di_quaternion_matrix,
   cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_column_size,
