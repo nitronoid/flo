@@ -8,64 +8,63 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
-struct ScopedCuStream
+namespace cu_raii
 {
-  cudaStream_t handle;
-  cudaError_t status;
+  struct Stream
+  {
+    cudaStream_t handle;
+    cudaError_t status;
 
-  ScopedCuStream();
+    Stream();
+    ~Stream();
 
-  ~ScopedCuStream();
+    operator cudaStream_t() const noexcept;
+    void join() noexcept;
+  };
 
-  operator cudaStream_t() const noexcept;
+  namespace solver
+  {
+  struct SolverSp
+  {
+    cusolverSpHandle_t handle;
+    cusolverStatus_t status;
 
-  void join() noexcept;
-};
+    SolverSp();
+    ~SolverSp();
 
-struct ScopedCuSolverSparse
-{
-  cusolverSpHandle_t handle;
-  cusolverStatus_t status;
+    operator cusolverSpHandle_t() const noexcept;
+    bool error_check(int line = -1) const noexcept;
+    void error_assert(int line = -1) const noexcept;
+  };
+  }  // namespace solver
 
-  ScopedCuSolverSparse();
+  namespace sparse
+  {
+  struct Handle
+  {
+    cusparseHandle_t handle;
+    cusparseStatus_t status;
 
-  ~ScopedCuSolverSparse();
+    Handle();
+    ~Handle();
 
-  operator cusolverSpHandle_t() const noexcept;
+    operator cusparseHandle_t() const noexcept;
+    bool error_check(int line = -1) const noexcept;
+    void error_assert(int line = -1) const noexcept;
+  };
 
-  bool error_check(int line = -1) const noexcept;
+  struct MatrixDescription
+  {
+    cusparseMatDescr_t description;
 
-  void error_assert(int line = -1) const noexcept;
-};
+    MatrixDescription();
+    MatrixDescription(cusparseStatus_t* io_status);
+    ~MatrixDescription();
 
-struct ScopedCuSparse
-{
-  cusparseHandle_t handle;
-  cusparseStatus_t status;
-
-  ScopedCuSparse();
-
-  ~ScopedCuSparse();
-
-  operator cusparseHandle_t() const noexcept;
-
-  bool error_check(int line = -1) const noexcept;
-
-  void error_assert(int line = -1) const noexcept;
-};
-
-struct ScopedCuSparseMatrixDescription
-{
-  cusparseMatDescr_t description;
-
-  ScopedCuSparseMatrixDescription();
-
-  ScopedCuSparseMatrixDescription(cusparseStatus_t* io_status);
-
-  ~ScopedCuSparseMatrixDescription();
-
-  operator cusparseMatDescr_t() const noexcept;
-};
+    operator cusparseMatDescr_t() const noexcept;
+  };
+  }  // namespace sparse
+}
 
 FLO_DEVICE_NAMESPACE_END
 

@@ -4,43 +4,47 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
-ScopedCuStream::ScopedCuStream()
+namespace cu_raii
+{
+Stream::Stream()
 {
   status = cudaStreamCreate(&handle);
 }
 
-ScopedCuStream::~ScopedCuStream()
+Stream::~Stream()
 {
   join();
-  status  = cudaStreamDestroy(handle);
+  status = cudaStreamDestroy(handle);
 }
 
-ScopedCuStream::operator cudaStream_t() const noexcept
+Stream::operator cudaStream_t() const noexcept
 {
   return handle;
 }
 
-void ScopedCuStream::join() noexcept
+void Stream::join() noexcept
 {
   status = cudaStreamSynchronize(handle);
 }
 
-ScopedCuSolverSparse::ScopedCuSolverSparse()
+namespace solver
+{
+SolverSp::SolverSp()
 {
   status = cusolverSpCreate(&handle);
 }
 
-ScopedCuSolverSparse::~ScopedCuSolverSparse()
+SolverSp::~SolverSp()
 {
   cusolverSpDestroy(handle);
 }
 
-ScopedCuSolverSparse::operator cusolverSpHandle_t() const noexcept
+SolverSp::operator cusolverSpHandle_t() const noexcept
 {
   return handle;
 }
 
-bool ScopedCuSolverSparse::error_check(int line) const noexcept
+bool SolverSp::error_check(int line) const noexcept
 {
   if (status == CUSOLVER_STATUS_SUCCESS)
     return false;
@@ -62,27 +66,31 @@ bool ScopedCuSolverSparse::error_check(int line) const noexcept
   return true;
 }
 
-void ScopedCuSolverSparse::error_assert(int line) const noexcept
+void SolverSp::error_assert(int line) const noexcept
 {
   if (error_check(line))
     std::exit(1);
 }
+}
 
-ScopedCuSparse::ScopedCuSparse()
+namespace sparse
+{
+Handle::Handle()
 {
   status = cusparseCreate(&handle);
 }
-ScopedCuSparse::~ScopedCuSparse()
+
+Handle::~Handle()
 {
   cusparseDestroy(handle);
 }
 
-ScopedCuSparse::operator cusparseHandle_t() const noexcept
+Handle::operator cusparseHandle_t() const noexcept
 {
   return handle;
 }
 
-bool ScopedCuSparse::error_check(int line) const noexcept
+bool Handle::error_check(int line) const noexcept
 {
   if (status == CUSPARSE_STATUS_SUCCESS)
     return false;
@@ -105,30 +113,32 @@ bool ScopedCuSparse::error_check(int line) const noexcept
   return true;
 }
 
-void ScopedCuSparse::error_assert(int line) const noexcept
+void Handle::error_assert(int line) const noexcept
 {
   if (error_check(line))
     std::exit(1);
 }
 
-ScopedCuSparseMatrixDescription::ScopedCuSparseMatrixDescription()
+MatrixDescription::MatrixDescription()
 {
   cusparseCreateMatDescr(&description);
 }
 
-ScopedCuSparseMatrixDescription::ScopedCuSparseMatrixDescription(
-  cusparseStatus_t* io_status)
+MatrixDescription::MatrixDescription(cusparseStatus_t* io_status)
 {
   *io_status = cusparseCreateMatDescr(&description);
 }
-ScopedCuSparseMatrixDescription::~ScopedCuSparseMatrixDescription()
+MatrixDescription::~MatrixDescription()
 {
   cusparseDestroyMatDescr(description);
 }
 
-ScopedCuSparseMatrixDescription::operator cusparseMatDescr_t() const noexcept
+MatrixDescription::operator cusparseMatDescr_t() const noexcept
 {
   return description;
 }
+}  // namespace sparse
+
+}  // namespace cu_raii
 
 FLO_DEVICE_NAMESPACE_END

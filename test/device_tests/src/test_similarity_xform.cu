@@ -1,7 +1,7 @@
 #include "test_common.h"
 #include "device_test_util.h"
 #include "flo/device/similarity_xform.cuh"
-#include <cusp/io/matrix_market.h>
+#include <cusp/transpose.h>
 
 namespace
 {
@@ -14,9 +14,10 @@ void test(std::string name)
   auto d_D = read_device_sparse_matrix<flo::real>(
     mp + "/intrinsic_dirac/intrinsic_dirac.mtx");
 
-  DeviceVectorR d_xform(surf.n_vertices() * 4);
-  flo::device::similarity_xform(d_D, d_xform, 1e-8, 3);
-  HostVectorR h_xform = d_xform;
+  DeviceDenseMatrixR d_xform(4, surf.n_vertices());
+  flo::device::similarity_xform(d_D, d_xform, 1e-12, 3);
+  HostDenseMatrixR h_xform;
+  cusp::transpose(d_xform, h_xform);
 
   // Read expected results
   auto expected_xform =
@@ -24,7 +25,7 @@ void test(std::string name)
 
   // test our results
   using namespace testing;
-  EXPECT_THAT(h_xform, Pointwise(FloatNear(0.001), expected_xform.values));
+  EXPECT_THAT(h_xform.values, Pointwise(FloatNear(0.001), expected_xform.values));
 }
 }  // namespace
 
