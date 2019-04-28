@@ -50,7 +50,6 @@ struct EdgeFunctor
     {
       sign = 0.f;
     }
-    //printf("Pair A: %d, B: %d\n", v.get<0>().get<2>(), v.get<1>().get<2>());
 
     return thrust::make_tuple(
       thrust::make_tuple(
