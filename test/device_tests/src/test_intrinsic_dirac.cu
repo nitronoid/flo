@@ -11,10 +11,9 @@ void test(std::string name)
   const std::string mp = "../matrices/" + name;
   // Load the surface from our mesh cache
   auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
-  // Arbitrary constant rho
-  DeviceVectorR d_rho(surf.n_vertices(), 3.f);
 
   // Read all our dependencies from disk
+  auto d_rho = read_device_vector<flo::real>(mp + "/project_basis/rho.mtx");
   auto d_area = read_device_vector<flo::real>(mp + "/face_area/face_area.mtx");
   auto d_cumulative_valence = read_device_vector<int>(
     mp + "/vertex_vertex_adjacency/cumulative_valence.mtx");
@@ -81,7 +80,7 @@ void test(std::string name)
   EXPECT_THAT(h_D.row_indices, Pointwise(Eq(), expected_D.row_indices));
   EXPECT_THAT(h_D.column_indices, Pointwise(Eq(), expected_D.column_indices));
   EXPECT_THAT(h_D.values,
-              Pointwise(FloatNear(FLOAT_SOFT_EPSILON), expected_D.values));
+              Pointwise(FloatNear(0.005), expected_D.values));
 }
 }  // namespace
 
