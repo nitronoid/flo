@@ -129,7 +129,7 @@ d_to_real_quaternion_matrix(const int* __restrict__ di_rows,
     col_index[threadIdx.x * 4 + 3] = col;
   }
   __syncthreads();
-  const uint8_t sign = (0x5390 >> (threadIdx.y * 4u)) & 15u;
+  const uint8_t sign = (0x284E >> (threadIdx.y * 4u)) & 15u;
   const uchar4 loop = quat_loop(threadIdx.y);
   real4 quat;
   quat.x =
@@ -198,6 +198,9 @@ __global__ void d_intrinsic_dirac_atomic(const real* __restrict__ di_vertices,
     edge_x = __shfl_sync(FULL_MASK, edge_x, source_lane, 4);
     edge_y = __shfl_sync(FULL_MASK, edge_y, source_lane, 4);
     edge_z = __shfl_sync(FULL_MASK, edge_z, source_lane, 4);
+  }
+  {
+    const int8_t source_lane = lane - 3 * (lane == 3);
     rho = __shfl_sync(FULL_MASK, rho, source_lane, 4);
   }
   // Compute edge vectors from neighbor threads
@@ -221,7 +224,7 @@ __global__ void d_intrinsic_dirac_atomic(const real* __restrict__ di_vertices,
                                             sqr(edge_z * b_x - edge_x * b_z) +
                                             sqr(edge_x * b_y - edge_y * b_x));
 
-  const real c = rho * b_rho * reciprocal(9.f) / (inv_area * -4.f);
+  const real c = ((1.f / inv_area) * -0.25f) * reciprocal(9.f) * rho * b_rho;
   const real4 img = make_float4(reciprocal(6.f) * (rho * b_x - b_rho * edge_x),
                                 reciprocal(6.f) * (rho * b_y - b_rho * edge_y),
                                 reciprocal(6.f) * (rho * b_z - b_rho * edge_z),
@@ -234,7 +237,7 @@ __global__ void d_intrinsic_dirac_atomic(const real* __restrict__ di_vertices,
       hammilton_product(edge_x, edge_y, edge_z, b_x, b_y, b_z) * inv_area + img;
     result.w += c;
 
-    const int32_t address = di_entry[i_nfaces * (lane + 3) + fid];
+    const int32_t address = di_entry[i_nfaces * lane + fid];
 
     auto out = reinterpret_cast<real*>(do_values + address);
     atomicAdd(out + 0, result.x);
@@ -250,7 +253,7 @@ __global__ void d_intrinsic_dirac_atomic(const real* __restrict__ di_vertices,
       hammilton_product(b_x, b_y, b_z, edge_x, edge_y, edge_z) * inv_area - img;
     result.w += c;
 
-    const int32_t address = di_entry[i_nfaces * lane + fid];
+    const int32_t address = di_entry[i_nfaces * (lane + 3) + fid];
 
     auto out = reinterpret_cast<real*>(do_values + address);
     atomicAdd(out + 0, result.x);
