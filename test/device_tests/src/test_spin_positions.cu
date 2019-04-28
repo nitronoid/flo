@@ -30,8 +30,8 @@ void test(std::string name)
   const std::string mp = "../matrices/" + name;
   auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 
-  auto d_X =
-    read_device_dense_matrix<flo::real>(mp + "/similarity_xform/lambda.mtx");
+  auto d_E =
+    read_device_dense_matrix<flo::real>(mp + "/divergent_edges/edges.mtx");
   auto d_L = read_device_sparse_matrix<flo::real>(
     mp + "/cotangent_laplacian/cotangent_laplacian.mtx");
   auto d_cv = read_device_vector<int>(
@@ -47,31 +47,16 @@ void test(std::string name)
   // Convert to a quaternion matrix
   DeviceSparseMatrixR d_LQ(
     surf.n_vertices() * 4, surf.n_vertices() * 4, d_L.num_entries * 16);
-  flo::device::to_real_quaternion_matrix(d_L, d_cv, d_LQ);
-  printf("LQ done\n");
+  flo::device::to_real_quaternion_matrix(
+    d_L, {d_cv.begin() + 1, d_cv.end()}, d_LQ);
 
   auto entry_it =
     thrust::make_zip_iterator(thrust::make_tuple(d_LQ.column_indices.begin(),
                                                  d_LQ.row_indices.begin(),
                                                  d_LQ.values.begin()));
 
-  // Set final 4 rows and columns to zero
-  thrust::transform(entry_it,
-                    entry_it + d_LQ.values.size(),
-                    d_LQ.values.begin(),
-                    LQZ(d_LQ.num_cols));
-
-  // Set final xform to zero
-  thrust::copy_n(thrust::make_constant_iterator(0),
-                 4,
-                 thrust::make_permutation_iterator(
-                   d_X.values.begin(),
-                   thrust::make_transform_iterator(
-                     thrust::make_counting_iterator(0),
-                     [N = d_X.num_cols] __device__(int i) { return i * N; })));
-
   DeviceDenseMatrixR d_vertices(4, surf.n_vertices(), 0.f);
-  flo::device::spin_positions(d_LQ, d_X, d_vertices);
+  flo::device::spin_positions(d_LQ, d_E, d_vertices);
   HostDenseMatrixR h_vertices = d_vertices;
 
   auto expected_vertices =
