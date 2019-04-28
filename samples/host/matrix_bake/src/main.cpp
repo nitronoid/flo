@@ -19,6 +19,7 @@
 #include "flo/host/divergent_edges.hpp"
 #include "flo/host/orthonormalize.hpp"
 #include "flo/host/project_basis.hpp"
+#include "flo/host/spin_xform.hpp"
 
 namespace
 {
@@ -106,11 +107,13 @@ int main(int argc, char* argv[])
   Eigen::SparseMatrix<flo::real> L;
   igl::cotmatrix(surf.vertices, surf.faces, L);
   L = -(L.eval());
+  auto QL = to_real_quaternion_matrix(L);
   L.makeCompressed();
   Eigen::saveMarket(
     L, matrix_prefix + "cotangent_laplacian/cotangent_laplacian.mtx");
-  auto QL = to_real_quaternion_matrix(L);
-  QL.conservativeResize(QL.rows() - 4, QL.cols() - 4);
+  Eigen::saveMarket(QL,
+                    matrix_prefix +
+                      "cotangent_laplacian/quaternion_cotangent_laplacian.mtx");
 
   Eigen::VectorXi diag;
   // Calculate the adjacency matrix offsets
@@ -158,11 +161,14 @@ int main(int argc, char* argv[])
   Eigen::saveMarketVector(
     SH, matrix_prefix + "mean_curvature/signed_mean_curvature.mtx");
 
+  SH *= -1.f;
   Eigen::Matrix<flo::real, Eigen::Dynamic, 1> HP = SH;
   //// project the constraints on to our mean curvature
   project_basis(HP, U, ip);
   Eigen::saveMarketVector(
     HP, matrix_prefix + "project_basis/projected_mean_curvature.mtx");
+  SH += 0.95f * HP;
+  Eigen::saveMarketVector(SH, matrix_prefix + "project_basis/rho.mtx");
 
   // Calculate all face areas
   Eigen::Matrix<flo::real, Eigen::Dynamic, 1> FA;
@@ -171,10 +177,8 @@ int main(int argc, char* argv[])
   Eigen::saveMarketVector(FA, matrix_prefix + "face_area/face_area.mtx");
 
   // Calculate the intrinsic dirac operator matrix
-  Eigen::Matrix<flo::real, Eigen::Dynamic, 1> rho(surf.n_vertices(), 1);
-  rho.setConstant(3.0f);
   Eigen::SparseMatrix<flo::real> D;
-  flo::host::intrinsic_dirac(surf.vertices, surf.faces, VVV, FA, rho, D);
+  flo::host::intrinsic_dirac(surf.vertices, surf.faces, VVV, FA, SH, D);
   Eigen::saveMarket(D, matrix_prefix + "intrinsic_dirac/intrinsic_dirac.mtx");
 
   // Calculate the scaling and rotation for our spin transformation
@@ -186,11 +190,9 @@ int main(int argc, char* argv[])
   Eigen::Matrix<flo::real, Eigen::Dynamic, 4> E;
   flo::host::divergent_edges(surf.vertices, surf.faces, X, L, E);
   Eigen::saveMarket(E, matrix_prefix + "divergent_edges/edges.mtx");
-  // Remove the final edge to ensure we are compatible with the sliced laplacian
-  E.conservativeResize(E.rows() - 1, Eigen::NoChange);
 
   // Solve the final vertex positions
-  Eigen::Matrix<flo::real, Eigen::Dynamic, 4> V;
+  Eigen::Matrix<flo::real, Eigen::Dynamic, Eigen::Dynamic> V;
   flo::host::spin_positions(QL, E, V);
   Eigen::saveMarket(V, matrix_prefix + "spin_positions/positions.mtx");
 
