@@ -1,11 +1,7 @@
 #include "test_common.h"
 #include "device_test_util.h"
 #include <cusp/print.h>
-#include <cusp/io/matrix_market.h>
 #include "flo/device/cotangent_laplacian.cuh"
-#include "flo/device/vertex_vertex_adjacency.cuh"
-#include "flo/device/vertex_triangle_adjacency.cuh"
-#include "flo/device/vertex_mass.cuh"
 
 namespace
 {
