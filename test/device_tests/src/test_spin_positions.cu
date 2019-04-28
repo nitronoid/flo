@@ -5,26 +5,6 @@
 
 namespace
 {
-struct LQZ
-{
-  int N;
-
-  LQZ(int N) : N(N)
-  {
-  }
-
-  __host__ __device__ flo::real
-  operator()(const thrust::tuple<int, int, flo::real>& entry) const
-  {
-    const bool is_last_row_col =
-      (entry.get<0>() == N - 1) || (entry.get<0>() == N - 2) ||
-      (entry.get<0>() == N - 3) || (entry.get<0>() == N - 4) ||
-      (entry.get<1>() == N - 1) || (entry.get<1>() == N - 2) ||
-      (entry.get<1>() == N - 3) || (entry.get<1>() == N - 4);
-    return is_last_row_col ? 0.f : entry.get<2>();
-  }
-};
-
 void test(std::string name)
 {
   const std::string mp = "../matrices/" + name;
