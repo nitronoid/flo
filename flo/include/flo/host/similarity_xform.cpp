@@ -1,6 +1,7 @@
 template <typename DerivedX>
 FLO_API void similarity_xform(const Eigen::SparseMatrix<real>& D,
-                              Eigen::PlainObjectBase<DerivedX>& X)
+                              Eigen::PlainObjectBase<DerivedX>& X,
+                              int back_substitutions)
 {
   using namespace Eigen;
   // Calculate the length of our matrix,
@@ -31,12 +32,12 @@ FLO_API void similarity_xform(const Eigen::SparseMatrix<real>& D,
   // Where D is the self adjoint intrinsic dirac operator,
   // L is the similarity transformation, and E are the eigen values
   // Usually converges in 3 iterations or less
-  for (int i = 0; i < 3; ++i)
-  {
-    lambda.normalize();
-    lambda = cg.solve(lambda.eval());
-  }
   lambda.normalize();
+  for (int i = 0; i < back_substitutions + 1; ++i)
+  {
+    lambda = cg.solve(lambda.eval());
+    lambda.normalize();
+  }
 
   X.resize(qlen, 4);
   for (int i = 0; i < qlen; ++i)

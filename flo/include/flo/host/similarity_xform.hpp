@@ -7,13 +7,16 @@
 #include "flo/host/similarity_xform.hpp"
 #include <Eigen/CholmodSupport>
 #include <Eigen/SparseCholesky>
+#include <unsupported/Eigen/SparseExtra>
+
 
 
 FLO_HOST_NAMESPACE_BEGIN
 
 template <typename DerivedX>
 FLO_API void similarity_xform(const Eigen::SparseMatrix<real>& D,
-                              Eigen::PlainObjectBase<DerivedX>& X);
+                              Eigen::PlainObjectBase<DerivedX>& X,
+                              int back_substitutions = 0);
 
 #include "similarity_xform.cpp"
 

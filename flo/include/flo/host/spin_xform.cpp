@@ -7,8 +7,6 @@ FLO_API void spin_xform(Eigen::MatrixBase<DerivedV>& V,
   using namespace Eigen;
   // Calculate the real matrix from our quaternion edges
   auto QL = to_real_quaternion_matrix(L);
-  // Remove the final quaternion so we have a positive semi-definite matrix
-  QL.conservativeResize(QL.rows() - 4, QL.cols() - 4);
 
   // Calculate all face areas
   Matrix<real, Dynamic, 1> A;
@@ -30,8 +28,6 @@ FLO_API void spin_xform(Eigen::MatrixBase<DerivedV>& V,
   // Calculate our transformed edges
   Matrix<real, Dynamic, 4> E;
   divergent_edges(V, F, X, L, E);
-  // Remove the final edge to ensure we are compatible with the sliced laplacian
-  E.conservativeResize(E.rows() - 1, Eigen::NoChange);
 
   // Solve the final vertex positions
   Matrix<real, Dynamic, Dynamic> NV;
