@@ -98,6 +98,6 @@ __device__ __forceinline__ int sign_from_bit(uint8_t i_byte, uint8_t i_bit)
     add -> 11111101 + 1 == 11111110
     result -> -1
   ************************/
-  return (~((i_byte >> i_bit) & 1u)<<1) + 3;;
+  return (~((i_byte >> i_bit) & 1u)<<1) + 3;
 }
 
