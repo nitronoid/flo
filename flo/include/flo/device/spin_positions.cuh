@@ -11,10 +11,9 @@ FLO_DEVICE_NAMESPACE_BEGIN
 FLO_API void
 spin_positions(cusp::coo_matrix<int, real, cusp::device_memory>::const_view
                  di_quaternion_laplacian,
-               cusp::array2d<real, cusp::device_memory>::const_view di_xform,
+               cusp::array2d<real, cusp::device_memory>::const_view di_edges,
                cusp::array2d<real, cusp::device_memory>::view do_vertices,
-               const real i_tolerance = 1e-7,
-               const int i_iterations = 0);
+               const real i_tolerance = 1e-7);
 
 FLO_DEVICE_NAMESPACE_END
 
