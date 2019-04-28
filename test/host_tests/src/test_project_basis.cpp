@@ -31,6 +31,7 @@ void test(std::string name)
     read_vector<flo::real>(mp + "/mean_curvature/signed_mean_curvature.mtx");
   auto U = read_dense_matrix<flo::real>(mp + "/orthonormalize/basis.mtx");
 
+  SH *= -1.f;
   flo::host::project_basis(SH, U, InnerProduct{M});
 
   auto expected_SH =
