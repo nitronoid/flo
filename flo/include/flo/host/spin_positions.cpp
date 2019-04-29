@@ -16,7 +16,7 @@ FLO_API void spin_positions(const Eigen::SparseMatrix<real>& QL,
 
   Eigen::Matrix<real, Dynamic, 4, RowMajor> QEr = QE;
 
-  for (int i = 0; i < QEr.size() >> 2; ++i)
+  for (int i = 0; i < QEr.size() / 4; ++i)
   {
     const real z = QEr(i * 4 + 3);
     QEr(i * 4 + 3) = QEr(i * 4 + 2);
@@ -26,8 +26,9 @@ FLO_API void spin_positions(const Eigen::SparseMatrix<real>& QL,
   }
   Map<Matrix<real, Dynamic, 1>> b(QEr.data(), QEr.size());
   Matrix<real, Dynamic, 1> flat = cg.solve(b);
-  V.resize((flat.size() >> 2), 4);
-  for (int i = 0; i<flat.size()>> 2; ++i)
+
+  V.resize((flat.size() / 4), 4);
+  for (int i = 0; i < flat.size() / 4; ++i)
   {
     const real z = flat(i * 4 + 0);
     V.row(i)(0) = flat(i * 4 + 1);
