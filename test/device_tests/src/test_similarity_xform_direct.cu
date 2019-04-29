@@ -15,7 +15,7 @@ void test(std::string name)
     mp + "/intrinsic_dirac/intrinsic_dirac.mtx");
 
   DeviceDenseMatrixR d_xform(4, surf.n_vertices());
-  flo::device::similarity_xform(d_D, d_xform, 1e-7);
+  flo::device::direct::similarity_xform(d_D, d_xform, 1e-7);
   HostDenseMatrixR h_xform(d_xform.num_cols, d_xform.num_rows);
   cusp::transpose(d_xform, h_xform);
 
@@ -29,14 +29,14 @@ void test(std::string name)
 }
 }  // namespace
 
-#define FLO_SIMILARITY_XFORM_TEST(NAME) \
-  TEST(SimilarityXform, NAME)           \
-  {                                     \
-    test(#NAME);                        \
+#define FLO_SIMILARITY_XFORM_DIRECT_TEST(NAME) \
+  TEST(SimilarityXformDirect, NAME)            \
+  {                                            \
+    test(#NAME);                               \
   }
 
-FLO_SIMILARITY_XFORM_TEST(cube)
-FLO_SIMILARITY_XFORM_TEST(spot)
-FLO_SIMILARITY_XFORM_TEST(bunny)
+FLO_SIMILARITY_XFORM_DIRECT_TEST(cube)
+FLO_SIMILARITY_XFORM_DIRECT_TEST(spot)
+FLO_SIMILARITY_XFORM_DIRECT_TEST(bunny)
 
-#undef FLO_SIMILARITY_XFORM_TEST
+#undef FLO_SIMILARITY_XFORM_DIRECT_TEST

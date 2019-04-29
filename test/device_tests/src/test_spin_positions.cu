@@ -19,7 +19,6 @@ void test(std::string name)
   cusp::array2d<flo::real, cusp::device_memory> d_E(d_ET.num_cols,
                                                     d_ET.num_rows);
   cusp::transpose(d_ET, d_E);
-  cusp::print(d_E.values.subarray(0, 20));
 
   DeviceDenseMatrixR d_vertices(4, surf.n_vertices(), 0.f);
   flo::device::spin_positions(d_LQ, d_E, d_vertices);

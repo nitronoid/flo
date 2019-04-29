@@ -6,13 +6,26 @@
 #include <thrust/transform_reduce.h>
 #include <thrust/transform.h>
 #include <thrust/scatter.h>
-#include <cusp/permutation_matrix.h>
 #include <cusp/print.h>
-#include <cusp/monitor.h>
-#include <cusp/krylov/cg.h>
-#include <cusp/io/matrix_market.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
+
+namespace direct
+{
+
+namespace
+{
+struct quat_shfl
+{
+  using tup4 = thrust::tuple<real, real, real, real>;
+
+  __host__ __device__ tup4 operator()(real4 quat) const
+  {
+    return thrust::make_tuple(quat.y, quat.z, quat.w, quat.x);
+  }
+};
+
+}  // namespace
 
 FLO_API void similarity_xform(
   cusp::coo_matrix<int, real, cusp::device_memory>::const_view di_dirac,
@@ -27,66 +40,6 @@ FLO_API void similarity_xform(
     &sparse_handle, &solver, di_dirac, do_xform, i_tolerance, i_iterations);
 }
 
-namespace
-{
-void cusp_method(
-  cusp::coo_matrix<int, real, cusp::device_memory>::const_view di_dirac,
-  cusp::array2d<real, cusp::device_memory>::view do_xform,
-  const real i_tolerance,
-  const int i_iterations)
-{
-  cusp::array1d<real, cusp::device_memory> b(do_xform.num_entries);
-  thrust::tabulate(b.begin(), b.end(), [] __device__(int x) {
-    // When x is a multiple of 4, return one
-    return !(x & 3);
-  });
-  {
-    const real rnorm = 1.f / cusp::blas::nrm2(b);
-    thrust::transform(b.begin(), b.end(), b.begin(), [=] __device__(real x) {
-      return x * rnorm;
-    });
-  }
-
-  cusp::monitor<flo::real> monitor(b, 8000, i_tolerance, 0, true);
-  cusp::identity_operator<flo::real, cusp::device_memory> M(di_dirac.num_rows,
-                                                            di_dirac.num_rows);
-
-  cusp::krylov::cg(di_dirac, do_xform.values, b, monitor);
-
-  const real rnorm = 1.f / cusp::blas::nrm2(do_xform.values);
-  auto scatter_out = thrust::make_permutation_iterator(
-    do_xform.values.begin(),
-    thrust::make_transform_iterator(
-      thrust::make_counting_iterator(0),
-      [w = do_xform.num_entries / 4] __device__(int i) {
-        // Transpose our index, and
-        // simultaneously shuffle in the order:
-        // x -> w
-        // y -> x
-        // z -> y
-        // w -> z
-        const int32_t x = (i + 3) & 3;
-        const int32_t y = i >> 2;
-        return x * w + y;
-      }));
-  thrust::transform(do_xform.values.begin(),
-                    do_xform.values.end(),
-                    scatter_out,
-                    [=] __device__(real x) { return x * rnorm; });
-}
-
-
-struct quat_shfl
-{
-  using tup4 = thrust::tuple<real, real, real, real>;
-
-  __host__ __device__ tup4 operator()(real4 quat) const
-  {
-    return thrust::make_tuple(quat.y, quat.z, quat.w, quat.x);
-  }
-};
-}  // namespace
-
 FLO_API void similarity_xform(
   cu_raii::sparse::Handle* io_sparse_handle,
   cu_raii::solver::SolverSp* io_solver,
@@ -95,10 +48,6 @@ FLO_API void similarity_xform(
   const real i_tolerance,
   const int i_iterations)
 {
-  // cusp_method(di_dirac, do_xform, i_tolerance, i_iterations);
-  // return;
-
-  // TODO: FIX this and ammend the tests
   // Convert the row indices to csr row offsets
   cusp::array1d<int, cusp::device_memory> row_offsets(di_dirac.num_rows + 1);
   cusp::indices_to_offsets(di_dirac.row_indices, row_offsets);
@@ -108,11 +57,6 @@ FLO_API void similarity_xform(
          di_dirac.num_entries);
 
   // Fill our initial guess with the identity (quaternions)
-  // thrust::tabulate(
-  //  do_xform.values.begin(), do_xform.values.end(), [] __device__(int x) {
-  //    // When x is a multiple of 4, return one
-  //    return !(x & 3);
-  //  });
   cusp::array1d<real, cusp::device_memory> b(di_dirac.num_cols);
   thrust::tabulate(
     do_xform.values.begin(), do_xform.values.end(), [] __device__(int x) {
@@ -134,8 +78,13 @@ FLO_API void similarity_xform(
   cusparseSetMatDiagType(description_D, CUSPARSE_DIAG_TYPE_NON_UNIT);
   cusparseSetMatIndexBase(description_D, CUSPARSE_INDEX_BASE_ZERO);
 
-  // Tell cusolver to use metis reordering
+#if __CUDACC_VER_MAJOR__ < 10
+  // Tell cusolver to use symamd reordering if we're compiling with cuda 9
+  const int reorder = 2;
+#else
+  // Tell cusolver to use metis reordering if we're compiling with cuda 10
   const int reorder = 3;
+#endif
   // cusolver will set this flag
   int singularity = -1;
 
@@ -192,4 +141,5 @@ FLO_API void similarity_xform(
   }
 }
 
+}
 FLO_DEVICE_NAMESPACE_END
