@@ -31,33 +31,13 @@ struct unary_multiply
   }
 };
 
-struct quat_transpose_shuffle
-{
-  quat_transpose_shuffle(int x) : w(x)
-  {
-  }
-  int w;
-
-  __host__ __device__ int operator()(int i) const
-  {
-    // Transpose our index, and
-    // simultaneously shuffle in the order:
-    // x -> w
-    // y -> x
-    // z -> y
-    // w -> z
-    const int32_t x = (i + 3) & 3;
-    const int32_t y = i >> 2;
-    return x * w + y;
-  }
-};
-
 struct quat_shuffle
 {
   quat_shuffle(int x) : w(x)
   {
   }
   int w;
+
   __host__ __device__ int operator()(int i) const
   {
     // Shuffle in the order:
@@ -160,9 +140,8 @@ spin_positions(cusp::coo_matrix<int, real, cusp::device_memory>::const_view
   // Tell cusolver to use metis reordering
   const int reorder = 3;
   // cusolver will set this flag
-  int singularity = 0;
+  int singularity = -1;
 
-  // cusp::print(b);
   io_solver->status = cusolverSpScsrlsvchol(
     *io_solver,
     di_quaternion_laplacian.num_rows,
