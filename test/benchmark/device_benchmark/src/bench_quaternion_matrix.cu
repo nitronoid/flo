@@ -1,7 +1,7 @@
 #include <benchmark/benchmark.h>
 #include <numeric>
 #include "test_common.h"
-#include "flo/device/intrinsic_dirac.cuh"
+#include "flo/device/quaternion_matrix.cuh"
 
 namespace
 {

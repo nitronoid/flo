@@ -25,8 +25,8 @@ void test(std::string name)
     mp + "/vertex_triangle_adjacency/adjacency_keys.mtx");
   auto d_triangle_adjacency =
     read_device_vector<int>(mp + "/vertex_triangle_adjacency/adjacency.mtx");
-  auto d_offsets =
-    read_device_dense_matrix<int>(mp + "/adjacency_matrix_offset/offsets.mtx");
+  auto d_indices =
+    read_device_dense_matrix<int>(mp + "/adjacency_matrix_indices/indices.mtx");
 
   // Allocate a sparse quaternion matrix to store our result
   DeviceSparseMatrixQ d_Dq(surf.n_vertices(),
@@ -40,7 +40,7 @@ void test(std::string name)
                                surf.faces,
                                d_area,
                                d_rho,
-                               d_offsets,
+                               d_indices,
                                d_adjacency_keys,
                                d_adjacency,
                                d_cumulative_valence,

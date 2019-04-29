@@ -2,6 +2,7 @@
 #define FLO_DEVICE_INCLUDED_INTRINSIC_DIRAC
 
 #include "flo/flo_internal.hpp"
+#include "flo/device/quaternion_matrix.cuh"
 #include <cusp/array1d.h>
 #include <cusp/coo_matrix.h>
 
@@ -22,19 +23,6 @@ FLO_API void intrinsic_dirac(
     di_vertex_triangle_adjacency,
   cusp::array1d<int, cusp::device_memory>::view do_diagonals,
   cusp::coo_matrix<int, real4, cusp::device_memory>::view do_dirac_matrix);
-
-FLO_API void to_quaternion_matrix(
-  cusp::coo_matrix<int, real4, cusp::device_memory>::const_view
-    di_quaternion_matrix,
-  cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_column_size,
-  cusp::coo_matrix<int, real, cusp::device_memory>::view do_real_matrix);
-
-FLO_API void to_real_quaternion_matrix(
-  cusp::coo_matrix<int, real, cusp::device_memory>::const_view
-    di_quaternion_matrix,
-  cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_column_size,
-  cusp::coo_matrix<int, real, cusp::device_memory>::view do_real_matrix);
-
 
 FLO_DEVICE_NAMESPACE_END
 

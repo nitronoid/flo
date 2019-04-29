@@ -21,8 +21,8 @@ void test(std::string name)
     read_device_vector<int>(mp + "/vertex_vertex_adjacency/adjacency_keys.mtx");
   auto d_adjacency =
     read_device_vector<int>(mp + "/vertex_vertex_adjacency/adjacency.mtx");
-  auto d_offsets =
-    read_device_dense_matrix<int>(mp + "/adjacency_matrix_offset/offsets.mtx");
+  auto d_indices =
+    read_device_dense_matrix<int>(mp + "/adjacency_matrix_indices/indices.mtx");
 
   // Allocate a sparse matrix to store our result
   DeviceSparseMatrixR d_L(surf.n_vertices(),
@@ -34,7 +34,7 @@ void test(std::string name)
   // Run our function
   flo::device::cotangent_laplacian(surf.vertices,
                                    surf.faces,
-                                   d_offsets,
+                                   d_indices,
                                    d_adjacency_keys,
                                    d_adjacency,
                                    d_cumulative_valence,

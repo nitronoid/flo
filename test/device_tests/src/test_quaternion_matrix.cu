@@ -1,7 +1,7 @@
 #include "test_common.h"
 #include "device_test_util.h"
 #include <cusp/print.h>
-#include "flo/device/intrinsic_dirac.cuh"
+#include "flo/device/quaternion_matrix.cuh"
 
 namespace
 {

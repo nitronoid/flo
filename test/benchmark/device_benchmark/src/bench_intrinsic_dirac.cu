@@ -29,8 +29,8 @@ void bench_impl(std::string name, benchmark::State& state)
     mp + "/vertex_triangle_adjacency/adjacency_keys.mtx");
   auto d_triangle_adjacency =
     read_device_vector<int>(mp + "/vertex_triangle_adjacency/adjacency.mtx");
-  auto d_offsets =
-    read_device_dense_matrix<int>(mp + "/adjacency_matrix_offset/offsets.mtx");
+  auto d_indices =
+    read_device_dense_matrix<int>(mp + "/adjacency_matrix_indices/indices.mtx");
 
   // Add an ascending sequence to the cumulative valence to account for
   // diagonals
@@ -59,7 +59,7 @@ void bench_impl(std::string name, benchmark::State& state)
                                  surf.faces,
                                  d_area,
                                  d_rho,
-                                 d_offsets,
+                                 d_indices,
                                  d_adjacency_keys,
                                  d_adjacency,
                                  d_cumulative_valence,
