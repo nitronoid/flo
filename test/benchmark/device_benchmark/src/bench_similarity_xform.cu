@@ -11,18 +11,17 @@ void bench_impl(std::string name, benchmark::State& state)
   // Load our surface from the cache
   auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
   // Read intrinsic dirac matrix
-  auto h_D = read_host_sparse_matrix<flo::real>(
+  auto d_D = read_device_sparse_matrix<flo::real>(
     matrix_prefix + "/intrinsic_dirac/intrinsic_dirac.mtx");
 
   // Copy to device
-  DeviceSparseMatrixR d_Dr = h_D;
   flo::device::cu_raii::solver::SolverSp solver;
   flo::device::cu_raii::sparse::Handle sparse_handle;
 
   DeviceDenseMatrixR d_xform(4, surf.n_vertices());
   for (auto _ : state)
   {
-    flo::device::similarity_xform(&sparse_handle, &solver, d_Dr, d_xform);
+    flo::device::similarity_xform(&sparse_handle, &solver, d_D, d_xform);
   }
 }
 }  // namespace

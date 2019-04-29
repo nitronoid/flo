@@ -15,10 +15,9 @@ void bench_impl(std::string name, benchmark::State& state)
   const std::string mp = "../../matrices/" + name;
   // Load our surface from the cache
   auto surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
-  // Arbitrary constant rho
-  DeviceVectorR d_rho(surf.n_vertices(), 3.f);
 
   // Read all our dependencies from disk
+  auto d_rho = read_device_vector<flo::real>(mp + "/project_basis/rho.mtx");
   auto d_area = read_device_vector<flo::real>(mp + "/face_area/face_area.mtx");
   auto d_cumulative_valence = read_device_vector<int>(
     mp + "/vertex_vertex_adjacency/cumulative_valence.mtx");
@@ -33,6 +32,14 @@ void bench_impl(std::string name, benchmark::State& state)
   auto d_offsets =
     read_device_dense_matrix<int>(mp + "/adjacency_matrix_offset/offsets.mtx");
 
+  // Add an ascending sequence to the cumulative valence to account for
+  // diagonals
+  thrust::transform(d_cumulative_valence.begin() + 1,
+                    d_cumulative_valence.end(),
+                    thrust::make_counting_iterator(1),
+                    d_cumulative_valence.begin() + 1,
+                    thrust::plus<int>());
+
   // Allocate a sparse quaternion matrix to store our result
   DeviceSparseMatrixQ d_Dq(surf.n_vertices(),
                            surf.n_vertices(),
@@ -41,9 +48,9 @@ void bench_impl(std::string name, benchmark::State& state)
   // Allocate a dense 1 dimensional array to receive diagonal element indices
   DeviceVectorI d_diagonals(surf.n_vertices());
 
-  //// Allocate our real matrix for solving
-  // DeviceSparseMatrixR d_Dr(
-  //  surf.n_vertices() * 4, surf.n_vertices() * 4, d_Dq.values.size() * 16);
+  // Allocate our real matrix for solving
+  DeviceSparseMatrixR d_Dr(
+    surf.n_vertices() * 4, surf.n_vertices() * 4, d_Dq.values.size() * 16);
 
   for (auto _ : state)
   {
@@ -61,11 +68,11 @@ void bench_impl(std::string name, benchmark::State& state)
                                  d_diagonals,
                                  d_Dq);
 
-    //// Transform our quaternion matrix to a real matrix
-    // flo::device::to_real_quaternion_matrix(
-    //  d_Dq,
-    //  {d_cumulative_valence.begin() + 1, d_cumulative_valence.end()},
-    //  d_Dr);
+    // Transform our quaternion matrix to a real matrix
+    flo::device::to_quaternion_matrix(
+      d_Dq,
+      {d_cumulative_valence.begin() + 1, d_cumulative_valence.end()},
+      d_Dr);
   }
 }
 }  // namespace
