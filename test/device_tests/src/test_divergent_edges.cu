@@ -10,7 +10,7 @@ void test(std::string name)
   const std::string mp = "../matrices/" + name;
   auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
 
-  // Copy to device
+  // Read all our dependencies from disk
   auto d_xform =
     read_device_dense_matrix<flo::real>(mp + "/similarity_xform/lambda.mtx");
   auto d_L = read_device_sparse_matrix<flo::real>(

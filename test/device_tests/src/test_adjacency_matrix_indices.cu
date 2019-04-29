@@ -1,7 +1,7 @@
 #include "test_common.h"
 #include "device_test_util.h"
 #include <cusp/io/matrix_market.h>
-#include "flo/device/vertex_vertex_adjacency.cuh"
+#include "flo/device/adjacency_matrix_indices.cuh"
 #include <cusp/print.h>
 
 namespace
@@ -22,30 +22,30 @@ void test(std::string name)
     mp + "/vertex_vertex_adjacency/cumulative_valence.mtx");
 
   // Declare device side arrays to dump our results
-  DeviceDenseMatrixI d_offsets(6, surf.n_faces());
+  DeviceDenseMatrixI d_indices(6, surf.n_faces());
 
   // Run the function
-  flo::device::adjacency_matrix_offset(
-    surf.faces, d_adjacency, d_cumulative_valence, d_offsets);
-  HostDenseMatrixI h_offsets = d_offsets;
+  flo::device::adjacency_matrix_indices(
+    surf.faces, d_adjacency, d_cumulative_valence, d_indices);
+  HostDenseMatrixI h_indices = d_indices;
 
-  auto expected_offsets =
-    read_host_dense_matrix<int>(mp + "/adjacency_matrix_offset/offsets.mtx");
+  auto expected_indices =
+    read_host_dense_matrix<int>(mp + "/adjacency_matrix_indices/indices.mtx");
 
   // Test the results
   using namespace testing;
-  EXPECT_THAT(h_offsets.values, ElementsAreArray(expected_offsets.values));
+  EXPECT_THAT(h_indices.values, ElementsAreArray(expected_indices.values));
 }
 }  // namespace
 
-#define FLO_ADJACENCY_MATRIX_OFFSET_TEST(NAME) \
-  TEST(AdjacencyMatrixOffset, NAME)            \
-  {                                            \
-    test(#NAME);                               \
+#define FLO_ADJACENCY_MATRIX_INDICES_TEST(NAME) \
+  TEST(AdjacencyMatrixIndices, NAME)            \
+  {                                             \
+    test(#NAME);                                \
   }
 
-FLO_ADJACENCY_MATRIX_OFFSET_TEST(cube)
-FLO_ADJACENCY_MATRIX_OFFSET_TEST(spot)
-FLO_ADJACENCY_MATRIX_OFFSET_TEST(bunny)
+FLO_ADJACENCY_MATRIX_INDICES_TEST(cube)
+FLO_ADJACENCY_MATRIX_INDICES_TEST(spot)
+FLO_ADJACENCY_MATRIX_INDICES_TEST(bunny)
 
-#undef FLO_ADJACENCY_MATRIX_OFFSET_TEST
+#undef FLO_ADJACENCY_MATRIX_INDICES_TEST

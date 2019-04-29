@@ -6,21 +6,25 @@ namespace
 {
 static void bench_impl(std::string name, benchmark::State& state)
 {
+  // Set-up matrix path
+  const std::string mp = "../../matrices/" + name;
   // Load our surface from the cache
-  auto surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
-  cusp::array1d<int, cusp::device_memory> d_adjacency(surf.n_faces() * 3);
-  cusp::array1d<int, cusp::device_memory> d_valence(surf.n_vertices());
-  cusp::array1d<int, cusp::device_memory> d_cumulative_valence(
-    surf.n_vertices() + 1);
-  thrust::device_vector<int> temp(surf.n_faces() * 3);
+  auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
+
+  // Declare device side arrays to dump our results
+  DeviceVectorI d_adjacency(surf.n_faces() * 3);
+  DeviceVectorI d_adjacency_keys(surf.n_faces() * 3);
+  DeviceVectorI d_valence(surf.n_vertices());
+  DeviceVectorI d_cumulative_valence(surf.n_vertices() + 1);
+
   for (auto _ : state)
   {
     flo::device::vertex_triangle_adjacency(
       surf.faces,
-      temp.data(),
+      d_adjacency_keys,
       d_adjacency,
       d_valence,
-      {d_cumulative_valence.begin() + 1, d_cumulative_valence.end()});
+      d_cumulative_valence.subarray(1, surf.n_vertices()));
   }
 }
 }  // namespace
@@ -34,8 +38,9 @@ static void bench_impl(std::string name, benchmark::State& state)
 
 FLO_VERTEX_TRIANGLE_ADJACENCY_DEVICE_BENCHMARK(cube)
 FLO_VERTEX_TRIANGLE_ADJACENCY_DEVICE_BENCHMARK(spot)
-FLO_VERTEX_TRIANGLE_ADJACENCY_DEVICE_BENCHMARK(dense_sphere_400x400)
-FLO_VERTEX_TRIANGLE_ADJACENCY_DEVICE_BENCHMARK(dense_sphere_1000x1000)
+FLO_VERTEX_TRIANGLE_ADJACENCY_DEVICE_BENCHMARK(bunny)
 
 #undef FLO_VERTEX_TRIANGLE_ADJACENCY_DEVICE_BENCHMARK
+
+
 

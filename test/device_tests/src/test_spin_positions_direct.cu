@@ -1,6 +1,6 @@
 #include "test_common.h"
 #include "device_test_util.h"
-#include "flo/device/spin_positions.cuh"
+#include "flo/device/spin_positions_direct.cuh"
 #include "flo/device/intrinsic_dirac.cuh"
 #include <cusp/transpose.h>
 
@@ -21,7 +21,7 @@ void test(std::string name)
   cusp::transpose(d_ET, d_E);
 
   DeviceDenseMatrixR d_vertices(4, surf.n_vertices(), 0.f);
-  flo::device::spin_positions(d_LQ, d_E, d_vertices);
+  flo::device::direct::spin_positions(d_LQ, d_E, d_vertices);
   HostDenseMatrixR h_vertices = d_vertices;
 
   auto expected_vertices =
@@ -33,14 +33,14 @@ void test(std::string name)
 }
 }  // namespace
 
-#define FLO_SPIN_POSITIONS_TEST(NAME) \
-  TEST(SpinPositions, NAME)           \
-  {                                   \
-    test(#NAME);                      \
+#define FLO_SPIN_POSITIONS_DIRECT_TEST(NAME) \
+  TEST(SpinPositionsDirect, NAME)            \
+  {                                          \
+    test(#NAME);                             \
   }
 
-FLO_SPIN_POSITIONS_TEST(spot)
-FLO_SPIN_POSITIONS_TEST(bunny)
+FLO_SPIN_POSITIONS_DIRECT_TEST(spot)
+FLO_SPIN_POSITIONS_DIRECT_TEST(bunny)
 
-#undef FLO_SPIN_POSITIONS_TEST
+#undef FLO_SPIN_POSITIONS_DIRECT_TEST
 

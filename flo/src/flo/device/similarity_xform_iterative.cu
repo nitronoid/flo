@@ -1,14 +1,11 @@
-#include "flo/device/similarity_xform.cuh"
+#include "flo/device/similarity_xform_iterative.cuh"
 #include <thrust/tabulate.h>
-#include <cusp/monitor.h>
-#include <cusp/krylov/cg.h>
-#include <cusp/precond/diagonal.h>
 #include <thrust/transform_reduce.h>
 #include <thrust/transform.h>
 #include <thrust/scatter.h>
-#include <cusp/print.h>
-#include <cusp/monitor.h>
 #include <cusp/krylov/cg.h>
+#include <cusp/monitor.h>
+#include <cusp/precond/diagonal.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
@@ -17,16 +14,6 @@ namespace iterative
 
 namespace
 {
-struct quat_shfl
-{
-  using tup4 = thrust::tuple<real, real, real, real>;
-
-  __host__ __device__ tup4 operator()(real4 quat) const
-  {
-    return thrust::make_tuple(quat.y, quat.z, quat.w, quat.x);
-  }
-};
-
 class diagonal_precond : public cusp::linear_operator<flo::real, cusp::device_memory>
 {
   using Parent = cusp::linear_operator<flo::real, cusp::device_memory>;
@@ -64,7 +51,7 @@ FLO_API void similarity_xform(
   cusp::array2d<real, cusp::device_memory>::view do_xform,
   const real i_tolerance,
   const int i_back_substitutions,
-  const real i_max_convergence_iterations)
+  const int i_max_convergence_iterations)
 {
   cusp::array1d<real, cusp::device_memory> b(do_xform.num_entries);
   thrust::tabulate(b.begin(), b.end(), [] __device__(int x) {
@@ -77,15 +64,15 @@ FLO_API void similarity_xform(
   diagonal_precond M(di_dirac);
 
 
-  for (int iter = 0; iter < i_iterations + 1; ++iter)
+  for (int iter = 0; iter < i_back_substitutions + 1; ++iter)
   {
     const real rnorm = 1.f / cusp::blas::nrm2(b);
     thrust::transform(b.begin(), b.end(), b.begin(), [=] __device__(real x) {
       return x * rnorm;
     });
-    cusp::krylov::cg(di_dirac, do_xform.values, b, monitor);
+    cusp::krylov::cg(di_dirac, do_xform.values, b, monitor, M);
     // Substitute back if we're not on the last iteration
-    if (iter < i_iterations + 1)
+    if (iter < i_back_substitutions + 1)
     {
       thrust::copy(do_xform.values.begin(), do_xform.values.end(), b.begin());
     }

@@ -21,20 +21,21 @@ void bench_impl(std::string name, benchmark::State& state)
   DeviceDenseMatrixR d_xform(4, surf.n_vertices());
   for (auto _ : state)
   {
-    flo::device::similarity_xform(&sparse_handle, &solver, d_D, d_xform);
+    flo::device::direct::similarity_xform(
+        &sparse_handle, &solver, d_D, d_xform);
   }
 }
 }  // namespace
 
-#define FLO_SIMILARITY_XFORM_DEVICE_BENCHMARK(NAME)                   \
-  static void DEVICE_similarity_xform_##NAME(benchmark::State& state) \
-  {                                                                   \
-    bench_impl(#NAME, state);                                         \
-  }                                                                   \
-  BENCHMARK(DEVICE_similarity_xform_##NAME);
+#define FLO_SIMILARITY_XFORM_DIRECT_DEVICE_BENCHMARK(NAME)                   \
+  static void DEVICE_similarity_xform_direct_##NAME(benchmark::State& state) \
+  {                                                                          \
+    bench_impl(#NAME, state);                                                \
+  }                                                                          \
+  BENCHMARK(DEVICE_similarity_xform_direct_##NAME);
 
-FLO_SIMILARITY_XFORM_DEVICE_BENCHMARK(cube)
-FLO_SIMILARITY_XFORM_DEVICE_BENCHMARK(spot)
-FLO_SIMILARITY_XFORM_DEVICE_BENCHMARK(bunny)
+FLO_SIMILARITY_XFORM_DIRECT_DEVICE_BENCHMARK(cube)
+FLO_SIMILARITY_XFORM_DIRECT_DEVICE_BENCHMARK(spot)
+FLO_SIMILARITY_XFORM_DIRECT_DEVICE_BENCHMARK(bunny)
 
-#undef FLO_SIMILARITY_XFORM_DEVICE_BENCHMARK
+#undef FLO_SIMILARITY_XFORM_DIRECT_DEVICE_BENCHMARK

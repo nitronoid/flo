@@ -1,10 +1,49 @@
-#include "flo/device/spin_positions.cuh"
-#include <cusp/print.h>
+#include "flo/device/spin_positions_direct.cuh"
+#include <thrust/tabulate.h>
+#include <thrust/transform_reduce.h>
+#include <thrust/transform.h>
+#include <thrust/scatter.h>
+#include <cusp/krylov/cg.h>
+#include <cusp/monitor.h>
+#include <cusp/precond/diagonal.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
+namespace iterative
+{
+
 namespace
 {
+class diagonal_precond : public cusp::linear_operator<flo::real, cusp::device_memory>
+{
+  using Parent = cusp::linear_operator<flo::real, cusp::device_memory>;
+  cusp::array1d<flo::real, cusp::device_memory> diagonal_reciprocals;
+
+public:
+  diagonal_precond(cusp::coo_matrix<int, flo::real, cusp::device_memory>::const_view di_A)
+    : diagonal_reciprocals(di_A.num_rows)
+  {
+    // extract the main diagonal
+    thrust::fill(diagonal_reciprocals.begin(), diagonal_reciprocals.end(), 0.f);
+    thrust::scatter_if(di_A.values.begin(), di_A.values.end(),
+                       di_A.row_indices.begin(),
+                       thrust::make_transform_iterator(
+                           thrust::make_zip_iterator(thrust::make_tuple(
+                               di_A.row_indices.begin(), di_A.column_indices.begin())),
+                           cusp::equal_pair_functor<int>()),
+                       diagonal_reciprocals.begin());
+
+    // invert the entries
+    thrust::transform(diagonal_reciprocals.begin(), diagonal_reciprocals.end(),
+                      diagonal_reciprocals.begin(), cusp::reciprocal_functor<flo::real>());
+  }
+
+  template <typename VectorType1, typename VectorType2>
+  void operator()(const VectorType1& x, VectorType2& y) const
+  {
+    cusp::blas::xmy(diagonal_reciprocals, x, y);
+  }
+};
 struct unary_divide
 {
   unary_divide(int x) : denom(x)
@@ -98,18 +137,14 @@ auto make_centered(ForwardIterator&& value_it, ConstantIterator&& const_it)
 
 }  // namespace
 
-FLO_API void
+FLO_API void 
 spin_positions(cusp::coo_matrix<int, real, cusp::device_memory>::const_view
                  di_quaternion_laplacian,
                cusp::array2d<real, cusp::device_memory>::const_view di_edges,
                cusp::array2d<real, cusp::device_memory>::view do_vertices,
-               const real i_tolerance)
+               const real i_tolerance = 1e-7,
+               const int i_max_convergence_iterations = 10000)
 {
-  cu_raii::sparse::Handle sparse_handle;
-  cu_raii::solver::SolverSp solver;
-  auto io_solver = &solver;
-  auto io_sparse_handle = &sparse_handle;
-
   // Convert the row indices to csr row offsets
   cusp::array1d<int, cusp::device_memory> row_offsets(
     di_quaternion_laplacian.num_rows + 1);
@@ -123,47 +158,10 @@ spin_positions(cusp::coo_matrix<int, real, cusp::device_memory>::const_view
   thrust::scatter(
     di_edges.values.begin(), di_edges.values.end(), shuffle_it, b.begin());
 
-  // Get a cuSolver and cuSparse handle
-  io_solver->error_assert(__LINE__);
-  io_sparse_handle->error_assert(__LINE__);
-
-  // Create a matrix description
-  cu_raii::sparse::MatrixDescription description_QL(&io_sparse_handle->status);
-  io_sparse_handle->error_assert(__LINE__);
-
-  // Tell cuSparse what matrix to expect
-  cusparseSetMatType(description_QL, CUSPARSE_MATRIX_TYPE_GENERAL);
-  cusparseSetMatFillMode(description_QL, CUSPARSE_FILL_MODE_LOWER);
-  cusparseSetMatDiagType(description_QL, CUSPARSE_DIAG_TYPE_NON_UNIT);
-  cusparseSetMatIndexBase(description_QL, CUSPARSE_INDEX_BASE_ZERO);
-
-#if __CUDACC_VER_MAJOR__ < 10
-  // Tell cusolver to use symamd reordering if we're compiling with cuda 9
-  const int reorder = 2;
-#else
-  // Tell cusolver to use metis reordering if we're compiling with cuda 10
-  const int reorder = 3;
-#endif
-  // cusolver will set this flag
-  int singularity = -1;
-
-  io_solver->status = cusolverSpScsrlsvchol(
-    *io_solver,
-    di_quaternion_laplacian.num_rows,
-    di_quaternion_laplacian.num_entries,
-    description_QL,
-    di_quaternion_laplacian.values.begin().base().get(),
-    row_offsets.data().get(),
-    di_quaternion_laplacian.column_indices.begin().base().get(),
-    b.begin().base().get(),
-    i_tolerance,
-    reorder,
-    do_vertices.values.begin().base().get(),
-    &singularity);
-  io_solver->error_assert(__LINE__);
-  if (singularity != -1)
-    std::cout << "Singularity: " << singularity << '\n';
-
+  cusp::monitor<flo::real> monitor(
+      b, i_max_convergence_iterations, i_tolerance, 0.f, false);
+  diagonal_precond M(di_quaternion_laplacian);
+    cusp::krylov::cg(di_quaternion_laplacian, do_vertices.values, b, monitor, M);
   {
     thrust::copy(
       do_vertices.values.begin(), do_vertices.values.end(), b.begin());
@@ -176,7 +174,12 @@ spin_positions(cusp::coo_matrix<int, real, cusp::device_memory>::const_view
                                                    do_vertices.row(3).begin()));
 
     thrust::transform(
-      xin_ptr, xin_ptr + do_vertices.num_cols, xout_ptr, quat_shfl{});
+      xin_ptr, xin_ptr + do_vertices.num_cols, xout_ptr, 
+      [] __device__ (real4 quat)
+      {
+        return thrust::make_tuple(quat.y, quat.z, quat.w, quat.x);
+      });
+
   }
 
   auto discard_it = thrust::make_discard_iterator();
@@ -222,6 +225,8 @@ spin_positions(cusp::coo_matrix<int, real, cusp::device_memory>::const_view
                     do_vertices.values.end(),
                     do_vertices.values.begin(),
                     unary_multiply(rmax));
+}
+
 }
 
 FLO_DEVICE_NAMESPACE_END

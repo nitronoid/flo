@@ -1,4 +1,4 @@
-#include "flo/device/similarity_xform.cuh"
+#include "flo/device/similarity_xform_direct.cuh"
 #include <thrust/tabulate.h>
 #include <cusp/monitor.h>
 #include <cusp/krylov/cg.h>
