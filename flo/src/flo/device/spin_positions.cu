@@ -137,8 +137,13 @@ spin_positions(cusp::coo_matrix<int, real, cusp::device_memory>::const_view
   cusparseSetMatDiagType(description_QL, CUSPARSE_DIAG_TYPE_NON_UNIT);
   cusparseSetMatIndexBase(description_QL, CUSPARSE_INDEX_BASE_ZERO);
 
-  // Tell cusolver to use metis reordering
+#if __CUDACC_VER_MAJOR__ < 10
+  // Tell cusolver to use symamd reordering if we're compiling with cuda 9
+  const int reorder = 2;
+#else
+  // Tell cusolver to use metis reordering if we're compiling with cuda 10
   const int reorder = 3;
+#endif
   // cusolver will set this flag
   int singularity = -1;
 
