@@ -23,9 +23,9 @@ static void bench_impl(std::string name, benchmark::State& state)
 
 #define FLO_MEAN_CURVATURE_HOST_BENCHMARK(NAME)                   \
   static void HOST_mean_curvature_##NAME(benchmark::State& state) \
-  {                                                                    \
-    bench_impl(#NAME, state);                                          \
-  }                                                                    \
+  {                                                               \
+    bench_impl(#NAME, state);                                     \
+  }                                                               \
   BENCHMARK(HOST_mean_curvature_##NAME);
 
 FLO_MEAN_CURVATURE_HOST_BENCHMARK(cube)

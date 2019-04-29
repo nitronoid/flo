@@ -9,9 +9,8 @@ static void bench_impl(std::string name, benchmark::State& state)
 {
   const std::string mp = "../../matrices/" + name;
   auto surf = TestCache::get_mesh<TestCache::HOST>(name + ".obj");
-  Eigen::Matrix<flo::real, Eigen::Dynamic, 1> rho(surf.n_vertices(), 1);
-  rho.setConstant(3.0f);
 
+  auto rho = read_vector<flo::real>(mp + "/project_basis/rho.mtx");
   auto vertex_valence =
     read_vector<int>(mp + "/vertex_vertex_adjacency/valence.mtx");
   auto face_area = read_vector<flo::real>(mp + "/face_area/face_area.mtx");
