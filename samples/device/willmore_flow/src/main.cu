@@ -199,7 +199,7 @@ int main(int argc, char* argv[])
 
   // SIMILARITY XFORM
   cusp::array2d<flo::real, cusp::device_memory> d_XT(4, d_surf.n_vertices());
-  flo::device::similarity_xform(d_D, d_XT, 1e-7);
+  flo::device::iterative::similarity_xform(d_D, d_XT, 1e-7);
   cusp::array2d<flo::real, cusp::device_memory> d_X(d_XT.num_cols,
                                                     d_XT.num_rows);
   cusp::transpose(d_XT, d_X);
@@ -218,7 +218,7 @@ int main(int argc, char* argv[])
   // SPIN POSITIONS
   cusp::array2d<flo::real, cusp::device_memory> d_vertices(
     4, d_surf.n_vertices(), 0.f);
-  flo::device::spin_positions(d_LQ, d_E, d_vertices);
+  flo::device::direct::spin_positions(d_LQ, d_E, d_vertices);
 
   thrust::copy_n(
     d_vertices.values.begin(), h_surf.n_vertices() * 3, h_surf.vertices.data());

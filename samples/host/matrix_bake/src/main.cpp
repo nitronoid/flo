@@ -25,7 +25,7 @@ namespace
 {
 template <typename T>
 Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-matrix_offsets(const Eigen::MatrixXi& F,
+matrix_indices(const Eigen::MatrixXi& F,
                Eigen::SparseMatrix<T>& i_matrix,
                Eigen::VectorXi& i_diagonals)
 {
@@ -33,9 +33,9 @@ matrix_offsets(const Eigen::MatrixXi& F,
   const int nvertices = F.maxCoeff() + 1;
 
   using namespace Eigen;
-  Matrix<int, Dynamic, Dynamic, RowMajor> offsets(6, nfaces);
+  Matrix<int, Dynamic, Dynamic, RowMajor> indices(6, nfaces);
 
-  auto get_offset = [&i_matrix](int r, int c) {
+  auto get_index = [&i_matrix](int r, int c) {
     const T* begin = i_matrix.valuePtr();
     return &i_matrix.coeffRef(r, c) - begin;
   };
@@ -43,21 +43,21 @@ matrix_offsets(const Eigen::MatrixXi& F,
   for (int i = 0; i < nfaces; ++i)
   {
     auto f = F.row(i);
-    offsets(0, i) = get_offset(f[1], f[0]);
-    offsets(1, i) = get_offset(f[2], f[1]);
-    offsets(2, i) = get_offset(f[0], f[2]);
-    offsets(3, i) = get_offset(f[0], f[1]);
-    offsets(4, i) = get_offset(f[1], f[2]);
-    offsets(5, i) = get_offset(f[2], f[0]);
+    indices(0, i) = get_index(f[1], f[0]);
+    indices(1, i) = get_index(f[2], f[1]);
+    indices(2, i) = get_index(f[0], f[2]);
+    indices(3, i) = get_index(f[0], f[1]);
+    indices(4, i) = get_index(f[1], f[2]);
+    indices(5, i) = get_index(f[2], f[0]);
   }
 
   i_diagonals.resize(nvertices);
   for (int i = 0; i < nvertices; ++i)
   {
-    i_diagonals(i) = get_offset(i, i);
+    i_diagonals(i) = get_index(i, i);
   }
 
-  return offsets;
+  return indices;
 }
 
 }  // namespace
@@ -116,9 +116,9 @@ int main(int argc, char* argv[])
                       "cotangent_laplacian/quaternion_cotangent_laplacian.mtx");
 
   Eigen::VectorXi diag;
-  // Calculate the adjacency matrix offsets
-  const auto O = matrix_offsets(surf.faces, L, diag);
-  Eigen::saveMarket(O, matrix_prefix + "adjacency_matrix_offset/offsets.mtx");
+  // Calculate the adjacency matrix indices
+  const auto O = matrix_indices(surf.faces, L, diag);
+  Eigen::saveMarket(O, matrix_prefix + "adjacency_matrix_indices/indices.mtx");
   Eigen::saveMarket(diag, matrix_prefix + "cotangent_laplacian/diagonals.mtx");
 
   // Calculate the vertex masses for our mesh
