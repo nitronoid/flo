@@ -1,6 +1,6 @@
 #include "flo/device/intrinsic_dirac.cuh"
 #include "flo/device/thread_util.cuh"
-#include "flo/device/matrix_operation.cuh"
+#include "flo/device/adjacency_matrix_indices.cuh"
 #include <thrust/reduce.h>
 #include <thrust/device_vector.h>
 #include <thrust/iterator/zip_iterator.h>
@@ -229,7 +229,6 @@ FLO_API void intrinsic_dirac(
   cusp::array2d<int, cusp::device_memory>::const_view di_faces,
   cusp::array1d<real, cusp::device_memory>::const_view di_face_area,
   cusp::array1d<real, cusp::device_memory>::const_view di_rho,
-  cusp::array2d<int, cusp::device_memory>::const_view di_entry_offset,
   cusp::array1d<int, cusp::device_memory>::const_view di_adjacency_keys,
   cusp::array1d<int, cusp::device_memory>::const_view di_adjacency,
   cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_valence,
@@ -237,44 +236,53 @@ FLO_API void intrinsic_dirac(
     di_vertex_triangle_adjacency_keys,
   cusp::array1d<int, cusp::device_memory>::const_view
     di_vertex_triangle_adjacency,
-  cusp::array1d<int, cusp::device_memory>::view do_diagonals,
+  cusp::array2d<int, cusp::device_memory>::view do_entry_indices,
+  cusp::array1d<int, cusp::device_memory>::view do_diagonal_indices,
   cusp::coo_matrix<int, real4, cusp::device_memory>::view do_dirac_matrix)
 {
-  // Find the diagonal matrix entry indices
-  find_diagonal_indices(
-    di_cumulative_valence, di_adjacency_keys, di_adjacency, do_diagonals);
+  auto temp_ptr = thrust::device_pointer_cast(
+      reinterpret_cast<void*>(do_dirac_matrix.values.begin().base().get()));
+  adjacency_matrix_indices(di_faces,
+                           di_adjacency_keys,
+                           di_adjacency,
+                           di_cumulative_valence,
+                           do_entry_indices,
+                           do_diagonal_indices,
+                           do_dirac_matrix.row_indices,
+                           do_dirac_matrix.column_indices,
+                           temp_ptr);
 
-  const int ndiagonals = do_diagonals.size();
-  const int nnon_diagonals = do_dirac_matrix.num_entries - ndiagonals;
+  cusp::array2d<int, cusp::device_memory>::const_view const_entry_indices(
+      do_entry_indices.num_rows,
+      do_entry_indices.num_cols,
+      1,
+      do_entry_indices.values);
 
-  // This will be used to permute the value iterator
-  thrust::device_ptr<int> diagonal_stride_ptr{
-    reinterpret_cast<int*>(do_dirac_matrix.values.begin().base().get())};
-  auto diagonal_stride = cusp::make_array1d_view(
-    diagonal_stride_ptr, diagonal_stride_ptr + nnon_diagonals);
+  intrinsic_dirac_values(di_vertices,
+                         di_faces,
+                         di_face_area,
+                         di_rho,
+                         di_vertex_triangle_adjacency_keys,
+                         di_vertex_triangle_adjacency,
+                         const_entry_indices,
+                         do_diagonal_indices,
+                         do_dirac_matrix);
 
-  make_skip_indices(do_diagonals, diagonal_stride);
-  // An iterator for each row, column pair of indices
-  auto entry_it = thrust::make_zip_iterator(
-    thrust::make_tuple(do_dirac_matrix.row_indices.begin(),
-                       do_dirac_matrix.column_indices.begin()));
-  // Iterator for non-diagonal matrix entries
-  auto non_diag_begin =
-    thrust::make_permutation_iterator(entry_it, diagonal_stride.begin());
-  // Copy the adjacency keys and the adjacency info as the matrix coords
-  thrust::copy_n(thrust::make_zip_iterator(thrust::make_tuple(
-                   di_adjacency_keys.begin(), di_adjacency.begin())),
-                 nnon_diagonals,
-                 non_diag_begin);
-  // Iterator for diagonal matrix entries
-  auto diag_begin =
-    thrust::make_permutation_iterator(entry_it, do_diagonals.begin());
-  // Generate the diagonal entry, row and column indices
-  thrust::tabulate(
-    diag_begin, diag_begin + do_diagonals.size(), [] __device__(const int i) {
-      return thrust::make_tuple(i, i);
-    });
+}
 
+FLO_API void intrinsic_dirac_values(
+  cusp::array2d<real, cusp::device_memory>::const_view di_vertices,
+  cusp::array2d<int, cusp::device_memory>::const_view di_faces,
+  cusp::array1d<real, cusp::device_memory>::const_view di_face_area,
+  cusp::array1d<real, cusp::device_memory>::const_view di_rho,
+  cusp::array1d<int, cusp::device_memory>::const_view
+    di_vertex_triangle_adjacency_keys,
+  cusp::array1d<int, cusp::device_memory>::const_view
+    di_vertex_triangle_adjacency,
+  cusp::array2d<int, cusp::device_memory>::const_view di_entry_indices,
+  cusp::array1d<int, cusp::device_memory>::const_view di_diagonal_indices,
+  cusp::coo_matrix<int, real4, cusp::device_memory>::view do_dirac_matrix)
+{
   const size_t block_width = 1024;
   const size_t nblocks = di_faces.num_cols * 4 / block_width + 1;
   // When passing the face and offset data to cuda, we reinterpret them as int
@@ -286,7 +294,7 @@ FLO_API void intrinsic_dirac(
     di_vertices.values.begin().base().get(),
     di_faces.values.begin().base().get(),
     di_rho.begin().base().get(),
-    di_entry_offset.values.begin().base().get(),
+    di_entry_indices.values.begin().base().get(),
     di_vertices.num_cols,
     di_faces.num_cols,
     do_dirac_matrix.values.begin().base().get());
@@ -315,7 +323,48 @@ FLO_API void intrinsic_dirac(
     dirac_iter,
     thrust::make_discard_iterator(),
     thrust::make_permutation_iterator(do_dirac_matrix.values.begin(),
-                                      do_diagonals.begin()));
+                                      di_diagonal_indices.begin()));
+}
+
+FLO_API void intrinsic_dirac(
+  cusp::array2d<real, cusp::device_memory>::const_view di_vertices,
+  cusp::array2d<int, cusp::device_memory>::const_view di_faces,
+  cusp::array1d<int, cusp::device_memory>::const_view di_adjacency_keys,
+  cusp::array1d<int, cusp::device_memory>::const_view di_adjacency,
+  cusp::array1d<int, cusp::device_memory>::const_view di_cumulative_valence,
+  cusp::array1d<real, cusp::device_memory>::const_view di_face_area,
+  cusp::array1d<real, cusp::device_memory>::const_view di_rho,
+  cusp::array1d<int, cusp::device_memory>::const_view
+    di_vertex_triangle_adjacency_keys,
+  cusp::array1d<int, cusp::device_memory>::const_view
+    di_vertex_triangle_adjacency,
+  cusp::coo_matrix<int, real4, cusp::device_memory>::view do_dirac_matrix)
+{ 
+  cusp::array2d<int, cusp::device_memory> entry_indices(6, di_faces.num_cols);
+  cusp::array1d<int, cusp::device_memory> diagonal_indices(di_vertices.num_cols);
+
+  auto temp_ptr = thrust::device_pointer_cast(
+      reinterpret_cast<void*>(do_dirac_matrix.values.begin().base().get()));
+  adjacency_matrix_indices(di_faces,
+                           di_adjacency_keys,
+                           di_adjacency,
+                           di_cumulative_valence,
+                           entry_indices,
+                           diagonal_indices,
+                           do_dirac_matrix.row_indices,
+                           do_dirac_matrix.column_indices,
+                           temp_ptr);
+
+  intrinsic_dirac_values(di_vertices,
+                         di_faces,
+                         di_face_area,
+                         di_rho,
+                         di_vertex_triangle_adjacency_keys,
+                         di_vertex_triangle_adjacency,
+                         entry_indices,
+                         diagonal_indices,
+                         do_dirac_matrix);
+
 }
 
 FLO_DEVICE_NAMESPACE_END
