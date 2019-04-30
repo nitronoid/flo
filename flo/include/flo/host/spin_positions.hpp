@@ -4,8 +4,8 @@
 #include "flo/flo_internal.hpp"
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
+#include <Eigen/SparseCholesky>
 #include "flo/host/flo_matrix_operation.hpp"
-#include <Eigen/CholmodSupport>
 
 FLO_HOST_NAMESPACE_BEGIN
 

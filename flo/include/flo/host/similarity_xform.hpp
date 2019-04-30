@@ -5,9 +5,7 @@
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 #include "flo/host/similarity_xform.hpp"
-#include <Eigen/CholmodSupport>
 #include <Eigen/SparseCholesky>
-#include <unsupported/Eigen/SparseExtra>
 
 
 

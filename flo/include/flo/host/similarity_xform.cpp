@@ -9,13 +9,7 @@ FLO_API void similarity_xform(const Eigen::SparseMatrix<real>& D,
   const int vlen = D.cols();
   const int qlen = vlen / 4;
 
-  // If double precsion, use Cholmod solver
-#ifdef FLO_USE_DOUBLE_PRECISION
-  CholmodSupernodalLLT<SparseMatrix<real>> cg;
-#else
-  // Cholmod not supported for single precision
-  SimplicialLDLT<SparseMatrix<real>, Lower> cg;
-#endif
+  SimplicialLLT<SparseMatrix<real>, Lower> cg;
   cg.compute(D);
 
   // Init every real part to 1, all imaginary parts to zero

@@ -6,12 +6,8 @@ FLO_API void spin_positions(const Eigen::SparseMatrix<real>& QL,
   using namespace Eigen;
   // Solve for our new positions
   // If double precision, use Cholmod solver
-#ifdef FLO_USE_DOUBLE_PRECISION
-  CholmodSupernodalLLT<SparseMatrix<real>> cg;
-#else
   // Cholmod not supported for single precision
   SimplicialLLT<SparseMatrix<real>, Lower> cg;
-#endif
   cg.compute(QL);
 
   Eigen::Matrix<real, Dynamic, 4, RowMajor> QEr = QE;
