@@ -193,3 +193,121 @@ I ran out of time before I was able to implement the mean curvature calculation 
 I would also work on moving duplicate code out of the sparse matrix assembly kernels which would allow the shuffle methods to be used by other functions,
 such as face area calculations. 
 Finally I would like to have used streams more as there is definitely potential to overlap computation in this project.
+
+## Benchmarks
+### Host
+|                                      |            |             |             |           |   
+|--------------------------------------|------------|-------------|-------------|-----------|--- 
+|                                      |            |             |             |           |   
+| name                                 | iterations | real_time   | cpu_time    | time_unit |   
+| HOST_cotangent_laplacian_cube        | 182627     | 3852.71     | 3852.37     | ns        |   
+| HOST_cotangent_laplacian_spot        | 90         | 7.68602e+06 | 7.65249e+06 | ns        |   
+| HOST_cotangent_laplacian_bunny       | 35         | 2.03471e+07 | 2e+07       | ns        |   
+| HOST_cotangent_laplacian_tyra        | 8          | 7.18162e+07 | 6.8106e+07  | ns        |   
+| HOST_divergent_edges_cube            | 471392     | 1477.79     | 1477.58     | ns        |   
+| HOST_divergent_edges_spot            | 100        | 5.24034e+06 | 5.2395e+06  | ns        |   
+| HOST_divergent_edges_bunny           | 50         | 1.39971e+07 | 1.39957e+07 | ns        |   
+| HOST_divergent_edges_tyra            | 12         | 5.04251e+07 | 5.04111e+07 | ns        |   
+| HOST_face_area_cube                  | 4344953    | 164.346     | 164.308     | ns        |   
+| HOST_face_area_spot                  | 2074       | 339835      | 339751      | ns        |   
+| HOST_face_area_bunny                 | 723        | 974836      | 974671      | ns        |   
+| HOST_face_area_tyra                  | 226        | 3.1432e+06  | 3.14241e+06 | ns        |   
+| HOST_intrinsic_dirac_cube            | 44546      | 15991       | 15988.7     | ns        |   
+| HOST_intrinsic_dirac_spot            | 8          | 7.53803e+07 | 7.53403e+07 | ns        |   
+| HOST_intrinsic_dirac_bunny           | 1          | 6.25203e+08 | 6.25151e+08 | ns        |   
+| HOST_intrinsic_dirac_tyra            | 1          | 1.83794e+09 | 1.83772e+09 | ns        |   
+| HOST_mean_curvature_cube             | 2044611    | 365.646     | 365.569     | ns        |   
+| HOST_mean_curvature_spot             | 1228       | 559729      | 559669      | ns        |   
+| HOST_mean_curvature_bunny            | 623        | 1.14741e+06 | 1.14732e+06 | ns        |   
+| HOST_mean_curvature_tyra             | 162        | 4.46348e+06 | 4.463e+06   | ns        |   
+| HOST_orthonormalize_cube             | 912301     | 768.27      | 768.2       | ns        |   
+| HOST_orthonormalize_spot             | 5326       | 135622      | 135611      | ns        |   
+| HOST_orthonormalize_bunny            | 2243       | 310662      | 310637      | ns        |   
+| HOST_orthonormalize_tyra             | 749        | 934909      | 934832      | ns        |   
+| HOST_project_basis_cube              | 1746431    | 397.31      | 397.274     | ns        |   
+| HOST_project_basis_spot              | 11059      | 62670       | 62664.8     | ns        |   
+| HOST_project_basis_bunny             | 4811       | 142988      | 142976      | ns        |   
+| HOST_project_basis_tyra              | 1644       | 419267      | 419232      | ns        |   
+| HOST_quaternion_matrix_cube          | 64695      | 10676.5     | 10675.6     | ns        |   
+| HOST_quaternion_matrix_spot          | 24         | 2.96319e+07 | 2.96293e+07 | ns        |   
+| HOST_quaternion_matrix_bunny         | 12         | 5.74237e+07 | 5.7419e+07  | ns        |   
+| HOST_quaternion_matrix_tyra          | 3          | 2.02537e+08 | 2.02519e+08 | ns        |   
+| HOST_similarity_xform_cube           | 29636      | 23613.9     | 23611.8     | ns        |   
+| HOST_similarity_xform_spot           | 1          | 6.35867e+08 | 6.35806e+08 | ns        |   
+| HOST_similarity_xform_bunny          | 1          | 4.63868e+09 | 4.63829e+09 | ns        |   
+| HOST_similarity_xform_tyra           | 1          | 8.65426e+09 | 8.65345e+09 | ns        |   
+| HOST_spin_positions_cube             | 38234      | 18642.5     | 18641       | ns        |   
+| HOST_spin_positions_spot             | 1          | 6.29275e+08 | 6.29218e+08 | ns        |   
+| HOST_spin_positions_bunny            | 1          | 4.65188e+09 | 4.65144e+09 | ns        |   
+| HOST_spin_positions_tyra             | 1          | 8.61795e+09 | 8.61715e+09 | ns        |   
+| HOST_vertex_mass_cube                | 3144441    | 224.885     | 224.867     | ns        |   
+| HOST_vertex_mass_spot                | 1726       | 412928      | 412894      | ns        |   
+| HOST_vertex_mass_bunny               | 575        | 1.21601e+06 | 1.21591e+06 | ns        |   
+| HOST_vertex_mass_tyra                | 180        | 3.92145e+06 | 3.9211e+06  | ns        |   
+| HOST_vertex_normals_cube             | 398109     | 1786.48     | 1786.32     | ns        |   
+| HOST_vertex_normals_spot             | 370        | 4.03304e+06 | 2.02852e+06 | ns        |   
+| HOST_vertex_normals_bunny            | 262        | 5.30947e+06 | 2.79652e+06 | ns        |   
+| HOST_vertex_normals_tyra             | 118        | 1.05496e+07 | 6.1032e+06  | ns        |   
+| HOST_vertex_triangle_adjacency_cube  | 209312     | 2846.6      | 2811.03     | ns        |   
+| HOST_vertex_triangle_adjacency_spot  | 1168       | 696248      | 674157      | ns        |   
+| HOST_vertex_triangle_adjacency_bunny | 308        | 2.49694e+06 | 2.46715e+06 | ns        |   
+| HOST_vertex_triangle_adjacency_tyra  | 86         | 8.45339e+06 | 8.39191e+06 | ns        |   
+| HOST_vertex_vertex_adjacency_cube    | 372804     | 1905.26     | 1901.45     | ns        |   
+| HOST_vertex_vertex_adjacency_spot    | 172        | 4.13094e+06 | 4.12159e+06 | ns        |   
+| HOST_vertex_vertex_adjacency_bunny   | 55         | 1.28761e+07 | 1.28478e+07 | ns        |   
+| HOST_vertex_vertex_adjacency_tyra    | 16         | 4.38669e+07 | 4.37587e+07 | ns        |   
+
+### Device
+|                                         |            |             |             |           |   
+|-----------------------------------------|------------|-------------|-------------|-----------|---
+| name                                    | iterations | real_time   | cpu_time    | time_unit |   
+| DEVICE_adjacency_matrix_indices_cube    | 1859       | 341886      | 340272      | ns        |   
+| DEVICE_adjacency_matrix_indices_spot    | 952        | 815516      | 811983      | ns        |   
+| DEVICE_adjacency_matrix_indices_bunny   | 648        | 1.043e+06   | 1.04007e+06 | ns        |   
+| DEVICE_adjacency_matrix_indices_tyra    | 303        | 2.30804e+06 | 2.30536e+06 | ns        |   
+| DEVICE_cotangent_laplacian_cube         | 2636       | 266425      | 264868      | ns        |   
+| DEVICE_cotangent_laplacian_spot         | 1822       | 389558      | 387782      | ns        |   
+| DEVICE_cotangent_laplacian_bunny        | 1180       | 592784      | 590895      | ns        |   
+| DEVICE_cotangent_laplacian_tyra         | 250        | 2.78091e+06 | 2.77979e+06 | ns        |   
+| DEVICE_divergent_edges_cube             | 2755       | 250017      | 248657      | ns        |   
+| DEVICE_divergent_edges_spot             | 1829       | 388904      | 386151      | ns        |   
+| DEVICE_divergent_edges_bunny            | 1227       | 573293      | 571326      | ns        |   
+| DEVICE_divergent_edges_tyra             | 416        | 1.66145e+06 | 1.66131e+06 | ns        |   
+| DEVICE_face_area_cube                   | 174640     | 4013.78     | 4013.42     | ns        |   
+| DEVICE_face_area_spot                   | 39931      | 18190.5     | 18189       | ns        |   
+| DEVICE_face_area_bunny                  | 10000      | 70404.2     | 70398.4     | ns        |   
+| DEVICE_face_area_tyra                   | 10000      | 228716      | 228697      | ns        |   
+| DEVICE_intrinsic_dirac_cube             | 11973      | 55211.1     | 55206.5     | ns        |   
+| DEVICE_intrinsic_dirac_spot             | 605        | 1.15752e+06 | 1.15693e+06 | ns        |   
+| DEVICE_intrinsic_dirac_bunny            | 265        | 2.77881e+06 | 2.76758e+06 | ns        |   
+| DEVICE_intrinsic_dirac_tyra             | 58         | 1.16946e+07 | 1.16936e+07 | ns        |   
+| DEVICE_quaternion_matrix_cube           | 64005      | 10361       | 10360.2     | ns        |   
+| DEVICE_quaternion_matrix_spot           | 1619       | 432756      | 432711      | ns        |   
+| DEVICE_quaternion_matrix_bunny          | 825        | 844616      | 844546      | ns        |   
+| DEVICE_quaternion_matrix_tyra           | 278        | 2.40125e+06 | 2.40105e+06 | ns        |   
+| DEVICE_similarity_xform_direct_cube     | 410        | 1.65968e+06 | 1.65722e+06 | ns        |   
+| DEVICE_similarity_xform_direct_spot     | 1          | 3.72199e+09 | 3.72164e+09 | ns        |   
+| DEVICE_similarity_xform_direct_bunny    | 1          | 1.48061e+10 | 1.48048e+10 | ns        |   
+| DEVICE_similarity_xform_direct_tyra     | 1          | 9.21995e+10 | 9.2191e+10  | ns        |   
+| DEVICE_similarity_xform_iterative_cube  | 354        | 1.97964e+06 | 1.97947e+06 | ns        |   
+| DEVICE_similarity_xform_iterative_spot  | 1          | 8.37923e+08 | 8.35415e+08 | ns        |   
+| DEVICE_similarity_xform_iterative_bunny | 1          | 1.60284e+09 | 1.59807e+09 | ns        |   
+| DEVICE_similarity_xform_iterative_tyra  | 1          | 4.12793e+09 | 4.12634e+09 | ns        |   
+| DEVICE_spin_positions_direct_spot       | 1          | 3.68252e+09 | 3.68218e+09 | ns        |   
+| DEVICE_spin_positions_direct_bunny      | 1          | 1.4813e+10  | 1.48117e+10 | ns        |   
+| DEVICE_spin_positions_direct_tyra       | 1          | 9.26087e+10 | 9.25993e+10 | ns        |   
+| DEVICE_spin_positions_iterative_spot    | 1          | 3.20449e+09 | 3.19223e+09 | ns        |   
+| DEVICE_spin_positions_iterative_bunny   | 1          | 2.43237e+10 | 2.42893e+10 | ns        |   
+| DEVICE_spin_positions_iterative_tyra    | 1          | 4.5125e+10  | 4.5104e+10  | ns        |   
+| DEVICE_vertex_mass_cube                 | 1850       | 382962      | 381300      | ns        |   
+| DEVICE_vertex_mass_spot                 | 774        | 918686      | 914777      | ns        |   
+| DEVICE_vertex_mass_bunny                | 715        | 985748      | 981242      | ns        |   
+| DEVICE_vertex_mass_tyra                 | 550        | 1.27652e+06 | 1.27083e+06 | ns        |   
+| DEVICE_vertex_triangle_adjacency_cube   | 7564       | 83150.4     | 83142.5     | ns        |   
+| DEVICE_vertex_triangle_adjacency_spot   | 975        | 645653      | 644782      | ns        |   
+| DEVICE_vertex_triangle_adjacency_bunny  | 687        | 951790      | 950354      | ns        |   
+| DEVICE_vertex_triangle_adjacency_tyra   | 341        | 2.00665e+06 | 2.00445e+06 | ns        |   
+| DEVICE_vertex_vertex_adjacency_cube     | 1754       | 402834      | 401607      | ns        |   
+| DEVICE_vertex_vertex_adjacency_spot     | 328        | 2.11945e+06 | 2.11526e+06 | ns        |   
+| DEVICE_vertex_vertex_adjacency_bunny    | 205        | 3.42353e+06 | 3.41836e+06 | ns        |   
+| DEVICE_vertex_vertex_adjacency_tyra     | 78         | 8.39362e+06 | 8.38729e+06 | ns        |   
