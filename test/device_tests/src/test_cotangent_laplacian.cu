@@ -37,7 +37,7 @@ void test(std::string name)
   HostSparseMatrixR h_L = d_L;
 
   // Load our expected results from disk
-  auto expected_L = read_device_sparse_matrix<flo::real>(
+  auto expected_L = read_host_sparse_matrix<flo::real>(
     mp + "/cotangent_laplacian/cotangent_laplacian.mtx");
 
   // test our results
