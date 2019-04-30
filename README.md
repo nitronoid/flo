@@ -46,6 +46,12 @@ HOST_COMPILER : Your local g++ compiler (compatible with cuda compiles, g++ 4.8.
 - The project comes with a full set of host and device tests and benchmarks.
 - Currently all subdirectories dump an executable in their directory.
 
+## Coding standards
+
+- The host side follows the same style as IGL using single capital letters for parameter names of common data, and snake case for function names.
+- The device side uses a similar style but due to the increased number of parameters in functions, I decided to provide full parameter names.
+- Both use view types where ever possible to avoid needless copies, but also to avoid enforcing specific data types on the user.
+
 ##NOTE
 - Spin positions test is failing for the DEVICE side implementation as it finds an equivalent but different solution to the linear system
 - Before testing and benchmarking you must place the matrices and models folders in the test directory
