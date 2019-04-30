@@ -9,6 +9,13 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
+/// @breif Computes the vertex vertex adjacency with keys, the valence and the
+// cumulative valence per vertex
+//  @param F #Fx3 A column major matrix of face vertex indices
+//  @param VTAK #V An array containing the vertex vertex adjacency keys
+//  @param VTA  #V An array containing the vertex vertex adjacency 
+//  @param VTV  #V An array containing the vertex vertex valence
+//  @param VTCV #V An array containing the vertex vertex cumulative valence
 template <typename DerivedF,
           typename DerivedVVAK,
           typename DerivedVVA,

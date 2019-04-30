@@ -9,6 +9,10 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
+/// @breif Solves the final best fit positions, given a set of divergent edges
+/// @param QL the real quaternion laplacian matrix
+/// @param QE the divergent edges
+/// @param V the output positions
 template <typename DerivedQE, typename DerivedV>
 FLO_API void spin_positions(const Eigen::SparseMatrix<real>& QL,
                             const Eigen::MatrixBase<DerivedQE>& QE,

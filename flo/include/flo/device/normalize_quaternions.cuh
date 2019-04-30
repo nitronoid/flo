@@ -6,6 +6,7 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
+/// @brief Normalizes a set of quaternions by dividing by the greatest norm
 FLO_API void normalize_quaternions(
     cusp::array2d<flo::real, cusp::device_memory>::view dio_quats);
 

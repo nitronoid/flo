@@ -1,10 +1,10 @@
 template <typename DerivedV,
           typename DerivedF,
-          typename DerivedH,
+          typename DerivedX,
           typename DerivedE>
 FLO_API void divergent_edges(const Eigen::MatrixBase<DerivedV>& V,
                              const Eigen::MatrixBase<DerivedF>& F,
-                             const Eigen::MatrixBase<DerivedH>& h,
+                             const Eigen::MatrixBase<DerivedX>& X,
                              const Eigen::SparseMatrix<real>& L,
                              Eigen::PlainObjectBase<DerivedE>& E)
 {
@@ -23,8 +23,8 @@ FLO_API void divergent_edges(const Eigen::MatrixBase<DerivedV>& V,
       if (a > b)
         std::swap(a, b);
 
-      const auto& l1 = h.row(a);
-      const auto& l2 = h.row(b);
+      const auto& l1 = X.row(a);
+      const auto& l2 = X.row(b);
 
       Matrix<real, 3, 1> edge = V.row(a) - V.row(b);
       Matrix<real, 4, 1> e(edge[0], edge[1], edge[2], 0.f);

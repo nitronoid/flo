@@ -6,6 +6,10 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
+/// @breif Projects a set of basis vectors onto a set of vectors
+/// @param V The target vectors
+/// @param U The basis vectors to project
+/// @param inner_product A function defining the type of inner product to use
 template <typename DerivedV, typename DerivedU, typename BinaryOp>
 FLO_API void project_basis(Eigen::MatrixBase<DerivedV>& V,
                            const Eigen::MatrixBase<DerivedU>& U,

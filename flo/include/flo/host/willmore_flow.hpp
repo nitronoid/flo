@@ -15,6 +15,11 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
+/// @brief Computes a single iteration of conformal willmore flow
+//  @param V #Vx3 A column major matrix of vertex positions
+//  @param F #Fx3 A column major matrix of face vertex indices
+//  @param integrator A function used to integrate the change in mean curvature
+//  for a time step.
 template <typename DerivedV, typename DerivedF, typename BinaryOp>
 FLO_API void willmore_flow(Eigen::MatrixBase<DerivedV>& V,
                            const Eigen::MatrixBase<DerivedF>& F,

@@ -7,6 +7,7 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
+/// @brief A diagonal preconditioner for conjugate gradient solving
 namespace detail
 {
 class DiagonalPreconditioner 

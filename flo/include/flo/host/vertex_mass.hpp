@@ -7,6 +7,10 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
+/// @breif Computes the vertex masses
+//  @param V #Vx3 A column major matrix of vertex positions
+//  @param F #Fx3 A column major matrix of face vertex indices
+//  @param M #V An array of vertex masses
 template <typename DerivedV, typename DerivedF, typename DerivedM>
 FLO_API void vertex_mass(const Eigen::MatrixBase<DerivedV>& V,
                          const Eigen::MatrixBase<DerivedF>& F,

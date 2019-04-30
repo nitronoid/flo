@@ -11,6 +11,14 @@ FLO_DEVICE_NAMESPACE_BEGIN
 namespace iterative
 {
 
+/// @brief Uses an iterative conjugate gradient with diagonal preconditioning
+/// to compute similarity transformation quaternions from an intrinsic dirac matrix
+/// @param di_quaternion_laplacian The purely real quaternion laplacian
+/// @param di_edges The transformed edges
+/// @param do_vertices The solved positions
+/// @param i_tolerance The convergence tolerance
+/// @param i_max_convergence_iterations The max number of iterations to perform
+/// if convergence is not found
 FLO_API void 
 spin_positions(cusp::coo_matrix<int, real, cusp::device_memory>::const_view
                  di_quaternion_laplacian,

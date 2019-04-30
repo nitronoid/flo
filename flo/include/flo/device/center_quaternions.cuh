@@ -6,6 +6,7 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
+/// @brief Centers the list of quaternions to the origin
 FLO_API void center_quaternions(
     cusp::array2d<flo::real, cusp::device_memory>::view dio_quats);
 

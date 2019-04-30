@@ -11,6 +11,14 @@ FLO_DEVICE_NAMESPACE_BEGIN
 namespace direct
 {
 
+/// @brief Uses a direct cholesky decomposition to compute similarity
+/// transformation quaternions from an intrinsic dirac matrix
+/// @param io_sparse_handle A cuSparse handle
+/// @param io_solver A cuSolverSp handle
+/// @param di_dirac The intrinsic dirac operator
+/// @param do_xform The solved transformations
+/// @param i_tolerance The singularity tolerance
+/// @param i_iterations The number of back substitutions to perform
 FLO_API void similarity_xform(
   cu_raii::sparse::Handle* io_sparse_handle,
   cu_raii::solver::SolverSp* io_solver,
@@ -19,6 +27,12 @@ FLO_API void similarity_xform(
   const real i_tolerance = 1e-7,
   const int i_iterations = 0);
 
+/// @brief Uses a direct cholesky decomposition to compute similarity
+/// transformation quaternions from an intrinsic dirac matrix
+/// @param di_dirac The intrinsic dirac operator
+/// @param do_xform The solved transformations
+/// @param i_tolerance The singularity tolerance
+/// @param i_iterations The number of back substitutions to perform
 FLO_API void similarity_xform(
   cusp::coo_matrix<int, real, cusp::device_memory>::const_view di_dirac,
   cusp::array2d<real, cusp::device_memory>::view do_xform,

@@ -6,6 +6,7 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
+/// @brief A Simple struct to pack our vertices and faces together
 struct Surface
 {
   Eigen::Matrix<real, Eigen::Dynamic, 3> vertices;

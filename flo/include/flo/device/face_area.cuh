@@ -7,6 +7,10 @@
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
+/// @brief Computes the per face triangle area
+///  @param di_vertices A row major matrix of vertex positions
+///  @param di_faces A row major matrix of face vertex indices
+///  @param do_face_area An array of face area values
 FLO_API void
 face_area(cusp::array2d<real, cusp::device_memory>::const_view di_vertices,
           cusp::array2d<int, cusp::device_memory>::const_view di_faces,

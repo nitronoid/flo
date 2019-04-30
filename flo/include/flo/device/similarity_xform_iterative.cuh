@@ -11,6 +11,14 @@ FLO_DEVICE_NAMESPACE_BEGIN
 namespace iterative
 {
 
+/// @brief Uses an iterative conjugate gradient with diagonal preconditioning
+/// to compute similarity transformation quaternions from an intrinsic dirac matrix
+/// @param di_dirac The intrinsic dirac operator
+/// @param do_xform The solved transformations
+/// @param i_tolerance The convergence tolerance
+/// @param i_back_substitutions The number of back substitutions to perform
+/// @param i_max_convergence_iterations The max number of iterations to perform
+/// if convergence is not found
 FLO_API void similarity_xform(
   cusp::coo_matrix<int, real, cusp::device_memory>::const_view di_dirac,
   cusp::array2d<real, cusp::device_memory>::view do_xform,

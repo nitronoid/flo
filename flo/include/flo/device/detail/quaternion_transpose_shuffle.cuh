@@ -7,6 +7,8 @@ FLO_DEVICE_NAMESPACE_BEGIN
 
 namespace detail
 {
+/// @brief Function object to prepare a row major matrix of quaternions
+/// for solving
 struct quaternion_transpose_shuffle
 {
   quaternion_transpose_shuffle(int x) : w(x)

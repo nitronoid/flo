@@ -10,6 +10,7 @@ FLO_DEVICE_NAMESPACE_BEGIN
 
 namespace cu_raii
 {
+  /// @brief RAII wrapper for a cuda stream
   struct Stream
   {
     cudaStream_t handle;
@@ -24,6 +25,7 @@ namespace cu_raii
 
   namespace solver
   {
+  /// @brief RAII wrapper for a cuda sparse solver instance
   struct SolverSp
   {
     cusolverSpHandle_t handle;
@@ -40,6 +42,7 @@ namespace cu_raii
 
   namespace sparse
   {
+  /// @brief RAII wrapper for a cuda sparse instance
   struct Handle
   {
     cusparseHandle_t handle;
@@ -53,6 +56,7 @@ namespace cu_raii
     void error_assert(int line = -1) const noexcept;
   };
 
+  /// @brief RAII wrapper for a cuda sparse matrix description
   struct MatrixDescription
   {
     cusparseMatDescr_t description;

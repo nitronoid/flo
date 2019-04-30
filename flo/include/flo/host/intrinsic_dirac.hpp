@@ -10,6 +10,13 @@
 
 FLO_HOST_NAMESPACE_BEGIN
 
+/// @brief Computes the intrinsic dirac matrix for the provided mesh
+//  @param V #Vx3 A column major matrix of vertex positions
+//  @param F #Fx3 A column major matrix of face vertex indices
+//  @param VV #V An array of vertex valences
+//  @param A #F An array of face areas
+//  @param P #V An array of per vertex mean curvature changes
+//  @param D #4Vx4V Sparse matrix containing the intrinsic dirac operator 
 template <typename DerivedV,
           typename DerivedF,
           typename DerivedVV,
