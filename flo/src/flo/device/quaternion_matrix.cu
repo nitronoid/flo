@@ -1,6 +1,5 @@
 #include "flo/device/intrinsic_dirac.cuh"
 #include "flo/device/thread_util.cuh"
-#include "flo/device/matrix_operation.cuh"
 #include <thrust/reduce.h>
 #include <thrust/device_vector.h>
 #include <thrust/iterator/zip_iterator.h>

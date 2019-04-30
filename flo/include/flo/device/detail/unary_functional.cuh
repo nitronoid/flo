@@ -8,6 +8,20 @@ FLO_DEVICE_NAMESPACE_BEGIN
 namespace detail
 {
 template <typename T>
+struct unary_modulo
+{
+  unary_modulo(T i_rhs) : rhs(i_rhs)
+  {
+  }
+  T rhs;
+
+  __host__ __device__ T operator()(T i_lhs) const
+  {
+    return i_lhs % rhs;
+  }
+};
+
+template <typename T>
 struct unary_divides
 {
   unary_divides(T i_rhs) : rhs(i_rhs)
