@@ -16,6 +16,7 @@
 #include "flo/device/divergent_edges.cuh"
 #include "flo/device/similarity_xform.cuh"
 #include "flo/device/spin_positions.cuh"
+#include "flo/device/adjacency_matrix_indices.cuh"
 #include <cusp/transpose.h>
 #include <cusp/print.h>
 #include <cusp/io/matrix_market.h>
@@ -139,25 +140,33 @@ int main(int argc, char* argv[])
     d_triangle_cumulative_valence.subarray(1, d_surf.n_vertices()));
 
   // ADJACENCY MATRIX OFFSETS
-  cusp::array2d<int, cusp::device_memory> d_offsets(6, d_surf.n_faces());
-  flo::device::adjacency_matrix_offset(
-    d_surf.faces, d_adjacency, d_cumulative_valence, d_offsets);
-
-  // COT MATRIX
   cusp::coo_matrix<int, flo::real, cusp::device_memory> d_L(
     d_surf.n_vertices(),
     d_surf.n_vertices(),
     d_cumulative_valence.back() + d_surf.n_vertices());
+  cusp::array2d<int, cusp::device_memory> d_entry_indices(6, d_surf.n_faces());
   // Allocate a dense 1 dimensional array to receive diagonal element indices
   cusp::array1d<int, cusp::device_memory> d_diagonals(d_surf.n_vertices());
-  flo::device::cotangent_laplacian(d_surf.vertices,
-                                   d_surf.faces,
-                                   d_offsets,
-                                   d_adjacency_keys,
-                                   d_adjacency,
-                                   d_cumulative_valence,
-                                   d_diagonals,
-                                   d_L);
+
+  auto temp_ptr = thrust::device_pointer_cast(
+      reinterpret_cast<void*>(d_L.values.begin().base().get()));
+
+  flo::device::adjacency_matrix_indices(d_surf.faces,
+                                        d_adjacency_keys,
+                                        d_adjacency, 
+                                        d_cumulative_valence, 
+                                        d_entry_indices, 
+                                        d_diagonals, 
+                                        d_L.row_indices, 
+                                        d_L.column_indices, 
+                                        temp_ptr);
+
+  // COT MATRIX
+  flo::device::cotangent_laplacian_values(d_surf.vertices,
+                                          d_surf.faces,
+                                          d_entry_indices,
+                                          d_diagonals,
+                                          d_L);
 
   // FACE AREAS
   cusp::array1d<flo::real, cusp::device_memory> d_area(d_surf.n_faces());
@@ -169,18 +178,17 @@ int main(int argc, char* argv[])
     d_surf.n_vertices(),
     d_cumulative_valence.back() + d_surf.n_vertices());
   // Run our function
-  flo::device::intrinsic_dirac(d_surf.vertices,
-                               d_surf.faces,
-                               d_area,
-                               d_rho,
-                               d_offsets,
-                               d_adjacency_keys,
-                               d_adjacency,
-                               d_cumulative_valence,
-                               d_triangle_adjacency_keys,
-                               d_triangle_adjacency,
-                               d_diagonals,
-                               d_Dq);
+  d_Dq.row_indices = d_L.row_indices;
+  d_Dq.column_indices = d_L.column_indices;
+  flo::device::intrinsic_dirac_values(d_surf.vertices,
+                                      d_surf.faces,
+                                      d_area,
+                                      d_rho,
+                                      d_triangle_adjacency_keys,
+                                      d_triangle_adjacency,
+                                      d_entry_indices,
+                                      d_diagonals,
+                                      d_Dq);
   // Allocate our real matrix for solving
   cusp::coo_matrix<int, flo::real, cusp::device_memory> d_D(
     d_surf.n_vertices() * 4, d_surf.n_vertices() * 4, d_Dq.values.size() * 16);
