@@ -27,5 +27,6 @@ static void bench_impl(std::string name, benchmark::State& state)
 FLO_FACE_AREA_HOST_BENCHMARK(cube)
 FLO_FACE_AREA_HOST_BENCHMARK(spot)
 FLO_FACE_AREA_HOST_BENCHMARK(bunny)
+FLO_FACE_AREA_HOST_BENCHMARK(tyra)
 
 #undef FLO_FACE_AREA_HOST_BENCHMARK

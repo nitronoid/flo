@@ -29,6 +29,8 @@ void bench_impl(std::string name, benchmark::State& state)
     read_device_dense_matrix<int>(mp + "/adjacency_matrix_indices/indices.mtx");
   auto d_diagonal_indices =
     read_device_vector<int>(mp + "/cotangent_laplacian/diagonals.mtx");
+  auto d_D = 
+    read_device_sparse_matrix<flo::real>(mp + "/intrinsic_dirac/intrinsic_dirac.mtx");
 
 
   // Add an ascending sequence to the cumulative valence to account for
@@ -43,6 +45,8 @@ void bench_impl(std::string name, benchmark::State& state)
   DeviceSparseMatrixQ d_Dq(surf.n_vertices(),
                            surf.n_vertices(),
                            d_cumulative_valence.back() + surf.n_vertices());
+  d_Dq.row_indices = d_D.row_indices;
+  d_Dq.column_indices = d_D.column_indices;
 
   // Allocate our real matrix for solving
   DeviceSparseMatrixR d_Dr(
@@ -80,5 +84,6 @@ void bench_impl(std::string name, benchmark::State& state)
 FLO_INTRINSIC_DIRAC_DEVICE_BENCHMARK(cube)
 FLO_INTRINSIC_DIRAC_DEVICE_BENCHMARK(spot)
 FLO_INTRINSIC_DIRAC_DEVICE_BENCHMARK(bunny)
+FLO_INTRINSIC_DIRAC_DEVICE_BENCHMARK(tyra)
 
 #undef FLO_INTRINSIC_DIRAC_DEVICE_BENCHMARK

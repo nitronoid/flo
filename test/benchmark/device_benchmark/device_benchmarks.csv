@@ -1,0 +1,25 @@
+2019-04-30 08:40:13
+Running ./flo_device_benchmarks.out
+Run on (12 X 3800 MHz CPU s)
+CPU Caches:
+  L1 Data 32K (x6)
+  L1 Instruction 32K (x6)
+  L2 Unified 256K (x6)
+  L3 Unified 15360K (x1)
+Load Average: 0.08, 0.11, 0.23
+***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and will incur extra overhead.
+name,iterations,real_time,cpu_time,time_unit,bytes_per_second,items_per_second,label,error_occurred,error_message
+"DEVICE_adjacency_matrix_indices_cube",2058,323237,321645,ns,,,,,
+"DEVICE_adjacency_matrix_indices_spot",945,740699,737656,ns,,,,,
+"DEVICE_adjacency_matrix_indices_bunny",665,1.03877e+06,1.03546e+06,ns,,,,,
+"DEVICE_cotangent_laplacian_cube",2653,262156,260613,ns,,,,,
+"DEVICE_cotangent_laplacian_spot",1661,419901,416379,ns,,,,,
+"DEVICE_cotangent_laplacian_bunny",935,671946,658872,ns,,,,,
+"DEVICE_divergent_edges_cube",2235,297723,293754,ns,,,,,
+"DEVICE_divergent_edges_spot",1829,400289,398062,ns,,,,,
+"DEVICE_divergent_edges_bunny",1153,601915,598198,ns,,,,,
+"DEVICE_face_area_cube",150464,4348.22,4347.84,ns,,,,,
+"DEVICE_face_area_spot",36926,19496.9,19494.9,ns,,,,,
+"DEVICE_face_area_bunny",10000,74882.6,74876.5,ns,,,,,
+"DEVICE_intrinsic_dirac_cube",11628,63229.2,63224,ns,,,,,
+"DEVICE_intrinsic_dirac_spot",576,1.21342e+06,1.21238e+06,ns,,,,,

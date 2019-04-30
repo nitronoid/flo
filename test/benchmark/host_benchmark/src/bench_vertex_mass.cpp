@@ -26,5 +26,6 @@ static void bench_impl(std::string name, benchmark::State& state)
 FLO_VERTEX_MASS_HOST_BENCHMARK(cube)
 FLO_VERTEX_MASS_HOST_BENCHMARK(spot)
 FLO_VERTEX_MASS_HOST_BENCHMARK(bunny)
+FLO_VERTEX_MASS_HOST_BENCHMARK(tyra)
 
 #undef FLO_VERTEX_MASS_HOST_BENCHMARK
