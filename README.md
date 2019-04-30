@@ -45,7 +45,10 @@ HOST_COMPILER : Your local g++ compiler (compatible with cuda compiles, g++ 4.8.
 - The project comes with 2 host samples, and one device sample. The first host, and only device sample is a demo implementation of willmore flow. The second host sample named matrix_bake, will export all matrices required by the tests and benchmarks in matrix market format.
 - The project comes with a full set of host and device tests and benchmarks.
 - Currently all subdirectories dump an executable in their directory.
-- NOTE: Spin positions test is failing for the DEVICE side implementation as it finds an equivalent but different solution to the linear system
+
+##NOTE
+- Spin positions test is failing for the DEVICE side implementation as it finds an equivalent but different solution to the linear system
+- Before testing and benchmarking you must place the matrices and models folders in the test directory
 
 ## Development of parallel implementation
 This project was developed as a final year programming assignment, with the goal of reimplementing a sequential algorithm on the GPU, and benchmarking the performance gains.
