@@ -13,20 +13,6 @@ FLO_DEVICE_NAMESPACE_BEGIN
 namespace direct
 {
 
-namespace
-{
-struct quat_shfl
-{
-  using tup4 = thrust::tuple<real, real, real, real>;
-
-  __host__ __device__ tup4 operator()(real4 quat) const
-  {
-    return thrust::make_tuple(quat.y, quat.z, quat.w, quat.x);
-  }
-};
-
-}  // namespace
-
 FLO_API void similarity_xform(
   cusp::coo_matrix<int, real, cusp::device_memory>::const_view di_dirac,
   cusp::array2d<real, cusp::device_memory>::view do_xform,
@@ -51,10 +37,6 @@ FLO_API void similarity_xform(
   // Convert the row indices to csr row offsets
   cusp::array1d<int, cusp::device_memory> row_offsets(di_dirac.num_rows + 1);
   cusp::indices_to_offsets(di_dirac.row_indices, row_offsets);
-
-  assert(di_dirac.num_rows == do_xform.num_entries);
-  assert(row_offsets[di_dirac.num_rows] - row_offsets[0] ==
-         di_dirac.num_entries);
 
   // Fill our initial guess with the identity (quaternions)
   cusp::array1d<real, cusp::device_memory> b(di_dirac.num_cols);
@@ -120,24 +102,24 @@ FLO_API void similarity_xform(
   // Normalize the result and re-arrange simultaneously to reduce kernel the
   // number of launches
   {
-    // Normalize
+    // Normalize and shuffle in the same kernel call
     const real rnorm = 1.f / cusp::blas::nrm2(do_xform.values);
-    thrust::transform(do_xform.values.begin(),
-                      do_xform.values.end(),
-                      do_xform.values.begin(),
-                      [=] __device__(real x) { return x * rnorm; });
-
     thrust::copy(do_xform.values.begin(), do_xform.values.end(), b.begin());
     auto xin_ptr = thrust::device_pointer_cast(
       reinterpret_cast<real4*>(b.data().get()));
     auto xout_ptr =
-      thrust::make_zip_iterator(thrust::make_tuple(do_xform.row(0).begin(),
+      thrust::make_zip_iterator(thrust::make_tuple(do_xform.row(3).begin(),
+                                                   do_xform.row(0).begin(),
                                                    do_xform.row(1).begin(),
-                                                   do_xform.row(2).begin(),
-                                                   do_xform.row(3).begin()));
+                                                   do_xform.row(2).begin()));
 
     thrust::transform(
-      xin_ptr, xin_ptr + do_xform.num_cols, xout_ptr, quat_shfl{});
+      xin_ptr, xin_ptr + do_xform.num_cols, xout_ptr, 
+      [=] __device__ (real4 quat)
+      {
+        return thrust::make_tuple(
+          quat.x * rnorm, quat.y * rnorm, quat.z * rnorm, quat.w * rnorm);
+      });
   }
 }
 

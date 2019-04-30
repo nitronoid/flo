@@ -1,50 +1,16 @@
 #include "flo/device/similarity_xform_iterative.cuh"
+#include "flo/device/detail/diagonal_preconditioner.cuh"
 #include <thrust/tabulate.h>
 #include <thrust/transform_reduce.h>
 #include <thrust/transform.h>
 #include <thrust/scatter.h>
 #include <cusp/krylov/cg.h>
 #include <cusp/monitor.h>
-#include <cusp/precond/diagonal.h>
 
 FLO_DEVICE_NAMESPACE_BEGIN
 
 namespace iterative
 {
-
-namespace
-{
-class diagonal_precond : public cusp::linear_operator<flo::real, cusp::device_memory>
-{
-  using Parent = cusp::linear_operator<flo::real, cusp::device_memory>;
-  cusp::array1d<flo::real, cusp::device_memory> diagonal_reciprocals;
-
-public:
-  diagonal_precond(cusp::coo_matrix<int, flo::real, cusp::device_memory>::const_view di_A)
-    : diagonal_reciprocals(di_A.num_rows)
-  {
-    // extract the main diagonal
-    thrust::fill(diagonal_reciprocals.begin(), diagonal_reciprocals.end(), 0.f);
-    thrust::scatter_if(di_A.values.begin(), di_A.values.end(),
-                       di_A.row_indices.begin(),
-                       thrust::make_transform_iterator(
-                           thrust::make_zip_iterator(thrust::make_tuple(
-                               di_A.row_indices.begin(), di_A.column_indices.begin())),
-                           cusp::equal_pair_functor<int>()),
-                       diagonal_reciprocals.begin());
-
-    // invert the entries
-    thrust::transform(diagonal_reciprocals.begin(), diagonal_reciprocals.end(),
-                      diagonal_reciprocals.begin(), cusp::reciprocal_functor<flo::real>());
-  }
-
-  template <typename VectorType1, typename VectorType2>
-  void operator()(const VectorType1& x, VectorType2& y) const
-  {
-    cusp::blas::xmy(diagonal_reciprocals, x, y);
-  }
-};
-}
 
 FLO_API void similarity_xform(
   cusp::coo_matrix<int, real, cusp::device_memory>::const_view di_dirac,
@@ -61,7 +27,7 @@ FLO_API void similarity_xform(
 
   cusp::monitor<flo::real> monitor(
       b, i_max_convergence_iterations, i_tolerance, 0.f, false);
-  diagonal_precond M(di_dirac);
+  detail::DiagonalPreconditioner M(di_dirac);
 
 
   for (int iter = 0; iter < i_back_substitutions + 1; ++iter)
@@ -85,17 +51,17 @@ FLO_API void similarity_xform(
     auto xin_ptr = thrust::device_pointer_cast(
       reinterpret_cast<real4*>(b.data().get()));
     auto xout_ptr =
-      thrust::make_zip_iterator(thrust::make_tuple(do_xform.row(0).begin(),
+      thrust::make_zip_iterator(thrust::make_tuple(do_xform.row(3).begin(),
+                                                   do_xform.row(0).begin(),
                                                    do_xform.row(1).begin(),
-                                                   do_xform.row(2).begin(),
-                                                   do_xform.row(3).begin()));
+                                                   do_xform.row(2).begin()));
 
     thrust::transform(
       xin_ptr, xin_ptr + do_xform.num_cols, xout_ptr, 
       [=] __device__ (real4 quat)
       {
         return thrust::make_tuple(
-          quat.y * rnorm, quat.z * rnorm, quat.w * rnorm, quat.x * rnorm);
+          quat.x * rnorm, quat.y * rnorm, quat.z * rnorm, quat.w * rnorm);
       });
   }
 }
