@@ -197,10 +197,8 @@ Finally I would like to have used streams more as there is definitely potential 
 
 ## Benchmarks
 ### Host
-|                                      |            |             |             |           |   
-|--------------------------------------|------------|-------------|-------------|-----------|--- 
-|                                      |            |             |             |           |   
-| name                                 | iterations | real_time   | cpu_time    | time_unit |   
+|    name                              | iterations |  real_time  |  cpu_time   | time_unit |   
+|--------------------------------------|------------|-------------|-------------|-----------|
 | HOST_cotangent_laplacian_cube        | 182627     | 3852.71     | 3852.37     | ns        |   
 | HOST_cotangent_laplacian_spot        | 90         | 7.68602e+06 | 7.65249e+06 | ns        |   
 | HOST_cotangent_laplacian_bunny       | 35         | 2.03471e+07 | 2e+07       | ns        |   
@@ -259,9 +257,9 @@ Finally I would like to have used streams more as there is definitely potential 
 | HOST_vertex_vertex_adjacency_tyra    | 16         | 4.38669e+07 | 4.37587e+07 | ns        |   
 
 ### Device
-|                                         |            |             |             |           |   
-|-----------------------------------------|------------|-------------|-------------|-----------|---
-| name                                    | iterations | real_time   | cpu_time    | time_unit |   
+
+|    name                                 | iterations |  real_time  |  cpu_time   | time_unit |   
+|-----------------------------------------|------------|-------------|-------------|-----------|
 | DEVICE_adjacency_matrix_indices_cube    | 1859       | 341886      | 340272      | ns        |   
 | DEVICE_adjacency_matrix_indices_spot    | 952        | 815516      | 811983      | ns        |   
 | DEVICE_adjacency_matrix_indices_bunny   | 648        | 1.043e+06   | 1.04007e+06 | ns        |   
