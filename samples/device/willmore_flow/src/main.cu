@@ -53,6 +53,8 @@ int main(int argc, char* argv[])
   igl::read_triangle_mesh(in_name, h_surf.vertices, h_surf.faces);
   auto d_surf = flo::device::make_surface(h_surf);
 
+  for (int i = 0; i < max_iter; ++i)
+  {
   //----------------------------------------------------------------------------
   using namespace Eigen;
   // Calculate smooth vertex normals
@@ -230,6 +232,9 @@ int main(int argc, char* argv[])
 
   thrust::copy_n(
     d_vertices.values.begin(), h_surf.n_vertices() * 3, h_surf.vertices.data());
+  thrust::copy_n(
+    d_vertices.values.begin(), d_surf.n_vertices() * 3, d_surf.vertices.values.begin());
+  }
   igl::write_triangle_mesh(out_name, h_surf.vertices, h_surf.faces);
 
   return 0;
