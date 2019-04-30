@@ -1,3 +1,0 @@
-[submodule "dep/gsl-lite"]
-	path = dep/gsl-lite
-	url = git@github.com:martinmoene/gsl-lite.git
