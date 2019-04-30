@@ -11,8 +11,6 @@ INCLUDEPATH += \
   /usr/include/eigen3 \
   /usr/local/include \
   /usr/local/include/libigl/include \
-  /usr/include/suitesparse \
-  ${HOME}/SuiteSparse/include \
   # 3.3.7
   ${HOME}/eigen3 \
   ${HOME}/libigl/include \
@@ -20,11 +18,6 @@ INCLUDEPATH += \
   /public/devel/2018/include 
 
 INCLUDEPATH += $${PWD}/flo/include
-
-#Linker search paths
-LIBS += -L/home/s4902673/SuiteSparse/lib
-# Linker libraries
-LIBS += -lcholmod
 
 #DEFINES += FLO_USE_DOUBLE_PRECISION
 DEFINES += THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA
