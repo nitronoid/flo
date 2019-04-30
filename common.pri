@@ -1,19 +1,10 @@
-DEPPATH = $${PWD}/dep
-DEPS = $$system(ls $${DEPPATH})
-!isEmpty(DEPS) {
-  for(d, DEPS) {
-    INCLUDEPATH += $${DEPPATH}/$${d}
-    INCLUDEPATH += $${DEPPATH}/$${d}/include
-  }
-}
-
 INCLUDEPATH += \
   /usr/include/eigen3 \
   /usr/local/include \
   /usr/local/include/libigl/include \
   # 3.3.7
-  ${HOME}/eigen3 \
-  ${HOME}/libigl/include \
+  $${PWD}/dep/eigen \
+  $${PWD}/dep/libigl/include \
   # This comes last so the home directory takes higher precidence
   /public/devel/2018/include 
 
