@@ -1,4 +1,4 @@
-#include "flo/device/cotangent_laplacian_atomic.cuh"
+#include "flo/device/cotangent_laplacian.cuh"
 #include "flo/device/thread_util.cuh"
 #include "flo/device/adjacency_matrix_indices.cuh"
 #include <thrust/reduce.h>
