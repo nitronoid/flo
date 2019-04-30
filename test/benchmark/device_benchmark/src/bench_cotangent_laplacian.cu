@@ -14,34 +14,25 @@ static void bench_impl(std::string name, benchmark::State& state)
   // Load our surface from the cache
   auto& surf = TestCache::get_mesh<TestCache::DEVICE>(name + ".obj");
   // Read all our dependencies from disk
-  auto d_valence =
-    read_device_vector<int>(mp + "/vertex_vertex_adjacency/valence.mtx");
   auto d_cumulative_valence = read_device_vector<int>(
     mp + "/vertex_vertex_adjacency/cumulative_valence.mtx");
-  auto d_adjacency_keys =
-    read_device_vector<int>(mp + "/vertex_vertex_adjacency/adjacency_keys.mtx");
-  auto d_adjacency =
-    read_device_vector<int>(mp + "/vertex_vertex_adjacency/adjacency.mtx");
-  auto d_indices =
+  auto d_entry_indices =
     read_device_dense_matrix<int>(mp + "/adjacency_matrix_indices/indices.mtx");
+  auto d_diagonal_indices =
+    read_device_vector<int>(mp + "/cotangent_laplacian/diagonals.mtx");
 
   // Allocate a sparse matrix to store our result
   DeviceSparseMatrixR d_L(surf.n_vertices(),
                           surf.n_vertices(),
                           d_cumulative_valence.back() + surf.n_vertices());
 
-  // Allocate a dense 1 dimensional array to receive diagonal element indices
-  DeviceVectorI d_diagonals(surf.n_vertices());
   for (auto _ : state)
   {
-    flo::device::cotangent_laplacian(surf.vertices,
-                                     surf.faces,
-                                     d_indices,
-                                     d_adjacency_keys,
-                                     d_adjacency,
-                                     d_cumulative_valence,
-                                     d_diagonals,
-                                     d_L);
+    flo::device::cotangent_laplacian_values(surf.vertices,
+                                            surf.faces,
+                                            d_entry_indices,
+                                            d_diagonal_indices,
+                                            d_L);
   }
 }
 }  // namespace

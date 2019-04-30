@@ -25,28 +25,22 @@ void test(std::string name)
     mp + "/vertex_triangle_adjacency/adjacency_keys.mtx");
   auto d_triangle_adjacency =
     read_device_vector<int>(mp + "/vertex_triangle_adjacency/adjacency.mtx");
-  auto d_indices =
-    read_device_dense_matrix<int>(mp + "/adjacency_matrix_indices/indices.mtx");
 
   // Allocate a sparse quaternion matrix to store our result
   DeviceSparseMatrixQ d_Dq(surf.n_vertices(),
                            surf.n_vertices(),
                            d_cumulative_valence.back() + surf.n_vertices());
-  // Allocate a dense 1 dimensional array to receive diagonal element indices
-  DeviceVectorI d_diagonals(surf.n_vertices());
 
   // Run our function
   flo::device::intrinsic_dirac(surf.vertices,
                                surf.faces,
-                               d_area,
-                               d_rho,
-                               d_indices,
                                d_adjacency_keys,
                                d_adjacency,
                                d_cumulative_valence,
+                               d_area,
+                               d_rho,
                                d_triangle_adjacency_keys,
                                d_triangle_adjacency,
-                               d_diagonals,
                                d_Dq);
 
   // Add an ascending sequence to the cumulative valence to account for
@@ -66,7 +60,6 @@ void test(std::string name)
 
   // Copy our results back to the host side
   HostSparseMatrixR h_D = d_Dr;
-  HostVectorI h_diagonals = d_diagonals;
 
   // Load our expected results from disk
   auto expected_D = read_host_sparse_matrix<flo::real>(
@@ -76,7 +69,6 @@ void test(std::string name)
 
   // test our results
   using namespace testing;
-  EXPECT_THAT(h_diagonals, Pointwise(Eq(), expected_diagonals));
   EXPECT_THAT(h_D.row_indices, Pointwise(Eq(), expected_D.row_indices));
   EXPECT_THAT(h_D.column_indices, Pointwise(Eq(), expected_D.column_indices));
   EXPECT_THAT(h_D.values,

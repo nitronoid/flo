@@ -21,16 +21,15 @@ void bench_impl(std::string name, benchmark::State& state)
   auto d_area = read_device_vector<flo::real>(mp + "/face_area/face_area.mtx");
   auto d_cumulative_valence = read_device_vector<int>(
     mp + "/vertex_vertex_adjacency/cumulative_valence.mtx");
-  auto d_adjacency_keys =
-    read_device_vector<int>(mp + "/vertex_vertex_adjacency/adjacency_keys.mtx");
-  auto d_adjacency =
-    read_device_vector<int>(mp + "/vertex_vertex_adjacency/adjacency.mtx");
   auto d_triangle_adjacency_keys = read_device_vector<int>(
     mp + "/vertex_triangle_adjacency/adjacency_keys.mtx");
   auto d_triangle_adjacency =
     read_device_vector<int>(mp + "/vertex_triangle_adjacency/adjacency.mtx");
-  auto d_indices =
+  auto d_entry_indices =
     read_device_dense_matrix<int>(mp + "/adjacency_matrix_indices/indices.mtx");
+  auto d_diagonal_indices =
+    read_device_vector<int>(mp + "/cotangent_laplacian/diagonals.mtx");
+
 
   // Add an ascending sequence to the cumulative valence to account for
   // diagonals
@@ -45,9 +44,6 @@ void bench_impl(std::string name, benchmark::State& state)
                            surf.n_vertices(),
                            d_cumulative_valence.back() + surf.n_vertices());
 
-  // Allocate a dense 1 dimensional array to receive diagonal element indices
-  DeviceVectorI d_diagonals(surf.n_vertices());
-
   // Allocate our real matrix for solving
   DeviceSparseMatrixR d_Dr(
     surf.n_vertices() * 4, surf.n_vertices() * 4, d_Dq.values.size() * 16);
@@ -55,18 +51,15 @@ void bench_impl(std::string name, benchmark::State& state)
   for (auto _ : state)
   {
     // Run our function
-    flo::device::intrinsic_dirac(surf.vertices,
-                                 surf.faces,
-                                 d_area,
-                                 d_rho,
-                                 d_indices,
-                                 d_adjacency_keys,
-                                 d_adjacency,
-                                 d_cumulative_valence,
-                                 d_triangle_adjacency_keys,
-                                 d_triangle_adjacency,
-                                 d_diagonals,
-                                 d_Dq);
+    flo::device::intrinsic_dirac_values(surf.vertices,
+                                        surf.faces,
+                                        d_area,
+                                        d_rho,
+                                        d_triangle_adjacency_keys,
+                                        d_triangle_adjacency,
+                                        d_entry_indices,
+                                        d_diagonal_indices,
+                                        d_Dq);
 
     // Transform our quaternion matrix to a real matrix
     flo::device::to_quaternion_matrix(
