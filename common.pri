@@ -14,11 +14,11 @@ INCLUDEPATH += $${PWD}/flo/include
 DEFINES += THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA
 
 QT -= opengl core gui
-CONFIG += console c++11
+CONFIG += console c++17
 CONFIG -= app_bundle
 
 # Standard flags
-QMAKE_CXXFLAGS += -std=c++11 -g -fdiagnostics-color
+QMAKE_CXXFLAGS += -std=c++17 -g -fdiagnostics-color
 # Optimisation flags
 QMAKE_CXXFLAGS += -Ofast -march=native -frename-registers -funroll-loops -ffast-math -fassociative-math
 # Enable openmp
