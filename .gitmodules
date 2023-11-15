@@ -1,9 +1,3 @@
 [submodule "dep/cusplibrary"]
 	path = dep/cusplibrary
 	url = git@github.com:nitronoid/cusplibrary.git
-[submodule "dep/libigl"]
-	path = dep/libigl
-	url = git@github.com:nitronoid/libigl.git
-[submodule "dep/eigen"]
-	path = dep/eigen
-	url = git@github.com:nitronoid/eigen-git-mirror.git
