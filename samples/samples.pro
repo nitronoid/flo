@@ -1,2 +1,6 @@
 TEMPLATE = subdirs
-SUBDIRS = host device
+SUBDIRS = host
+
+equals(FLO_COMPILE_DEVICE_CODE, 1) {
+    SUBDIRS += device
+}
